@@ -1,0 +1,24 @@
+{
+  "syncedAt": "2026-06-03",
+  "events": [
+    { "title": "Full Body Tan (Bronzing Bar)", "start": "2026-06-04", "startTime": "17:20", "endTime": "18:20", "location": "Lewis Center", "allDay": false },
+    { "title": "Rehearsal dinner — Katie & Hayden", "start": "2026-06-05", "allDay": true },
+    { "title": "Katie & Hayden wedding", "start": "2026-06-06", "allDay": true },
+    { "title": "Megan bridal shower", "start": "2026-06-07", "startTime": "11:00", "endTime": "15:00", "allDay": false },
+    { "title": "Bronzing Bar spray tan", "start": "2026-06-11", "startTime": "17:20", "endTime": "18:20", "allDay": false },
+    { "title": "Rehearsal dinner — Christina & Everett", "start": "2026-06-12", "allDay": true },
+    { "title": "Stay: Embassy Suites, Cincinnati RiverCenter", "start": "2026-06-12", "end": "2026-06-14", "location": "Covington, KY", "allDay": true, "trip": true },
+    { "title": "Christina & Everett wedding", "start": "2026-06-13", "allDay": true },
+    { "title": "Greece", "start": "2026-06-19", "end": "2026-06-28", "allDay": true, "trip": true, "emoji": "✈️" },
+    { "title": "Tartan", "start": "2026-07-12", "startTime": "20:00", "endTime": "21:00", "allDay": false },
+    { "title": "Rehearsal dinner — Katie & Danny", "start": "2026-07-17", "allDay": true },
+    { "title": "Stay: Courtyard Marriott, Blue Ash", "start": "2026-07-17", "end": "2026-07-19", "location": "Blue Ash, OH", "allDay": true, "trip": true },
+    { "title": "Katie & Danny wedding", "start": "2026-07-18", "allDay": true },
+    { "title": "Abbey Fellowships Graduation", "start": "2026-07-23", "startTime": "16:00", "endTime": "18:00", "allDay": false },
+    { "title": "Hilton Head", "start": "2026-07-24", "end": "2026-08-01", "allDay": true, "trip": true, "emoji": "🏖️" },
+    { "title": "Hilton Head", "start": "2026-08-08", "end": "2026-08-15", "allDay": true, "trip": true, "emoji": "🏖️" },
+    { "title": "Joel bachelor party", "start": "2026-08-21", "end": "2026-08-23", "allDay": true, "trip": true },
+    { "title": "Rehearsal dinner — Megan & Joel", "start": "2026-09-10", "allDay": true },
+    { "title": "Megan & Joel wedding", "start": "2026-09-11", "allDay": true }
+  ]
+}

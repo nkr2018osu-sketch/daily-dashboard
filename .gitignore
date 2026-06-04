@@ -1,0 +1,6 @@
+# local test + preview artifacts (never deploy these)
+_serve.ps1
+_dump.html
+_dump.err
+_preview.png
+_*

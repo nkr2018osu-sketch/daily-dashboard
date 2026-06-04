@@ -1,0 +1,12 @@
+{
+  "name": "Daily Dashboard",
+  "short_name": "Dashboard",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f3ede2",
+  "theme_color": "#b5663f",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#b5663f" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="Dashboard" />
+<link rel="manifest" href="manifest.webmanifest" />
+<link rel="apple-touch-icon" href="icon.svg" />
+<link rel="icon" href="icon.svg" />
+<title>Daily Dashboard</title>
+<style>
+  :root{
+    --bg:#f3ede2; --card:#fffdf8; --ink:#3a3530; --muted:#8a8178; --line:#e7ddcd;
+    --terra:#b5663f; --terra-soft:#f0dccf; --sage:#6f7d5e; --sage-soft:#e2e8d6;
+    --amber:#c08a2d; --amber-soft:#f3e6c8; --teal:#3f8c86; --sand:#d9b98c;
+    --shadow:0 1px 2px rgba(60,45,30,.06), 0 6px 18px rgba(60,45,30,.05);
+    --radius:16px;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; padding:0;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    background:var(--bg); color:var(--ink); line-height:1.45;
+    padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:600px; margin:0 auto; padding:14px 14px 60px;}
+
+  /* Header */
+  header.app{position:sticky; top:0; z-index:20; background:linear-gradient(var(--bg) 75%, rgba(243,237,226,0)); padding:6px 2px 10px;}
+  .title{font-family:Georgia,"Times New Roman",serif; font-size:23px; font-weight:600; letter-spacing:.2px; margin:0 0 8px;}
+  .title .dot{color:var(--terra);}
+  .datenav{display:flex; align-items:center; gap:8px;}
+  .datenav .lbl{flex:1; text-align:center; font-weight:600; font-size:15px;}
+  .datenav .sub{display:block; font-weight:400; font-size:12px; color:var(--muted);}
+  .navbtn{border:1px solid var(--line); background:var(--card); color:var(--ink); width:38px; height:38px; border-radius:11px; font-size:17px; cursor:pointer; display:flex; align-items:center; justify-content:center;}
+  .navbtn:active{background:var(--terra-soft);}
+  .todaybtn{border:1px solid var(--line); background:var(--card); border-radius:11px; padding:0 12px; height:38px; font-size:13px; font-weight:600; color:var(--terra); cursor:pointer;}
+
+  .banner{background:var(--amber-soft); border:1px solid #e6cf9a; color:#7a5a14; border-radius:12px; padding:9px 12px; font-size:13px; margin:0 0 12px;}
+
+  /* Cards */
+  section.card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); padding:14px; margin:0 0 14px;}
+  .sechead{display:flex; align-items:center; gap:8px; margin:0 0 10px;}
+  .sechead h2{font-family:Georgia,serif; font-size:16px; margin:0; font-weight:600; flex:1;}
+  .sechead .meta{font-size:12px; color:var(--muted);}
+  .pill{font-size:11px; font-weight:700; padding:2px 8px; border-radius:20px; background:var(--terra-soft); color:var(--terra);}
+
+  .tabs{display:flex; gap:6px; margin:0 0 12px;}
+  .tab{flex:1; text-align:center; border:1px solid var(--line); background:var(--card); border-radius:10px; padding:7px 4px; font-size:12.5px; font-weight:600; color:var(--muted); cursor:pointer;}
+  .tab.on{background:var(--terra); color:#fff; border-color:var(--terra);}
+  .tab.on.soon{background:var(--amber); border-color:var(--amber);}
+  .tab.on.green{background:var(--sage); border-color:var(--sage);}
+  .tab.on.teal{background:var(--teal); border-color:var(--teal);}
+
+  /* Calendar */
+  .day{padding:8px 0; border-top:1px solid var(--line);}
+  .day:first-child{border-top:none;}
+  .day .dl{font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.4px; display:flex; align-items:center; gap:7px;}
+  .day.today .dl{color:var(--terra);}
+  .todaytag{font-size:10px; background:var(--terra); color:#fff; padding:1px 6px; border-radius:10px; letter-spacing:.3px;}
+  .evt{display:flex; gap:8px; padding:5px 0 2px; align-items:baseline;}
+  .evt .t{font-size:12px; color:var(--terra); font-weight:700; min-width:62px;}
+  .evt .body{flex:1;}
+  .evt .nm{font-size:14px;}
+  .evt .loc{font-size:11.5px; color:var(--muted);}
+  .noevt{font-size:12.5px; color:#b9af9f; padding:3px 0 2px; font-style:italic;}
+  .uprow{display:flex; gap:10px; padding:8px 0; border-top:1px solid var(--line); align-items:baseline;}
+  .uprow:first-child{border-top:none;}
+  .uprow .when{font-size:12px; font-weight:700; color:var(--terra); min-width:96px;}
+  .uprow .nm{font-size:14px; flex:1;}
+  .uprow .loc{font-size:11.5px; color:var(--muted);}
+
+  .syncbar{display:flex; gap:8px; align-items:center; margin-top:10px; flex-wrap:wrap;}
+  .syncbtn{border:1px solid var(--line); background:var(--card); border-radius:10px; padding:7px 11px; font-size:12.5px; font-weight:600; color:var(--terra); cursor:pointer;}
+  .synchint{font-size:11.5px; color:var(--muted); flex:1; min-width:140px;}
+
+  /* Tasks */
+  .task{display:flex; gap:11px; align-items:flex-start; padding:9px 0; border-top:1px solid var(--line);}
+  .task:first-child{border-top:none;}
+  .check{flex:none; width:24px; height:24px; border-radius:50%; border:2px solid var(--terra); background:transparent; cursor:pointer; margin-top:1px; position:relative;}
+  .check.soon{border-color:var(--amber);}
+  .check.later{border-color:var(--line);}
+  .check.done{background:var(--sage); border-color:var(--sage);}
+  .check.done::after{content:"✓"; color:#fff; font-size:14px; position:absolute; inset:0; display:flex; align-items:center; justify-content:center;}
+  .task .info{flex:1; min-width:0;}
+  .task .nm{font-size:14.5px;}
+  .task .sub{font-size:12px; color:var(--muted); margin-top:1px;}
+  .task .sub .due{color:var(--terra); font-weight:700;}
+  .task .sub .soon{color:var(--amber); font-weight:700;}
+  .cat{font-size:10px; font-weight:700; color:var(--muted); background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:1px 6px; margin-left:6px;}
+  .xbtn{flex:none; border:none; background:transparent; color:#c9bfb0; font-size:18px; cursor:pointer; padding:0 2px; line-height:1;}
+  .empty{font-size:13px; color:var(--muted); padding:10px 2px; text-align:center;}
+
+  /* Habits */
+  .progress{height:8px; background:var(--bg); border-radius:6px; overflow:hidden; margin:2px 0 12px; border:1px solid var(--line);}
+  .progress > i{display:block; height:100%; background:var(--sage); transition:width .25s;}
+  .habit{display:flex; gap:11px; align-items:center; padding:8px 0; border-top:1px solid var(--line);}
+  .habit:first-child{border-top:none;}
+  .habit .hcheck{flex:none; width:24px; height:24px; border-radius:7px; border:2px solid var(--sage); background:transparent; cursor:pointer; position:relative;}
+  .habit .hcheck.done{background:var(--sage);}
+  .habit .hcheck.done::after{content:"✓"; color:#fff; font-size:14px; position:absolute; inset:0; display:flex; align-items:center; justify-content:center;}
+  .habit .hn{flex:1; font-size:14.5px;}
+  .habit .hn.done{color:var(--muted); text-decoration:line-through;}
+  .streak{font-size:11.5px; color:var(--amber); font-weight:700; white-space:nowrap;}
+
+  /* Journal */
+  .field{margin:0 0 10px;}
+  .field label{display:block; font-size:12.5px; font-weight:700; color:var(--muted); margin:0 0 4px;}
+  textarea,input.txt{width:100%; border:1px solid var(--line); border-radius:11px; background:#fffefb; padding:9px 11px; font:inherit; font-size:14px; color:var(--ink); resize:vertical;}
+  textarea:focus,input.txt:focus{outline:none; border-color:var(--terra);}
+  .savedtag{font-size:11px; color:var(--sage); opacity:0; transition:opacity .2s;}
+  .savedtag.show{opacity:1;}
+
+  /* Breathwork */
+  .breathstage{display:flex; flex-direction:column; align-items:center; padding:6px 0 4px;}
+  .bcircle{width:180px; height:180px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-direction:column;
+    background:radial-gradient(circle at 50% 45%, var(--sage-soft), var(--card)); border:2px solid var(--sage);
+    transition:transform 4s ease-in-out, background-color .6s, border-color .6s; transform:scale(.62);}
+  .bcircle.out{border-color:var(--sand); background:radial-gradient(circle at 50% 45%, #f3e3cf, var(--card));}
+  .bphase{font-size:15px; font-weight:700; color:var(--ink);}
+  .bcount{font-size:34px; font-weight:700; font-variant-numeric:tabular-nums; color:var(--terra); margin-top:2px;}
+  .bidle{font-size:13px; color:var(--muted); text-align:center;}
+  .bbtn{display:block; width:100%; margin-top:12px; border:none; border-radius:12px; padding:12px; font-size:15px; font-weight:700; cursor:pointer; background:var(--teal); color:#fff;}
+  .bbtn.stop{background:#b35442;}
+  .btimer{font-size:12px; color:var(--muted);}
+
+  /* Projects */
+  .proj{padding:11px 0; border-top:1px solid var(--line);}
+  .proj:first-child{border-top:none;}
+  .proj .top{display:flex; gap:10px; align-items:center;}
+  .proj .pcheck{flex:none; width:22px; height:22px; border-radius:6px; border:2px solid var(--terra); background:transparent; cursor:pointer; position:relative;}
+  .proj .pcheck.done{background:var(--terra);}
+  .proj .pcheck.done::after{content:"✓"; color:#fff; font-size:13px; position:absolute; inset:0; display:flex; align-items:center; justify-content:center;}
+  .proj .pt{flex:1; font-size:15px; font-weight:600;}
+  .proj .pt.done{color:var(--muted); text-decoration:line-through;}
+
+  .addbtn{display:block; width:100%; margin-top:12px; border:1px dashed var(--terra); background:transparent; color:var(--terra); border-radius:11px; padding:10px; font-size:13.5px; font-weight:700; cursor:pointer;}
+
+  .foot{text-align:center; font-size:11px; color:#b9af9f; padding:8px 0 0;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="app">
+    <div class="title">Daily Dashboard<span class="dot">.</span></div>
+    <div class="datenav">
+      <button class="navbtn" id="prevDay" aria-label="Previous day">‹</button>
+      <div class="lbl"><span id="dateLabel">Today</span><span class="sub" id="dateSub"></span></div>
+      <button class="navbtn" id="nextDay" aria-label="Next day">›</button>
+      <button class="todaybtn" id="todayBtn">Today</button>
+    </div>
+  </header>
+
+  <div id="banner"></div>
+  <div id="app"></div>
+
+  <div class="foot" id="foot"></div>
+</div>
+
+<script>
+"use strict";
+/* ---------------- storage ---------------- */
+var PFX = "dd_v1_";
+var storageOK = true;
+function lsGet(key, dflt){
+  try{ var v = localStorage.getItem(PFX+key); return v===null ? dflt : JSON.parse(v); }
+  catch(e){ return dflt; }
+}
+function lsSet(key, val){
+  try{ localStorage.setItem(PFX+key, JSON.stringify(val)); return true; }
+  catch(e){ storageOK=false; return false; }
+}
+(function testStorage(){
+  try{ localStorage.setItem(PFX+"__t","1"); localStorage.removeItem(PFX+"__t"); }
+  catch(e){ storageOK=false; }
+})();
+
+/* ---------------- date helpers ---------------- */
+function pad(n){ return n<10 ? "0"+n : ""+n; }
+function ymd(d){ return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate()); }
+function parseYMD(s){ var p=s.split("-"); return new Date(+p[0], +p[1]-1, +p[2]); }
+function addDays(d, n){ var x=new Date(d.getFullYear(),d.getMonth(),d.getDate()); x.setDate(x.getDate()+n); return x; }
+function dayDiff(a, b){ // whole days a-b
+  var ms = new Date(a.getFullYear(),a.getMonth(),a.getDate()) - new Date(b.getFullYear(),b.getMonth(),b.getDate());
+  return Math.round(ms/86400000);
+}
+var DOW=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+var MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+function fmtLong(d){ return DOW[d.getDay()]+", "+MON[d.getMonth()]+" "+d.getDate(); }
+function fmtShort(d){ return MON[d.getMonth()]+" "+d.getDate(); }
+function fmtTime(t){ if(!t) return ""; var p=t.split(":"); var h=+p[0], m=p[1]; var ap=h>=12?"PM":"AM"; var hh=h%12; if(hh===0)hh=12; return hh+(m==="00"?"":":"+m)+" "+ap; }
+function nth(n){ var s=["th","st","nd","rd"], v=n%100; return n+(s[(v-20)%10]||s[v]||s[0]); }
+
+var TODAY = new Date(); TODAY = new Date(TODAY.getFullYear(),TODAY.getMonth(),TODAY.getDate());
+var view = new Date(TODAY); // focused date
+
+/* ---------------- seeds ---------------- */
+function uid(){ return "id"+Math.random().toString(36).slice(2,9); }
+
+var SEED_MAINT = [
+  // monthly (~30d), staggered
+  {id:"smokeco", name:"Test smoke & CO detectors", type:"interval", interval:30, anchor:"2026-06-05", cat:"Safety"},
+  {id:"cvac", name:"Empty & clean central vac canister", type:"interval", interval:30, anchor:"2026-06-09", cat:"Interior"},
+  {id:"jacuzzi", name:"Run jacuzzi tub jet-clean cycle", type:"interval", interval:30, anchor:"2026-06-13", cat:"Interior"},
+  {id:"softener", name:"Check water softener salt", type:"interval", interval:30, anchor:"2026-06-17", cat:"Systems"},
+  {id:"whcheck", name:"Check water heater (leaks/sediment)", type:"interval", interval:30, anchor:"2026-06-21", cat:"Systems"},
+  {id:"leakcheck", name:"Under-sink & faucet leak check", type:"interval", interval:30, anchor:"2026-06-25", cat:"Systems"},
+  {id:"hvaccheck", name:"Check HVAC filter", type:"interval", interval:30, anchor:"2026-06-29", cat:"HVAC"},
+  // quarterly (~90d)
+  {id:"hvacrep", name:"Replace HVAC filter", type:"interval", interval:90, anchor:"2026-06-07", cat:"HVAC"},
+  {id:"dryervent", name:"Clean dryer vent & lint trap", type:"interval", interval:90, anchor:"2026-06-15", cat:"Safety"},
+  {id:"disposal", name:"Clean garbage disposal", type:"interval", interval:90, anchor:"2026-06-23", cat:"Interior"},
+  {id:"caulk", name:"Inspect caulking (kitchen & baths)", type:"interval", interval:90, anchor:"2026-07-05", cat:"Interior"},
+  {id:"fridge", name:"Clean refrigerator coils", type:"interval", interval:90, anchor:"2026-07-19", cat:"Appliances"},
+  // annual
+  {id:"garagespr", name:"Lubricate garage door springs & track", type:"interval", interval:365, anchor:"2026-06-27", cat:"Exterior"},
+  {id:"flushwh", name:"Flush water heater", type:"interval", interval:365, anchor:"2026-10-05", cat:"Systems"},
+  {id:"pest", name:"Termite / pest inspection", type:"interval", interval:365, anchor:"2027-05-20", cat:"Exterior"},
+  {id:"extpaint", name:"Exterior paint / stain touch-up", type:"interval", interval:730, anchor:"2026-09-15", cat:"Exterior"},
+  // seasonal (yearly on a target date)
+  {id:"mow", name:"Mow the lawn", type:"interval", interval:7, anchor:"2026-06-04", months:[4,5,6,7,8,9,10,11], cat:"Lawn"},
+  {id:"grill", name:"Grill deep clean", type:"interval", interval:365, anchor:"2026-06-15", cat:"Exterior"},
+  {id:"fans", name:"Set ceiling fans to summer (counter-clockwise)", type:"interval", interval:365, anchor:"2026-06-06", cat:"Interior"},
+  {id:"furnace", name:"Furnace tune-up / service", type:"interval", interval:365, anchor:"2026-10-01", cat:"HVAC"},
+  {id:"chimney", name:"Fireplace & chimney inspection", type:"interval", interval:365, anchor:"2026-10-10", cat:"Safety"},
+  {id:"blowout", name:"Irrigation blow-out before first freeze", type:"interval", interval:365, anchor:"2026-10-15", cat:"Sprinklers"},
+  {id:"hoses", name:"Disconnect & drain outdoor hoses", type:"interval", interval:365, anchor:"2026-10-20", cat:"Exterior"},
+  {id:"weather", name:"Weatherstrip & seal air leaks", type:"interval", interval:365, anchor:"2026-10-25", cat:"Exterior"},
+  {id:"gutters", name:"Clean gutters", type:"interval", interval:365, anchor:"2026-11-01", cat:"Exterior"},
+  {id:"icedam", name:"Check for ice dams", type:"interval", interval:365, anchor:"2027-01-15", months:[12,1,2], cat:"Exterior"},
+  {id:"sprstart", name:"Sprinkler startup & backflow test", type:"interval", interval:365, anchor:"2027-04-15", cat:"Sprinklers"},
+  {id:"actune", name:"A/C tune-up / service", type:"interval", interval:365, anchor:"2027-04-01", cat:"HVAC"},
+  {id:"roof", name:"Roof & attic inspection", type:"interval", interval:365, anchor:"2027-04-20", cat:"Exterior"},
+  // bills
+  {id:"utilities", name:"Pay utilities", type:"monthly", dayOfMonth:1, cat:"Bills"},
+  {id:"mortgage", name:"Pay mortgage", type:"monthly", dayOfMonth:13, cat:"Bills"},
+  {id:"cards", name:"Pay credit cards", type:"monthly", dayOfMonth:15, cat:"Bills"}
+];
+
+var SEED_HABITS = [
+  {id:"connect", name:"Connect with someone you care about"},
+  {id:"move", name:"Move your body (walk / exercise)"},
+  {id:"sun", name:"Get outside / sunlight"},
+  {id:"stretch", name:"Stretch / mobility (5–10 min)"},
+  {id:"breathe", name:"10 min stillness (breathwork)"},
+  {id:"water", name:"Drink enough water"},
+  {id:"learn", name:"Learn something (read / study)"},
+  {id:"sleep", name:"Wind down for good sleep"}
+];
+
+/* ---------------- state ---------------- */
+var state = {
+  maint:   lsGet("maint", null) || SEED_MAINT.map(function(t){ t.lastDone=null; return t; }),
+  habits:  lsGet("habits", null) || SEED_HABITS.slice(),
+  habitLog:lsGet("habitLog", {}),
+  journal: lsGet("journal", {}),
+  projects:lsGet("projects", []),
+  events:  lsGet("events", {events:[], syncedAt:null}),
+  maintView: "due",
+  calView: "week"
+};
+function save(key){ lsSet(key, state[key]); }
+
+/* ---------------- events loading ---------------- */
+function loadEvents(){
+  // try network events.json; fall back to cached copy in localStorage
+  fetch("events.json", {cache:"no-store"}).then(function(r){
+    if(!r.ok) throw 0; return r.json();
+  }).then(function(data){
+    if(data && data.events){
+      state.events = data; save("events"); renderCalendar();
+      renderFoot();
+    }
+  }).catch(function(){ /* offline / file:// — keep cached */ });
+}
+
+// events occurring on a given date (Date)
+function eventsOnDay(d){
+  var ds = ymd(d), out=[];
+  (state.events.events||[]).forEach(function(e){
+    var s=parseYMD(e.start), en=e.end?parseYMD(e.end):s;
+    if(d>=s && d<=en){
+      out.push(e);
+    }
+  });
+  // timed first by start time, all-day after
+  out.sort(function(a,b){
+    var at=a.allDay?"99":(a.startTime||"00"), bt=b.allDay?"99":(b.startTime||"00");
+    return at<bt?-1:at>bt?1:0;
+  });
+  return out;
+}
+// upcoming list (collapsed ranges) after the visible week
+function upcomingEvents(fromDate){
+  var list = (state.events.events||[]).slice().filter(function(e){
+    var en=e.end?parseYMD(e.end):parseYMD(e.start);
+    return en >= fromDate;
+  });
+  list.sort(function(a,b){ return parseYMD(a.start)-parseYMD(b.start); });
+  return list;
+}
+
+/* ---------------- maintenance engine ---------------- */
+function nextDue(t){
+  if(t.type==="monthly"){
+    var base = new Date(TODAY.getFullYear(), TODAY.getMonth(), t.dayOfMonth);
+    var ld = t.lastDone?parseYMD(t.lastDone):null;
+    if(base < TODAY) base = new Date(TODAY.getFullYear(), TODAY.getMonth()+1, t.dayOfMonth);
+    if(ld && ld >= base) base = new Date(base.getFullYear(), base.getMonth()+1, t.dayOfMonth);
+    // if done this period already, push next month
+    if(ld){
+      var thisOcc = new Date(TODAY.getFullYear(), TODAY.getMonth(), t.dayOfMonth);
+      if(ld >= thisOcc && thisOcc >= addDays(TODAY,-3)){ /* recently paid */ }
+    }
+    return base;
+  }
+  // interval
+  var anchor = parseYMD(t.anchor);
+  if(t.lastDone){
+    return addDays(parseYMD(t.lastDone), t.interval);
+  }
+  var due = anchor;
+  // never done: roll forward in interval steps until >= today (so no ancient overdue)
+  while(due < TODAY) due = addDays(due, t.interval);
+  return due;
+}
+function inSeason(t){
+  if(!t.months) return true;
+  return t.months.indexOf(TODAY.getMonth()+1) !== -1;
+}
+function statusOf(t){
+  if(!inSeason(t)) return {cls:"off", days:9999, due:null};
+  var due = nextDue(t);
+  var dd = dayDiff(due, TODAY);
+  var cls = dd<=0 ? "due" : (dd<=10 ? "soon" : "later");
+  return {cls:cls, days:dd, due:due};
+}
+function cadenceLabel(t){
+  if(t.type==="monthly") return "Monthly · "+nth(t.dayOfMonth);
+  var i=t.interval;
+  if(i===7) return "Weekly";
+  if(i>=28&&i<=31) return "Monthly";
+  if(i>=88&&i<=93) return "Quarterly";
+  if(i>=360&&i<=370) return "Yearly";
+  if(i>=720&&i<=740) return "Every 2 years";
+  if(i===14) return "Every 2 weeks";
+  return "Every "+i+" days";
+}
+function dueText(st){
+  if(st.cls==="due"){
+    if(st.days===0) return "<span class='due'>Due today</span>";
+    return "<span class='due'>Overdue "+(-st.days)+"d</span>";
+  }
+  if(st.cls==="soon") return "<span class='soon'>In "+st.days+" day"+(st.days===1?"":"s")+"</span> · "+fmtShort(st.due);
+  return "In "+st.days+" days · "+fmtShort(st.due);
+}
+
+/* ---------------- rendering ---------------- */
+var app = document.getElementById("app");
+
+function renderHeader(){
+  var isToday = dayDiff(view,TODAY)===0;
+  document.getElementById("dateLabel").textContent = isToday ? "Today" : fmtLong(view);
+  document.getElementById("dateSub").textContent = isToday ? fmtLong(view) : (dayDiff(view,TODAY)===-1?"Yesterday":dayDiff(view,TODAY)===1?"Tomorrow":"");
+  document.getElementById("todayBtn").style.visibility = isToday ? "hidden" : "visible";
+}
+
+function renderBanner(){
+  var b=document.getElementById("banner");
+  if(!storageOK){
+    b.innerHTML = "<div class='banner'>⚠️ Saving isn’t working in this browser — your entries won’t persist. Open the hosted link (not a private/incognito window) so data can save.</div>";
+  } else { b.innerHTML=""; }
+}
+
+function renderAll(){
+  renderHeader(); renderBanner();
+  app.innerHTML =
+    sectionCalendar() +
+    sectionMaint() +
+    sectionHabits() +
+    sectionBreath() +
+    sectionJournal() +
+    sectionProjects();
+  bindCalendar(); bindMaint(); bindHabits(); bindBreath(); bindJournal(); bindProjects();
+  renderFoot();
+}
+
+/* ----- Calendar ----- */
+function sectionCalendar(){
+  return "<section class='card' id='calCard'>"+
+    "<div class='sechead'><h2>The week ahead</h2></div>"+
+    "<div class='tabs'><div class='tab "+(state.calView==='week'?'on':'')+"' data-cal='week'>Week</div>"+
+    "<div class='tab "+(state.calView==='up'?'on green':'')+"' data-cal='up'>Upcoming</div></div>"+
+    "<div id='calBody'></div>"+
+    "<div class='syncbar'><button class='syncbtn' id='copySync'>↻ Sync calendar</button>"+
+    "<span class='synchint'>"+(state.events.syncedAt?("Synced "+fmtShort(parseYMD(state.events.syncedAt))):"Not synced yet")+"</span></div>"+
+    "</section>";
+}
+function calBodyHTML(){
+  if(state.calView==="week"){
+    var html="";
+    for(var i=0;i<7;i++){
+      var d=addDays(view,i), evs=eventsOnDay(d), isT=dayDiff(d,TODAY)===0;
+      html+="<div class='day"+(isT?" today":"")+"'><div class='dl'>"+fmtLong(d)+(isT?"<span class='todaytag'>TODAY</span>":"")+"</div>";
+      if(evs.length){
+        evs.forEach(function(e){
+          var multi = e.end && ymd(parseYMD(e.start))!==ymd(parseYMD(e.end));
+          var tlabel = e.allDay ? (multi?"All day":"All day") : fmtTime(e.startTime);
+          html+="<div class='evt'><div class='t'>"+tlabel+"</div><div class='body'><div class='nm'>"+(e.emoji?e.emoji+" ":"")+esc(e.title)+"</div>"+(e.location?"<div class='loc'>"+esc(e.location)+"</div>":"")+"</div></div>";
+        });
+      } else {
+        html+="<div class='noevt'>Nothing scheduled</div>";
+      }
+      html+="</div>";
+    }
+    return html;
+  } else {
+    var from = addDays(view,7);
+    var list = upcomingEvents(from);
+    if(!list.length) return "<div class='empty'>Nothing further out. Tap “Sync calendar” to refresh.</div>";
+    var h="";
+    list.forEach(function(e){
+      var s=parseYMD(e.start), en=e.end?parseYMD(e.end):s;
+      var when = e.end && ymd(s)!==ymd(en) ? fmtShort(s)+" – "+fmtShort(en) : fmtShort(s)+(e.allDay?"":" · "+fmtTime(e.startTime));
+      h+="<div class='uprow'><div class='when'>"+when+"</div><div class='nm'>"+(e.emoji?e.emoji+" ":"")+esc(e.title)+(e.location?"<div class='loc'>"+esc(e.location)+"</div>":"")+"</div></div>";
+    });
+    return h;
+  }
+}
+function renderCalendar(){ var el=document.getElementById("calBody"); if(el) el.innerHTML=calBodyHTML();
+  var hint=document.querySelector("#calCard .synchint"); if(hint) hint.textContent = state.events.syncedAt?("Synced "+fmtShort(parseYMD(state.events.syncedAt))):"Not synced yet"; }
+function bindCalendar(){
+  renderCalendar();
+  document.querySelectorAll("[data-cal]").forEach(function(el){
+    el.onclick=function(){ state.calView=el.getAttribute("data-cal"); renderAll(); };
+  });
+  var cs=document.getElementById("copySync");
+  if(cs) cs.onclick=function(){
+    var msg="Sync my dashboard calendar: pull all my Google Calendar events from today through the next 4 months and give me the updated events.json.";
+    copyText(msg, cs, "↻ Sync calendar");
+  };
+}
+
+/* ----- Maintenance ----- */
+function sectionMaint(){
+  return "<section class='card' id='maintCard'>"+
+    "<div class='sechead'><h2>Home & recurring tasks</h2></div>"+
+    "<div class='tabs'>"+
+    "<div class='tab "+(state.maintView==='due'?'on':'')+"' data-mv='due'>Due now</div>"+
+    "<div class='tab "+(state.maintView==='soon'?'on soon':'')+"' data-mv='soon'>Coming soon</div>"+
+    "<div class='tab "+(state.maintView==='all'?'on':'')+"' data-mv='all'>All</div>"+
+    "</div><div id='maintBody'></div>"+
+    (state.maintView==='all'?"<button class='addbtn' id='addTask'>+ Add a task</button>":"")+
+    "</section>";
+}
+function maintBodyHTML(){
+  var items = state.maint.map(function(t){ return {t:t, st:statusOf(t)}; });
+  var view = state.maintView, list, empty;
+  if(view==="due"){
+    list = items.filter(function(x){ return x.st.cls==="due"; });
+    empty = "Nothing due today. 🎉";
+  } else if(view==="soon"){
+    list = items.filter(function(x){ return x.st.cls==="soon"; });
+    empty = "Nothing coming up in the next 10 days.";
+  } else {
+    list = items.filter(function(x){ return x.st.cls!=="off"; });
+    empty = "No tasks yet.";
+  }
+  list.sort(function(a,b){ return a.st.days-b.st.days; });
+  if(!list.length) return "<div class='empty'>"+empty+"</div>";
+  return list.map(function(x){
+    var t=x.t, st=x.st;
+    var ck = "check "+(st.cls==="soon"?"soon":st.cls==="later"?"later":"");
+    return "<div class='task'><button class='"+ck+"' data-done='"+t.id+"'></button>"+
+      "<div class='info'><div class='nm'>"+esc(t.name)+"<span class='cat'>"+t.cat+"</span></div>"+
+      "<div class='sub'>"+(view==="all"?cadenceLabel(t)+" · "+dueText(st):dueText(st))+"</div></div>"+
+      (view==="all"?"<button class='xbtn' data-del='"+t.id+"'>×</button>":"")+
+      "</div>";
+  }).join("");
+}
+function renderMaint(){ var el=document.getElementById("maintBody"); if(el) el.innerHTML=maintBodyHTML(); bindMaintRows(); }
+function bindMaint(){
+  renderMaint();
+  document.querySelectorAll("[data-mv]").forEach(function(el){ el.onclick=function(){ state.maintView=el.getAttribute("data-mv"); renderAll(); }; });
+  var add=document.getElementById("addTask");
+  if(add) add.onclick=addTaskFlow;
+}
+function bindMaintRows(){
+  document.querySelectorAll("[data-done]").forEach(function(el){
+    el.onclick=function(){
+      var id=el.getAttribute("data-done");
+      var t=state.maint.filter(function(x){return x.id===id;})[0]; if(!t)return;
+      t.lastDone = ymd(TODAY); save("maint"); renderMaint();
+    };
+  });
+  document.querySelectorAll("[data-del]").forEach(function(el){
+    el.onclick=function(){
+      var id=el.getAttribute("data-del");
+      var t=state.maint.filter(function(x){return x.id===id;})[0];
+      if(t && confirm("Delete “"+t.name+"”?")){ state.maint=state.maint.filter(function(x){return x.id!==id;}); save("maint"); renderMaint(); }
+    };
+  });
+}
+function addTaskFlow(){
+  var name=prompt("Task name:"); if(!name) return;
+  var kind=prompt("How often? Type one of:\n  weekly, monthly, quarterly, yearly\n  a number of days (e.g. 14)\n  or  bill:13  for a monthly bill on the 13th","monthly");
+  if(!kind) return;
+  kind=kind.trim().toLowerCase();
+  var t={id:uid(), name:name, cat:"Custom", lastDone:null};
+  if(kind.indexOf("bill:")===0){ t.type="monthly"; t.dayOfMonth=Math.max(1,Math.min(28,parseInt(kind.slice(5),10)||1)); t.cat="Bills"; }
+  else {
+    t.type="interval";
+    var map={weekly:7, monthly:30, quarterly:90, yearly:365};
+    t.interval = map[kind] || (parseInt(kind,10)||30);
+    t.anchor = ymd(addDays(TODAY,1));
+  }
+  state.maint.push(t); save("maint"); renderAll();
+}
+
+/* ----- Habits ----- */
+function sectionHabits(){
+  return "<section class='card' id='habitCard'>"+
+    "<div class='sechead'><h2>Daily habits</h2><span class='meta' id='habitMeta'></span></div>"+
+    "<div class='progress'><i id='habitBar'></i></div>"+
+    "<div id='habitBody'></div>"+
+    "<button class='addbtn' id='addHabit'>+ Add a habit</button>"+
+    "</section>";
+}
+function habitStreak(id){
+  var n=0, d=new Date(TODAY);
+  // count back from today (or from view if viewing past day, anchor at view? use TODAY)
+  while(true){
+    var log=state.habitLog[ymd(d)];
+    if(log && log[id]){ n++; d=addDays(d,-1); } else break;
+  }
+  return n;
+}
+function renderHabits(){
+  var ds=ymd(view), log=state.habitLog[ds]||{};
+  var done=0;
+  var html=state.habits.map(function(h){
+    var on=!!log[h.id]; if(on) done++;
+    var streak=habitStreak(h.id);
+    return "<div class='habit'><button class='hcheck"+(on?" done":"")+"' data-h='"+h.id+"'></button>"+
+      "<div class='hn"+(on?" done":"")+"'>"+esc(h.name)+"</div>"+
+      (streak>1?"<div class='streak'>🔥 "+streak+"</div>":"")+
+      "<button class='xbtn' data-hdel='"+h.id+"'>×</button></div>";
+  }).join("");
+  var el=document.getElementById("habitBody"); if(el) el.innerHTML=html;
+  var pct = state.habits.length? Math.round(done/state.habits.length*100):0;
+  var bar=document.getElementById("habitBar"); if(bar) bar.style.width=pct+"%";
+  var meta=document.getElementById("habitMeta"); if(meta) meta.textContent=done+"/"+state.habits.length;
+  document.querySelectorAll("[data-h]").forEach(function(el){
+    el.onclick=function(){
+      var id=el.getAttribute("data-h"); var ds=ymd(view);
+      if(!state.habitLog[ds]) state.habitLog[ds]={};
+      if(state.habitLog[ds][id]) delete state.habitLog[ds][id]; else state.habitLog[ds][id]=true;
+      save("habitLog"); renderHabits();
+    };
+  });
+  document.querySelectorAll("[data-hdel]").forEach(function(el){
+    el.onclick=function(){
+      var id=el.getAttribute("data-hdel"); var h=state.habits.filter(function(x){return x.id===id;})[0];
+      if(h && confirm("Remove habit “"+h.name+"”?")){ state.habits=state.habits.filter(function(x){return x.id!==id;}); save("habits"); renderHabits(); }
+    };
+  });
+}
+function bindHabits(){
+  renderHabits();
+  document.getElementById("addHabit").onclick=function(){
+    var n=prompt("New daily habit:"); if(!n) return;
+    state.habits.push({id:uid(), name:n}); save("habits"); renderHabits();
+  };
+}
+
+/* ----- Breathwork ----- */
+var PATTERNS={
+  box:{name:"Box", steps:[["in",4],["hold",4],["out",4],["hold",4]]},
+  "478":{name:"4-7-8", steps:[["in",4],["hold",7],["out",8]]},
+  sigh:{name:"Sigh", steps:[["in",3],["in",1],["out",6]]}
+};
+var breath={pat:"box", running:false, step:0, remain:0, timer:null, elapsed:0, etimer:null};
+function sectionBreath(){
+  return "<section class='card' id='breathCard'>"+
+    "<div class='sechead'><h2>Breathe</h2><span class='meta btimer' id='btimer'></span></div>"+
+    "<div class='tabs'>"+
+    "<div class='tab "+(breath.pat==='box'?'on teal':'')+"' data-pat='box'>Box 4·4·4·4</div>"+
+    "<div class='tab "+(breath.pat==='478'?'on teal':'')+"' data-pat='478'>4-7-8</div>"+
+    "<div class='tab "+(breath.pat==='sigh'?'on teal':'')+"' data-pat='sigh'>Sigh</div>"+
+    "</div>"+
+    "<div class='breathstage'><div class='bcircle' id='bcircle'><div class='bidle' id='bidle'>Pick a pattern,<br>then begin.</div></div></div>"+
+    "<button class='bbtn' id='bbtn'>Begin</button>"+
+    "</section>";
+}
+function bindBreath(){
+  document.querySelectorAll("[data-pat]").forEach(function(el){
+    el.onclick=function(){ if(breath.running) stopBreath(); breath.pat=el.getAttribute("data-pat"); renderAll(); };
+  });
+  document.getElementById("bbtn").onclick=function(){ breath.running?stopBreath():startBreath(); };
+}
+function startBreath(){
+  breath.running=true; breath.step=0; breath.elapsed=0;
+  var btn=document.getElementById("bbtn"); btn.textContent="Stop"; btn.classList.add("stop");
+  breath.etimer=setInterval(function(){ breath.elapsed++; var m=Math.floor(breath.elapsed/60),s=breath.elapsed%60; var el=document.getElementById("btimer"); if(el) el.textContent=m+":"+pad(s); },1000);
+  runStep();
+}
+function runStep(){
+  var steps=PATTERNS[breath.pat].steps;
+  var st=steps[breath.step % steps.length];
+  var phase=st[0], dur=st[1];
+  var circle=document.getElementById("bcircle"); var idle=document.getElementById("bidle");
+  if(idle) idle.style.display="none";
+  circle.innerHTML="<div class='bphase'>"+(phase==="in"?"Breathe in":phase==="out"?"Breathe out":"Hold")+"</div><div class='bcount'>"+dur+"</div>";
+  // animate size
+  circle.style.transitionDuration=dur+"s";
+  if(phase==="in"){ circle.classList.remove("out"); circle.style.transform="scale(1)"; }
+  else if(phase==="out"){ circle.classList.add("out"); circle.style.transform="scale(.62)"; }
+  // hold keeps current scale/color
+  breath.remain=dur;
+  breath.timer=setInterval(function(){
+    breath.remain--;
+    var c=document.querySelector("#bcircle .bcount"); if(c) c.textContent=Math.max(breath.remain,0);
+    if(breath.remain<=0){ clearInterval(breath.timer); breath.step++; runStep(); }
+  },1000);
+}
+function stopBreath(){
+  breath.running=false; clearInterval(breath.timer); clearInterval(breath.etimer);
+  var btn=document.getElementById("bbtn"); if(btn){ btn.textContent="Begin"; btn.classList.remove("stop"); }
+  var t=document.getElementById("btimer"); if(t) t.textContent="";
+  var circle=document.getElementById("bcircle");
+  if(circle){ circle.classList.remove("out"); circle.style.transitionDuration=".5s"; circle.style.transform="scale(.62)"; circle.innerHTML="<div class='bidle'>Nice work.<br>Begin again anytime.</div>"; }
+}
+
+/* ----- Journal ----- */
+function sectionJournal(){
+  var ds=ymd(view), j=state.journal[ds]||{mode:"guided"};
+  var mode=j.mode||"guided";
+  var body;
+  if(mode==="guided"){
+    body=
+      field("Grateful for (be specific)", "g", j.g||"", 2)+
+      field("Today's focus / intention", "f", j.f||"", 2)+
+      field("Open reflection", "r", j.r||"", 4);
+  } else {
+    body=field("Journal", "free", j.free||"", 7);
+  }
+  return "<section class='card' id='journalCard'>"+
+    "<div class='sechead'><h2>Journal</h2><span class='savedtag' id='jsaved'>saved ✓</span></div>"+
+    "<div class='tabs'><div class='tab "+(mode==='guided'?'on':'')+"' data-jm='guided'>Guided</div>"+
+    "<div class='tab "+(mode==='free'?'on':'')+"' data-jm='free'>Free-form</div></div>"+
+    body+"</section>";
+}
+function field(label, key, val, rows){
+  return "<div class='field'><label>"+label+"</label><textarea rows='"+rows+"' data-j='"+key+"'>"+esc(val)+"</textarea></div>";
+}
+function bindJournal(){
+  document.querySelectorAll("[data-jm]").forEach(function(el){
+    el.onclick=function(){
+      var ds=ymd(view); if(!state.journal[ds]) state.journal[ds]={};
+      state.journal[ds].mode=el.getAttribute("data-jm"); save("journal"); renderAll();
+    };
+  });
+  document.querySelectorAll("[data-j]").forEach(function(el){
+    el.oninput=function(){
+      var ds=ymd(view); if(!state.journal[ds]) state.journal[ds]={mode:document.querySelector("[data-jm].on")?"guided":"guided"};
+      var key=el.getAttribute("data-j");
+      if(!state.journal[ds].mode) state.journal[ds].mode = (key==="free")?"free":"guided";
+      state.journal[ds][key]=el.value; save("journal"); flashSaved();
+    };
+  });
+}
+var savedT;
+function flashSaved(){ var s=document.getElementById("jsaved"); if(!s)return; s.classList.add("show"); clearTimeout(savedT); savedT=setTimeout(function(){s.classList.remove("show");},900); }
+
+/* ----- Projects ----- */
+function sectionProjects(){
+  return "<section class='card' id='projCard'>"+
+    "<div class='sechead'><h2>Projects & goals</h2></div>"+
+    "<div id='projBody'></div>"+
+    "<button class='addbtn' id='addProj'>+ Add a project or goal</button>"+
+    "</section>";
+}
+function renderProjects(){
+  var el=document.getElementById("projBody"); if(!el)return;
+  if(!state.projects.length){ el.innerHTML="<div class='empty'>No projects yet. Add a goal you’re working toward.</div>"; }
+  else{
+    el.innerHTML=state.projects.map(function(p){
+      return "<div class='proj'><div class='top'><button class='pcheck"+(p.done?" done":"")+"' data-pd='"+p.id+"'></button>"+
+        "<div class='pt"+(p.done?" done":"")+"'>"+esc(p.title)+"</div><button class='xbtn' data-pdel='"+p.id+"'>×</button></div>"+
+        "<div class='field' style='margin-top:8px;margin-bottom:0'><textarea rows='2' placeholder='Notes, next steps…' data-pn='"+p.id+"'>"+esc(p.notes||"")+"</textarea></div></div>";
+    }).join("");
+  }
+  document.querySelectorAll("[data-pd]").forEach(function(b){ b.onclick=function(){ var p=getP(b.getAttribute("data-pd")); if(p){p.done=!p.done; save("projects"); renderProjects();} }; });
+  document.querySelectorAll("[data-pdel]").forEach(function(b){ b.onclick=function(){ var p=getP(b.getAttribute("data-pdel")); if(p&&confirm("Delete “"+p.title+"”?")){ state.projects=state.projects.filter(function(x){return x.id!==p.id;}); save("projects"); renderProjects(); } }; });
+  document.querySelectorAll("[data-pn]").forEach(function(t){ t.oninput=function(){ var p=getP(t.getAttribute("data-pn")); if(p){p.notes=t.value; save("projects");} }; });
+}
+function getP(id){ return state.projects.filter(function(x){return x.id===id;})[0]; }
+function bindProjects(){
+  renderProjects();
+  document.getElementById("addProj").onclick=function(){
+    var title=prompt("Project or goal:"); if(!title)return;
+    state.projects.push({id:uid(), title:title, notes:"", done:false}); save("projects"); renderProjects();
+  };
+}
+
+/* ---------------- utilities ---------------- */
+function esc(s){ return (s==null?"":""+s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function copyText(text, btn, restore){
+  function ok(){ if(btn){ btn.textContent="Copied — paste to Claude"; setTimeout(function(){btn.textContent=restore;},1800);} }
+  if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(text).then(ok, function(){ fallback(); }); }
+  else fallback();
+  function fallback(){ var ta=document.createElement("textarea"); ta.value=text; document.body.appendChild(ta); ta.select(); try{document.execCommand("copy"); ok();}catch(e){ prompt("Copy this message to Claude:", text); } document.body.removeChild(ta); }
+}
+function renderFoot(){
+  var f=document.getElementById("foot");
+  f.textContent = (storageOK?"Saving locally on this device":"⚠ Not saving")+(state.events.syncedAt?" · calendar synced "+fmtShort(parseYMD(state.events.syncedAt)):"");
+}
+
+/* ---------------- nav ---------------- */
+document.getElementById("prevDay").onclick=function(){ view=addDays(view,-1); renderAll(); };
+document.getElementById("nextDay").onclick=function(){ view=addDays(view,1); renderAll(); };
+document.getElementById("todayBtn").onclick=function(){ view=new Date(TODAY); renderAll(); };
+
+/* ---------------- go ---------------- */
+renderAll();
+loadEvents();
+if("serviceWorker" in navigator){ navigator.serviceWorker.register("sw.js").catch(function(){}); }
+</script>
+</body>
+</html>

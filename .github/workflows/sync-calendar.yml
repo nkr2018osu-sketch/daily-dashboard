@@ -1,0 +1,48 @@
+name: Sync calendar
+
+on:
+  schedule:
+    - cron: "0 10 * * *"   # ~6:00 AM America/New_York; GitHub may delay a few minutes
+  workflow_dispatch:        # lets you run it on demand from the Actions tab
+  push:
+    paths:                  # run when the automation itself changes (handy for first test)
+      - ".github/workflows/sync-calendar.yml"
+      - "scripts/ical_to_events.py"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-calendar
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install --quiet icalendar recurring-ical-events tzdata
+
+      - name: Build events.json from calendar feed
+        env:
+          CALENDAR_ICS_URL: ${{ secrets.CALENDAR_ICS_URL }}
+        run: python scripts/ical_to_events.py
+
+      - name: Commit if the calendar changed
+        run: |
+          if [ -n "$(git status --porcelain events.json)" ]; then
+            git config user.name "calendar-sync[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add events.json
+            git commit -m "Auto-sync calendar ($(date -u +%Y-%m-%d))"
+            git push
+            echo "Calendar updated."
+          else
+            echo "No calendar changes."
+          fi

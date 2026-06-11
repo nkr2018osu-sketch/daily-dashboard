@@ -346,9 +346,9 @@ const LS = "lift.v1";
 let S = load();
 function load(){
   try{ const s = JSON.parse(localStorage.getItem(LS));
-    if(s && s.history){ s.customEx=s.customEx||{}; if(s.program===undefined) s.program=null; return s; }
+    if(s && s.history){ s.customEx=s.customEx||{}; if(s.program===undefined) s.program=null; s.bw=s.bw||[]; return s; }
   }catch(e){}
-  return { rot:0, units:"lb", deload:false, history:[], swaps:{}, active:null, program:null, customEx:{} };
+  return { rot:0, units:"lb", deload:false, history:[], swaps:{}, active:null, program:null, customEx:{}, bw:[] };
 }
 function save(){ localStorage.setItem(LS, JSON.stringify(S)); }
 function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
@@ -463,15 +463,19 @@ function finishWorkout(){
   // a set counts if weight+reps are filled in, ticked or not — never silently drop typed data
   const entries = a.entries.map(en=>({ slot:en.slot, ex:en.ex, note:en.note,
       sets: en.sets.filter(s=>s.w!=="" && s.r!=="")
-                   .map(s=>({w:+s.w, r:+s.r, rir:(s.rir==="F"?0:+s.rir), fail:s.rir==="F"})) }))
+                   .map(s=>({w:+s.w, r:+s.r, rir:(s.rir==="F"?0:+s.rir), fail:s.rir==="F", t:s.t||undefined})) }))
     .filter(en=>en.sets.length);
   if(!entries.length){ toast("Nothing logged yet"); return; }
-  // PR check before saving
-  const prs=[];
+  // PR check before saving: e1RM PRs first, rep PRs (more reps at a known weight) second
+  const prs=[], repPrs=[];
   for(const en of entries){
     const prevBest = bestE1RM(en.ex);
     const nowBest = Math.max(...en.sets.map(s=>e1rm(s.w,s.r,s.rir)));
-    if(prevBest && nowBest > prevBest*1.001) prs.push(EXD(en.ex).name);
+    if(prevBest && nowBest > prevBest*1.001){ prs.push(EXD(en.ex).name); continue; }
+    for(const s of en.sets){
+      const pb = bestRepsAt(en.ex, s.w);
+      if(pb && s.r > pb){ repPrs.push(EXD(en.ex).name); break; }
+    }
   }
   const dayName = prog()[a.dayIdx] ? prog()[a.dayIdx].name : "Workout";
   const dur = Math.max(1, Math.round((Date.now()-new Date(a.date).getTime())/60000));
@@ -481,13 +485,29 @@ function finishWorkout(){
   save(); timerStop();
   go("today");
   if(S.history.length % 10 === 0) toast("Workout saved 💪 — "+S.history.length+" logged. Good time for Settings → Export backup!");
-  else toast(prs.length ? "🎉 New e1RM PR: "+prs.join(", ") : "Workout saved 💪");
+  else if(prs.length) toast("🎉 New e1RM PR: "+prs.join(", "));
+  else if(repPrs.length) toast("🎉 Rep PR: "+repPrs.join(", "));
+  else toast("Workout saved 💪");
 }
 function bestE1RM(exId){
   let best=0;
   for(const w of S.history){ if(w.deload) continue;
     for(const en of w.entries){ if(en.ex!==exId) continue;
       for(const s of en.sets){ const v=e1rm(s.w,s.r,s.rir); if(v>best) best=v; } } }
+  return best;
+}
+function bestRepsAt(exId, weight){
+  let best=0;
+  for(const w of S.history){ if(w.deload) continue;
+    for(const en of w.entries){ if(en.ex!==exId) continue;
+      for(const s of en.sets){ if(s.w===weight && s.r>best) best=s.r; } } }
+  return best;
+}
+function heaviestSet(exId){
+  let best=null;
+  for(const w of S.history){ if(w.deload) continue;
+    for(const en of w.entries){ if(en.ex!==exId) continue;
+      for(const s of en.sets){ if(!best || s.w>best.w || (s.w===best.w && s.r>best.r)) best=s; } } }
   return best;
 }
 
@@ -554,6 +574,23 @@ function rHome(){
     <div class="kpi"><div class="v">${totalSets}</div><div class="k">sets this wk</div></div>
     <div class="kpi"><div class="v">${last?fmtDate(last.date).replace(/^\w+, /,""):"—"}</div><div class="k">last session</div></div>
   </div>`;
+  const lastBw = S.bw.length ? S.bw[S.bw.length-1] : null;
+  let bwTrend = "";
+  if(lastBw){
+    const wkAgoT = new Date(lastBw.d).getTime() - 6.5*86400000;
+    const older = S.bw.filter(b=>new Date(b.d).getTime() <= wkAgoT);
+    if(older.length){
+      const diff = lastBw.w - older[older.length-1].w;
+      bwTrend = " · "+(diff>0.05?"▲":diff<-0.05?"▼":"=")+" "+Math.abs(diff).toFixed(1)+" vs last wk";
+    }
+  }
+  h += `<div class="card"><div class="row">
+    <div class="grow"><b>Body weight</b>
+      <div class="tiny">${lastBw ? lastBw.w+" "+S.units+" · "+fmtDate(lastBw.d)+bwTrend : "log it to see your trend — gaining ~0.25–0.5% a week supports muscle growth"}</div></div>
+    <input id="bw-in" type="number" inputmode="decimal" placeholder="${lastBw?lastBw.w:"weight"}"
+      style="width:84px;padding:10px 6px;font-size:16px;text-align:center;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:9px">
+    <button class="btn small" onclick="logBw()">Log</button>
+  </div></div>`;
   h += `<div class="card"><h3>This week vs Jeff's volume landmarks</h3>
     <div class="tiny" style="margin-bottom:8px">Direct hard sets per muscle, Mon–Sun. Target band ${VOL_LO}–${VOL_HI}.</div>`;
   for(const m of MUSCLES){
@@ -565,6 +602,15 @@ function rHome(){
   }
   h += `</div>`;
   return h;
+}
+function logBw(){
+  const v = +document.getElementById("bw-in").value;
+  if(!v || v<=0){ toast("Enter a weight first"); return; }
+  const today = new Date().toISOString().slice(0,10);
+  S.bw = S.bw.filter(b=>b.d!==today);
+  S.bw.push({d:today, w:v});
+  S.bw.sort((a,b)=>a.d<b.d?-1:1);
+  save(); render(); toast("Body weight logged");
 }
 function pickDay(){
   modal(`<h3 style="margin-top:0">Start which session?</h3>` +
@@ -579,11 +625,13 @@ function rActive(){
     <div class="grow"><b style="font-size:19px">${day.name}</b><div class="tiny">${fmtDate(a.date)}${a.deload?" · DELOAD":""}</div></div>
     <button class="btn ghost small" onclick="abandonWorkout()">Discard</button>
     <button class="btn small" onclick="finishWorkout()">Finish</button>
-  </div>`;
+  </div>
+  <div class="tiny" style="margin:-4px 0 10px">Tip: tap a set's number to tag it — <b>DS</b> drop set · <b>MY</b> myoreps · <b>LP</b> lengthened partials · <b>SS</b> superset</div>`;
   day.slots.forEach((slot, si)=>{
     const ex = exFor(slot), en = a.entries[si];
     const rec = recommend(slot);
     const wu = (si===0 && rec.weight) ? warmupPlan(rec.weight, ex) : null;
+    const lp = lastPerfs(exIdFor(slot),1)[0];
     h += `<div class="card ex">
       <div class="head">
         <div class="grow">
@@ -597,11 +645,12 @@ function rActive(){
         ${rec.text} <span class="tiny">· why?</span>
         <div class="why">${rec.why}</div>
       </div>
+      ${lp?`<div class="tiny" style="margin:2px 0 4px">Last time (${fmtDate(lp.date)}): ${lp.sets.map(s=>s.w+"×"+s.r+(s.t?" "+s.t.toLowerCase():"")+(s.fail?"✦":"")).join(", ")} ${S.units}</div>`:""}
       ${wu?`<div class="tiny" style="margin:4px 0">Warm-up: ${wu.map(s=>s.w+" "+S.units+" × "+s.r).join(" → ")}</div>`:""}
       <table class="sets"><tr><th>Set</th><th>${S.units}</th><th>Reps</th><th>RIR</th><th></th></tr>`;
     en.sets.forEach((s, ki)=>{
       h += `<tr>
-        <td class="tiny" style="width:30px">${ki+1}${slot.lastFail&&ki===en.sets.length-1?"🔥":""}</td>
+        <td class="tiny" style="width:36px" onclick="cycleTag(${si},${ki})">${ki+1}${slot.lastFail&&ki===en.sets.length-1?"🔥":""}${s.t?`<span style="color:var(--accent2);font-weight:700"> ${s.t}</span>`:""}</td>
         <td><input type="number" inputmode="decimal" value="${esc(s.w)}" onchange="setVal(${si},${ki},'w',this.value)"></td>
         <td><input type="number" inputmode="numeric" placeholder="${rec.repsAim||''}" value="${esc(s.r)}" onchange="setVal(${si},${ki},'r',this.value)"></td>
         <td style="width:64px"><select onchange="setVal(${si},${ki},'rir',this.value)">
@@ -626,6 +675,12 @@ function rActive(){
   return h;
 }
 function setVal(si,ki,f,v){ S.active.entries[si].sets[ki][f]=v; save(); }
+function cycleTag(si,ki){
+  const order=[undefined,"DS","MY","LP","SS"];
+  const s=S.active.entries[si].sets[ki];
+  s.t = order[(order.indexOf(s.t)+1) % order.length];
+  save(); render();
+}
 function tickSet(si,ki,btn){
   const s=S.active.entries[si].sets[ki];
   s.done=!s.done;
@@ -680,16 +735,20 @@ function plateSheet(si){
 
 /* ---------- Progress ---------- */
 function rProgress(){
-  if(!S.history.length) return `<div class="card"><h3>No workouts yet</h3><div class="muted">Finish your first session and your strength curves, PRs and volume audit show up here.</div></div>`;
+  if(!S.history.length && !S.bw.length) return `<div class="card"><h3>No workouts yet</h3><div class="muted">Finish your first session and your strength curves, PRs and volume audit show up here.</div></div>`;
+  if(!S.history.length) return `<div class="card"><h3>No workouts yet</h3><div class="muted">Strength charts appear after your first session.</div></div>` + bwCardHTML();
   const exsWithHist = allExIds().filter(id=>lastPerfs(id,1).length);
   const sel = window._chartEx && exsWithHist.includes(window._chartEx) ? window._chartEx : exsWithHist[0];
   window._chartEx = sel;
+  const hv = sel ? heaviestSet(sel) : null;
   let h = `<div class="card"><h3>Strength trend (e1RM)</h3>
     <div class="tiny" style="margin-bottom:8px">Estimated 1-rep max per session — Epley formula, credit for reps left in the tank. Up and to the right = progressive overload is happening.</div>
     <select class="wide" onchange="window._chartEx=this.value;render()">
       ${exsWithHist.map(id=>`<option value="${id}" ${id===sel?"selected":""}>${EXD(id).name}</option>`).join("")}
     </select>
-    <div id="chart-e1rm" style="margin-top:10px"></div></div>`;
+    <div id="chart-e1rm" style="margin-top:10px"></div>
+    ${hv?`<div class="tiny">Best e1RM ~<b style="color:var(--accent2)">${Math.round(bestE1RM(sel))} ${S.units}</b> · heaviest set ${hv.w} ${S.units} × ${hv.r} (best ${bestRepsAt(sel,hv.w)} reps at that weight)</div>`:""}</div>`;
+  h += bwCardHTML();
   h += `<div class="card"><h3>Weekly volume audit</h3>
     <div class="tiny" style="margin-bottom:8px">Hard sets per muscle per week vs Jeff's ${VOL_LO}–${VOL_HI} landmark. Secondary muscles count half.</div>
     <div id="chart-vol"></div></div>`;
@@ -708,10 +767,16 @@ function rProgress(){
       <div class="row"><b class="grow">${day}${w.deload?' <span class="pill warn">deload</span>':''}</b>
         <span class="tiny">${fmtDate(w.date)}</span>
         <button class="btn ghost small" onclick="delWorkout('${w.id}')">🗑</button></div>
-      <div class="tiny">${w.entries.map(e=>(EXD(e.ex)?EXD(e.ex).name:e.ex).split("(")[0].trim()+" "+e.sets.map(s=>s.w+"×"+s.r).join(", ")).join(" · ")}</div>
+      <div class="tiny">${w.entries.map(e=>(EXD(e.ex)?EXD(e.ex).name:e.ex).split("(")[0].trim()+" "+e.sets.map(s=>s.w+"×"+s.r+(s.t?s.t.toLowerCase():"")).join(", ")).join(" · ")}</div>
       <div class="tiny">${ns} sets${w.dur?" · "+w.dur+" min":""}</div></div>`;
   }).join("") + `</div>`;
   return h;
+}
+function bwCardHTML(){
+  if(!S.bw.length) return "";
+  return `<div class="card"><h3>Body weight</h3>
+    <div class="tiny" style="margin-bottom:6px">Trend matters, not the daily number. Slow gain (~0.25–0.5%/wk) for muscle, slow loss for a cut.</div>
+    <div id="chart-bw"></div></div>`;
 }
 function delWorkout(id){
   modal(`<h3 style="margin-top:0">Delete this workout?</h3>
@@ -734,6 +799,21 @@ function weekVolume(weeksAgo){
   }
   return v;
 }
+function lineChartSVG(pts, decimals){
+  const W=520,H=170,P=30;
+  const xs=pts.map(p=>p.t), ys=pts.map(p=>p.v);
+  const x0=Math.min(...xs), x1=Math.max(...xs)||x0+1;
+  let y0=Math.min(...ys), y1=Math.max(...ys); if(y0===y1){y0*=0.95;y1*=1.05;}
+  const X=t=>P+(W-2*P)*(x1===x0?0.5:(t-x0)/(x1-x0)), Y=v=>H-P-(H-2*P)*((v-y0)/(y1-y0));
+  const path=pts.map((p,i)=>(i?"L":"M")+X(p.t).toFixed(1)+","+Y(p.v).toFixed(1)).join(" ");
+  const fmt=v=>decimals?v.toFixed(1):Math.round(v);
+  return `<svg viewBox="0 0 ${W} ${H}">
+    <text class="axis" x="${P}" y="${Y(y1)-6}">${fmt(y1)} ${S.units}</text>
+    <text class="axis" x="${P}" y="${Y(y0)+12}">${fmt(y0)}</text>
+    <path d="${path}" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/>
+    ${pts.map(p=>`<circle cx="${X(p.t).toFixed(1)}" cy="${Y(p.v).toFixed(1)}" r="3.5" fill="var(--accent2)"/>`).join("")}
+  </svg>`;
+}
 function drawCharts(){
   // e1RM line
   const id=window._chartEx, host=document.getElementById("chart-e1rm");
@@ -743,21 +823,14 @@ function drawCharts(){
       for(const en of w.entries){ if(en.ex!==id) continue;
         const best=Math.max(...en.sets.map(s=>e1rm(s.w,s.r,s.rir)));
         if(isFinite(best)) pts.push({t:new Date(w.date).getTime(), v:best}); } }
-    if(pts.length<1){ host.innerHTML='<div class="tiny">No data yet.</div>'; }
-    else{
-      const W=520,H=170,P=30;
-      const xs=pts.map(p=>p.t), ys=pts.map(p=>p.v);
-      const x0=Math.min(...xs), x1=Math.max(...xs)||x0+1;
-      let y0=Math.min(...ys), y1=Math.max(...ys); if(y0===y1){y0*=0.95;y1*=1.05;}
-      const X=t=>P+(W-2*P)*(x1===x0?0.5:(t-x0)/(x1-x0)), Y=v=>H-P-(H-2*P)*((v-y0)/(y1-y0));
-      const path=pts.map((p,i)=>(i?"L":"M")+X(p.t).toFixed(1)+","+Y(p.v).toFixed(1)).join(" ");
-      host.innerHTML=`<svg viewBox="0 0 ${W} ${H}">
-        <text class="axis" x="${P}" y="${Y(y1)-6}">${Math.round(y1)} ${S.units}</text>
-        <text class="axis" x="${P}" y="${Y(y0)+12}">${Math.round(y0)}</text>
-        <path d="${path}" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/>
-        ${pts.map(p=>`<circle cx="${X(p.t).toFixed(1)}" cy="${Y(p.v).toFixed(1)}" r="3.5" fill="var(--accent2)"/>`).join("")}
-      </svg>`;
-    }
+    host.innerHTML = pts.length<1 ? '<div class="tiny">No data yet.</div>' : lineChartSVG(pts,false);
+  }
+  // body weight line (last ~120 days)
+  const bwHost=document.getElementById("chart-bw");
+  if(bwHost){
+    const cutoff = Date.now()-120*86400000;
+    const pts = S.bw.map(b=>({t:new Date(b.d).getTime(), v:b.w})).filter(p=>p.t>=cutoff);
+    bwHost.innerHTML = pts.length<2 ? '<div class="tiny">Log a few weigh-ins to see the trend line.</div>' : lineChartSVG(pts,true);
   }
   // weekly volume grouped bars: last 4 weeks aggregated as current week per muscle
   const vh=document.getElementById("chart-vol");

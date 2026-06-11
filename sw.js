@@ -1,5 +1,6 @@
-/* Daily Dashboard service worker — offline shell + fresh calendar */
-var CACHE = "dd-cache-v2";
+/* Daily Dashboard service worker — network-first everywhere so updates
+   always arrive; the cache is the offline fallback. */
+var CACHE = "dd-cache-v3";
 var SHELL = ["./", "./index.html", "./manifest.webmanifest", "./icon.svg",
              "./workout/index.html", "./workout/manifest.webmanifest", "./workout/icon.svg"];
 
@@ -13,16 +14,14 @@ self.addEventListener("activate", function(e){
   }).then(function(){ return self.clients.claim(); }));
 });
 self.addEventListener("fetch", function(e){
-  var url = new URL(e.request.url);
-  // events.json + workout app: network-first so updates show; fall back to cache offline
-  if(url.pathname.indexOf("events.json") !== -1 || url.pathname.indexOf("/workout/") !== -1){
-    e.respondWith(
-      fetch(e.request).then(function(r){
-        var copy = r.clone(); caches.open(CACHE).then(function(c){ c.put(e.request, copy); }); return r;
-      }).catch(function(){ return caches.match(e.request); })
-    );
-    return;
-  }
-  // shell: cache-first
-  e.respondWith(caches.match(e.request).then(function(c){ return c || fetch(e.request); }));
+  if(e.request.method !== "GET") return;
+  e.respondWith(
+    fetch(e.request).then(function(r){
+      if(r && r.ok && e.request.url.indexOf(self.location.origin) === 0){
+        var copy = r.clone();
+        caches.open(CACHE).then(function(c){ c.put(e.request, copy); });
+      }
+      return r;
+    }).catch(function(){ return caches.match(e.request); })
+  );
 });

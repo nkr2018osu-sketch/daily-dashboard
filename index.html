@@ -29,7 +29,6 @@
   }
   .wrap{max-width:600px; margin:0 auto; padding:14px 14px 60px;}
 
-  /* Header */
   header.app{position:sticky; top:0; z-index:20; background:linear-gradient(var(--bg) 75%, rgba(243,237,226,0)); padding:6px 2px 10px;}
   .title{font-family:Georgia,"Times New Roman",serif; font-size:23px; font-weight:600; letter-spacing:.2px; margin:0 0 8px;}
   .title .dot{color:var(--terra);}
@@ -42,7 +41,6 @@
 
   .banner{background:var(--amber-soft); border:1px solid #e6cf9a; color:#7a5a14; border-radius:12px; padding:9px 12px; font-size:13px; margin:0 0 12px;}
 
-  /* Cards */
   section.card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); padding:14px; margin:0 0 14px;}
   .sechead{display:flex; align-items:center; gap:8px; margin:0 0 10px;}
   .sechead h2{font-family:Georgia,serif; font-size:16px; margin:0; font-weight:600; flex:1;}
@@ -56,18 +54,59 @@
   .tab.on.green{background:var(--sage); border-color:var(--sage);}
   .tab.on.teal{background:var(--teal); border-color:var(--teal);}
 
-  /* Calendar */
-  .day{padding:8px 0; border-top:1px solid var(--line);}
-  .day:first-child{border-top:none;}
-  .day .dl{font-size:12px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.4px; display:flex; align-items:center; gap:7px;}
-  .day.today .dl{color:var(--terra);}
-  .todaytag{font-size:10px; background:var(--terra); color:#fff; padding:1px 6px; border-radius:10px; letter-spacing:.3px;}
+  /* weather strip */
+  .wx{display:flex; align-items:center; gap:10px; padding:8px 11px; background:var(--sage-soft); border:1px solid #d4ddc4; border-radius:12px; margin:0 0 12px; font-size:13.5px;}
+  .wx .big{font-size:22px;}
+  .wx .hi{font-weight:700;}
+  .wx .lo{color:var(--muted);}
+  .wx .rain{margin-left:auto; color:var(--teal); font-weight:600; font-size:12.5px;}
+
+  /* agenda */
   .evt{display:flex; gap:8px; padding:5px 0 2px; align-items:baseline;}
   .evt .t{font-size:12px; color:var(--terra); font-weight:700; min-width:62px;}
   .evt .body{flex:1;}
   .evt .nm{font-size:14px;}
   .evt .loc{font-size:11.5px; color:var(--muted);}
   .noevt{font-size:12.5px; color:#b9af9f; padding:3px 0 2px; font-style:italic;}
+  .agendahead{font-size:11.5px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; margin:10px 0 2px;}
+  .agendahead:first-child{margin-top:0;}
+
+  .task{display:flex; gap:11px; align-items:flex-start; padding:9px 0; border-top:1px solid var(--line);}
+  .task:first-of-type{border-top:none;}
+  .check{flex:none; width:24px; height:24px; border-radius:50%; border:2px solid var(--terra); background:transparent; cursor:pointer; margin-top:1px; position:relative;}
+  .check.bill{border-radius:7px; border-color:var(--amber);}
+  .check.soon{border-color:var(--amber);}
+  .check.later{border-color:var(--line);}
+  .check.done{background:var(--sage); border-color:var(--sage);}
+  .check.done::after{content:"✓"; color:#fff; font-size:14px; position:absolute; inset:0; display:flex; align-items:center; justify-content:center;}
+  .task .info{flex:1; min-width:0;}
+  .task .nm{font-size:14.5px;}
+  .task .sub{font-size:12px; color:var(--muted); margin-top:1px;}
+  .task .sub .due{color:var(--terra); font-weight:700;}
+  .task .sub .soon{color:var(--amber); font-weight:700;}
+  .task .note{font-size:12px; color:var(--muted); margin-top:3px; background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:5px 8px; display:none;}
+  .task.open .note{display:block;}
+  .cat{font-size:10px; font-weight:700; color:var(--muted); background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:1px 6px; margin-left:6px; white-space:nowrap;}
+  .snz{flex:none; border:1px solid var(--line); background:transparent; color:var(--muted); font-size:12px; cursor:pointer; padding:3px 8px; border-radius:9px; margin-top:1px;}
+  .xbtn{flex:none; border:none; background:transparent; color:#c9bfb0; font-size:18px; cursor:pointer; padding:0 2px; line-height:1;}
+  .empty{font-size:13px; color:var(--muted); padding:10px 2px; text-align:center;}
+  .clearday{font-size:13px; color:var(--sage); padding:6px 2px; font-weight:600;}
+
+  /* plan view */
+  .pday{display:flex; gap:10px; padding:8px 0; border-top:1px solid var(--line); align-items:flex-start;}
+  .pday:first-child{border-top:none;}
+  .pday .pd{min-width:74px;}
+  .pday .pd .d1{font-size:12.5px; font-weight:700;}
+  .pday .pd .d2{font-size:11px; color:var(--muted);}
+  .pday.today .pd .d1{color:var(--terra);}
+  .pday .pbody{flex:1; min-width:0;}
+  .pday .pitem{font-size:13px; padding:1px 0;}
+  .pday .pitem.bill{color:#8a6a1c;}
+  .pday .pitem.evt2{color:var(--teal);}
+  .pday .pitem .pin{font-size:10.5px; color:var(--muted);}
+  .pday .free{font-size:12px; color:#b9af9f; font-style:italic;}
+  .pday .pwx{font-size:11.5px; color:var(--muted); white-space:nowrap;}
+
   .uprow{display:flex; gap:10px; padding:8px 0; border-top:1px solid var(--line); align-items:baseline;}
   .uprow:first-child{border-top:none;}
   .uprow .when{font-size:12px; font-weight:700; color:var(--terra); min-width:96px;}
@@ -78,24 +117,7 @@
   .syncbtn{border:1px solid var(--line); background:var(--card); border-radius:10px; padding:7px 11px; font-size:12.5px; font-weight:600; color:var(--terra); cursor:pointer;}
   .synchint{font-size:11.5px; color:var(--muted); flex:1; min-width:140px;}
 
-  /* Tasks */
-  .task{display:flex; gap:11px; align-items:flex-start; padding:9px 0; border-top:1px solid var(--line);}
-  .task:first-child{border-top:none;}
-  .check{flex:none; width:24px; height:24px; border-radius:50%; border:2px solid var(--terra); background:transparent; cursor:pointer; margin-top:1px; position:relative;}
-  .check.soon{border-color:var(--amber);}
-  .check.later{border-color:var(--line);}
-  .check.done{background:var(--sage); border-color:var(--sage);}
-  .check.done::after{content:"✓"; color:#fff; font-size:14px; position:absolute; inset:0; display:flex; align-items:center; justify-content:center;}
-  .task .info{flex:1; min-width:0;}
-  .task .nm{font-size:14.5px;}
-  .task .sub{font-size:12px; color:var(--muted); margin-top:1px;}
-  .task .sub .due{color:var(--terra); font-weight:700;}
-  .task .sub .soon{color:var(--amber); font-weight:700;}
-  .cat{font-size:10px; font-weight:700; color:var(--muted); background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:1px 6px; margin-left:6px;}
-  .xbtn{flex:none; border:none; background:transparent; color:#c9bfb0; font-size:18px; cursor:pointer; padding:0 2px; line-height:1;}
-  .empty{font-size:13px; color:var(--muted); padding:10px 2px; text-align:center;}
-
-  /* Habits */
+  /* habits */
   .progress{height:8px; background:var(--bg); border-radius:6px; overflow:hidden; margin:2px 0 12px; border:1px solid var(--line);}
   .progress > i{display:block; height:100%; background:var(--sage); transition:width .25s;}
   .habit{display:flex; gap:11px; align-items:center; padding:8px 0; border-top:1px solid var(--line);}
@@ -107,15 +129,15 @@
   .habit .hn.done{color:var(--muted); text-decoration:line-through;}
   .streak{font-size:11.5px; color:var(--amber); font-weight:700; white-space:nowrap;}
 
-  /* Journal */
+  /* journal */
   .field{margin:0 0 10px;}
   .field label{display:block; font-size:12.5px; font-weight:700; color:var(--muted); margin:0 0 4px;}
-  textarea,input.txt{width:100%; border:1px solid var(--line); border-radius:11px; background:#fffefb; padding:9px 11px; font:inherit; font-size:14px; color:var(--ink); resize:vertical;}
+  textarea,input.txt,select.sel{width:100%; border:1px solid var(--line); border-radius:11px; background:#fffefb; padding:9px 11px; font:inherit; font-size:14px; color:var(--ink); resize:vertical;}
   textarea:focus,input.txt:focus{outline:none; border-color:var(--terra);}
   .savedtag{font-size:11px; color:var(--sage); opacity:0; transition:opacity .2s;}
   .savedtag.show{opacity:1;}
 
-  /* Breathwork */
+  /* breathwork */
   .breathstage{display:flex; flex-direction:column; align-items:center; padding:6px 0 4px;}
   .bcircle{width:180px; height:180px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-direction:column;
     background:radial-gradient(circle at 50% 45%, var(--sage-soft), var(--card)); border:2px solid var(--sage);
@@ -128,7 +150,7 @@
   .bbtn.stop{background:#b35442;}
   .btimer{font-size:12px; color:var(--muted);}
 
-  /* Projects */
+  /* projects */
   .proj{padding:11px 0; border-top:1px solid var(--line);}
   .proj:first-child{border-top:none;}
   .proj .top{display:flex; gap:10px; align-items:center;}
@@ -140,7 +162,20 @@
 
   .addbtn{display:block; width:100%; margin-top:12px; border:1px dashed var(--terra); background:transparent; color:var(--terra); border-radius:11px; padding:10px; font-size:13.5px; font-weight:700; cursor:pointer;}
 
+  /* sheet (editor / dialogs) */
+  .ovl{position:fixed; inset:0; background:rgba(58,53,48,.45); z-index:60; display:none; align-items:flex-end; justify-content:center;}
+  .ovl.on{display:flex;}
+  .sheet{background:var(--card); border-radius:18px 18px 0 0; width:100%; max-width:600px; max-height:85vh; overflow:auto;
+    padding:18px 16px calc(20px + env(safe-area-inset-bottom));}
+  .sheet h3{font-family:Georgia,serif; margin:0 0 12px; font-size:17px;}
+  .sheet .row2{display:flex; gap:8px;}
+  .sheet .row2 > *{flex:1;}
+  .btn{border:none; border-radius:11px; padding:12px 14px; font-size:14.5px; font-weight:700; cursor:pointer; background:var(--terra); color:#fff;}
+  .btn.ghost{background:var(--card); color:var(--ink); border:1px solid var(--line);}
+  .btn.danger{background:#b35442;}
+
   .foot{text-align:center; font-size:11px; color:#b9af9f; padding:8px 0 0;}
+  .foot button{border:none; background:none; color:var(--terra); font-size:11px; font-weight:700; cursor:pointer; text-decoration:underline;}
 </style>
 </head>
 <body>
@@ -160,10 +195,12 @@
 
   <div class="foot" id="foot"></div>
 </div>
+<div class="ovl" id="ovl"><div class="sheet" id="sheet"></div></div>
+<input type="file" id="importfile" accept=".json" style="display:none">
 
 <script>
 "use strict";
-/* ---------------- storage ---------------- */
+/* ================= storage (same keys as v1 — existing data survives) ================= */
 var PFX = "dd_v1_";
 var storageOK = true;
 function lsGet(key, dflt){
@@ -178,13 +215,14 @@ function lsSet(key, val){
   try{ localStorage.setItem(PFX+"__t","1"); localStorage.removeItem(PFX+"__t"); }
   catch(e){ storageOK=false; }
 })();
+if(navigator.storage && navigator.storage.persist) navigator.storage.persist();
 
-/* ---------------- date helpers ---------------- */
+/* ================= date helpers ================= */
 function pad(n){ return n<10 ? "0"+n : ""+n; }
 function ymd(d){ return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate()); }
 function parseYMD(s){ var p=s.split("-"); return new Date(+p[0], +p[1]-1, +p[2]); }
 function addDays(d, n){ var x=new Date(d.getFullYear(),d.getMonth(),d.getDate()); x.setDate(x.getDate()+n); return x; }
-function dayDiff(a, b){ // whole days a-b
+function dayDiff(a, b){
   var ms = new Date(a.getFullYear(),a.getMonth(),a.getDate()) - new Date(b.getFullYear(),b.getMonth(),b.getDate());
   return Math.round(ms/86400000);
 }
@@ -194,48 +232,88 @@ function fmtLong(d){ return DOW[d.getDay()]+", "+MON[d.getMonth()]+" "+d.getDate
 function fmtShort(d){ return MON[d.getMonth()]+" "+d.getDate(); }
 function fmtTime(t){ if(!t) return ""; var p=t.split(":"); var h=+p[0], m=p[1]; var ap=h>=12?"PM":"AM"; var hh=h%12; if(hh===0)hh=12; return hh+(m==="00"?"":":"+m)+" "+ap; }
 function nth(n){ var s=["th","st","nd","rd"], v=n%100; return n+(s[(v-20)%10]||s[v]||s[0]); }
+function uid(){ return "id"+Math.random().toString(36).slice(2,9); }
+function esc(s){ return (s==null?"":""+s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
 
 var TODAY = new Date(); TODAY = new Date(TODAY.getFullYear(),TODAY.getMonth(),TODAY.getDate());
-var view = new Date(TODAY); // focused date
+var view = new Date(TODAY);
 
-/* ---------------- seeds ---------------- */
-function uid(){ return "id"+Math.random().toString(36).slice(2,9); }
-
+/* ================= task seeds =================
+   Tailored to 5747 Glendavon Pl (Dublin OH, built 2007, ~4300 sqft,
+   irrigation, jacuzzi tub, central vac, gas fireplace, water softener,
+   city sewer). flex = how many days the scheduler may shift the task
+   to keep days to ~one task. Bills have flex 0 (fixed dates).      */
 var SEED_MAINT = [
-  // monthly (~30d), staggered
-  {id:"smokeco", name:"Test smoke & CO detectors", type:"interval", interval:30, anchor:"2026-06-05", cat:"Safety"},
-  {id:"cvac", name:"Empty & clean central vac canister", type:"interval", interval:30, anchor:"2026-06-09", cat:"Interior"},
-  {id:"jacuzzi", name:"Run jacuzzi tub jet-clean cycle", type:"interval", interval:30, anchor:"2026-06-13", cat:"Interior"},
-  {id:"softener", name:"Check water softener salt", type:"interval", interval:30, anchor:"2026-06-17", cat:"Systems"},
-  {id:"whcheck", name:"Check water heater (leaks/sediment)", type:"interval", interval:30, anchor:"2026-06-21", cat:"Systems"},
-  {id:"leakcheck", name:"Under-sink & faucet leak check", type:"interval", interval:30, anchor:"2026-06-25", cat:"Systems"},
-  {id:"hvaccheck", name:"Check HVAC filter", type:"interval", interval:30, anchor:"2026-06-29", cat:"HVAC"},
-  // quarterly (~90d)
-  {id:"hvacrep", name:"Replace HVAC filter", type:"interval", interval:90, anchor:"2026-06-07", cat:"HVAC"},
-  {id:"dryervent", name:"Clean dryer vent & lint trap", type:"interval", interval:90, anchor:"2026-06-15", cat:"Safety"},
-  {id:"disposal", name:"Clean garbage disposal", type:"interval", interval:90, anchor:"2026-06-23", cat:"Interior"},
-  {id:"caulk", name:"Inspect caulking (kitchen & baths)", type:"interval", interval:90, anchor:"2026-07-05", cat:"Interior"},
-  {id:"fridge", name:"Clean refrigerator coils", type:"interval", interval:90, anchor:"2026-07-19", cat:"Appliances"},
-  // annual
-  {id:"garagespr", name:"Lubricate garage door springs & track", type:"interval", interval:365, anchor:"2026-06-27", cat:"Exterior"},
-  {id:"flushwh", name:"Flush water heater", type:"interval", interval:365, anchor:"2026-10-05", cat:"Systems"},
-  {id:"pest", name:"Termite / pest inspection", type:"interval", interval:365, anchor:"2027-05-20", cat:"Exterior"},
-  {id:"extpaint", name:"Exterior paint / stain touch-up", type:"interval", interval:730, anchor:"2026-09-15", cat:"Exterior"},
-  // seasonal (yearly on a target date)
-  {id:"mow", name:"Mow the lawn", type:"interval", interval:7, anchor:"2026-06-04", months:[4,5,6,7,8,9,10,11], cat:"Lawn"},
-  {id:"grill", name:"Grill deep clean", type:"interval", interval:365, anchor:"2026-06-15", cat:"Exterior"},
-  {id:"fans", name:"Set ceiling fans to summer (counter-clockwise)", type:"interval", interval:365, anchor:"2026-06-06", cat:"Interior"},
-  {id:"furnace", name:"Furnace tune-up / service", type:"interval", interval:365, anchor:"2026-10-01", cat:"HVAC"},
-  {id:"chimney", name:"Fireplace & chimney inspection", type:"interval", interval:365, anchor:"2026-10-10", cat:"Safety"},
-  {id:"blowout", name:"Irrigation blow-out before first freeze", type:"interval", interval:365, anchor:"2026-10-15", cat:"Sprinklers"},
-  {id:"hoses", name:"Disconnect & drain outdoor hoses", type:"interval", interval:365, anchor:"2026-10-20", cat:"Exterior"},
-  {id:"weather", name:"Weatherstrip & seal air leaks", type:"interval", interval:365, anchor:"2026-10-25", cat:"Exterior"},
-  {id:"gutters", name:"Clean gutters", type:"interval", interval:365, anchor:"2026-11-01", cat:"Exterior"},
-  {id:"icedam", name:"Check for ice dams", type:"interval", interval:365, anchor:"2027-01-15", months:[12,1,2], cat:"Exterior"},
-  {id:"sprstart", name:"Sprinkler startup & backflow test", type:"interval", interval:365, anchor:"2027-04-15", cat:"Sprinklers"},
-  {id:"actune", name:"A/C tune-up / service", type:"interval", interval:365, anchor:"2027-04-01", cat:"HVAC"},
-  {id:"roof", name:"Roof & attic inspection", type:"interval", interval:365, anchor:"2027-04-20", cat:"Exterior"},
-  // bills
+  // ----- weekly chores -----
+  {id:"mow", name:"Mow the lawn", type:"interval", interval:7, flex:2, anchor:"2026-06-04", months:[4,5,6,7,8,9,10,11], cat:"Lawn",
+   note:"Skip if drought-dormant. Sharpen blade each spring."},
+  {id:"trash", name:"Roll out trash & recycling bins", type:"interval", interval:7, flex:0, anchor:"2026-06-16", cat:"Chores",
+   note:"Dublin pickup is Wednesday — bins out by 7 AM. (Holiday weeks slide one day.)"},
+  // ----- monthly -----
+  {id:"smokeco", name:"Test smoke & CO detectors", type:"interval", interval:30, flex:4, anchor:"2026-06-12", cat:"Safety",
+   note:"Press-hold test button on each floor. Batteries get replaced once a year (separate task)."},
+  {id:"cvac", name:"Empty & clean central vac canister", type:"interval", interval:30, flex:4, anchor:"2026-06-18", cat:"Interior"},
+  {id:"jacuzzi", name:"Run jacuzzi tub jet-clean cycle", type:"interval", interval:30, flex:4, anchor:"2026-06-22", cat:"Interior",
+   note:"Fill 2\" above jets with hot water + ½ cup dishwasher detergent, run 10 min, drain, refill cold, run 10 min."},
+  {id:"softener", name:"Check water softener salt", type:"interval", interval:30, flex:4, anchor:"2026-06-26", cat:"Systems",
+   note:"Keep tank at least half full; break up any salt bridge with a broom handle."},
+  {id:"hvaccheck", name:"Check HVAC filter", type:"interval", interval:30, flex:4, anchor:"2026-06-30", cat:"HVAC",
+   note:"Hold it up to light — if you can't see through it, swap it (quarterly task covers the actual replacement)."},
+  {id:"leakcheck", name:"Under-sink & faucet leak check", type:"interval", interval:30, flex:4, anchor:"2026-07-03", cat:"Systems",
+   note:"All 4 baths + kitchen + laundry. Feel supply lines, look for staining."},
+  // ----- quarterly -----
+  {id:"hvacrep", name:"Replace HVAC filter", type:"interval", interval:90, flex:6, anchor:"2026-06-08", cat:"HVAC",
+   note:"Two-story 4300 sqft likely = two furnaces/filters. Write the date on the frame."},
+  {id:"dryervent", name:"Vacuum dryer vent & duct", type:"interval", interval:90, flex:6, anchor:"2026-06-19", cat:"Safety",
+   note:"Pull the dryer, vacuum the duct and the outside flap. Lint fires are the #1 laundry hazard."},
+  {id:"disposal", name:"Clean garbage disposal", type:"interval", interval:90, flex:6, anchor:"2026-06-24", cat:"Interior",
+   note:"Ice cubes + coarse salt, grind, then citrus peel."},
+  {id:"sump", name:"Test sump pump", type:"interval", interval:90, flex:6, anchor:"2026-07-01", cat:"Systems",
+   note:"Pour a bucket of water into the pit — float should kick on and drain it. Critical before spring rains."},
+  {id:"gfci", name:"Test GFCI outlets", type:"interval", interval:90, flex:6, anchor:"2026-07-08", cat:"Safety",
+   note:"Press TEST then RESET on every GFCI (baths, kitchen, garage, exterior)."},
+  {id:"hoodfilter", name:"Degrease range-hood filter", type:"interval", interval:90, flex:6, anchor:"2026-07-12", cat:"Appliances",
+   note:"Soak in hot water + degreaser, or run through the dishwasher."},
+  {id:"caulk", name:"Inspect caulking (kitchen & baths)", type:"interval", interval:90, flex:6, anchor:"2026-07-16", cat:"Interior"},
+  {id:"fridge", name:"Clean refrigerator coils", type:"interval", interval:90, flex:6, anchor:"2026-07-22", cat:"Appliances"},
+  // ----- semiannual -----
+  {id:"fridgefilter", name:"Replace fridge water filter", type:"interval", interval:180, flex:8, anchor:"2026-07-26", cat:"Appliances"},
+  {id:"gutters", name:"Clean gutters & check downspouts", type:"interval", interval:180, flex:8, anchor:"2026-11-05", cat:"Exterior",
+   note:"Twice a year: after spring helicopters/blooms and after leaf drop. Watch for fascia rot while up there."},
+  // ----- annual / seasonal -----
+  {id:"fans", name:"Flip ceiling fans (summer ↺ / winter ↻)", type:"interval", interval:182, flex:8, anchor:"2026-10-28", cat:"Interior",
+   note:"Counter-clockwise (downdraft) in summer; clockwise low in winter."},
+  {id:"smokebatt", name:"Replace smoke/CO detector batteries", type:"interval", interval:365, flex:10, anchor:"2026-11-08", cat:"Safety",
+   note:"Even hardwired units have backup batteries. Detectors older than 10 yrs (house is 2007 — check dates) get replaced."},
+  {id:"garagespr", name:"Lubricate garage door springs & test auto-reverse", type:"interval", interval:365, flex:10, anchor:"2026-07-30", cat:"Exterior",
+   note:"Silicone spray on springs/hinges/track. Lay a 2×4 under the door — it must reverse on contact."},
+  {id:"grill", name:"Grill deep clean", type:"interval", interval:365, flex:10, anchor:"2026-06-15", cat:"Exterior"},
+  {id:"deck", name:"Inspect deck/patio — clean & reseal if water soaks in", type:"interval", interval:365, flex:12, anchor:"2026-08-12", cat:"Exterior",
+   note:"Sprinkle water on the boards: if it soaks in instead of beading, it's time to reseal."},
+  {id:"driveway", name:"Inspect driveway & walkway cracks", type:"interval", interval:365, flex:12, anchor:"2026-09-09", cat:"Exterior",
+   note:"Fill cracks before winter — Ohio freeze-thaw turns hairlines into spalls. Sealcoat every 2–3 yrs."},
+  {id:"extpaint", name:"Exterior paint / stain / trim touch-up", type:"interval", interval:730, flex:14, anchor:"2026-09-20", cat:"Exterior"},
+  {id:"bathfans", name:"Clean bathroom exhaust-fan grilles", type:"interval", interval:365, flex:10, anchor:"2026-08-26", cat:"Interior"},
+  {id:"flushwh", name:"Flush water heater", type:"interval", interval:365, flex:10, anchor:"2026-10-07", cat:"Systems",
+   note:"Hose to floor drain, drain a few gallons until clear. Softened water helps but sediment still builds."},
+  {id:"furnace", name:"Furnace tune-up (book a pro)", type:"interval", interval:365, flex:10, anchor:"2026-09-30", cat:"HVAC",
+   note:"Book in September — HVAC companies jam up at the first cold snap."},
+  {id:"chimney", name:"Gas fireplace & chimney inspection", type:"interval", interval:365, flex:10, anchor:"2026-10-12", cat:"Safety",
+   note:"Annual inspection before first use of the season; check the pilot and glass seal."},
+  {id:"blowout", name:"Irrigation blow-out (book before first freeze)", type:"interval", interval:365, flex:6, anchor:"2026-10-15", cat:"Sprinklers",
+   note:"Book the blow-out company by early October — first hard freeze in Dublin is usually mid/late Oct."},
+  {id:"hoses", name:"Disconnect & drain outdoor hoses", type:"interval", interval:365, flex:8, anchor:"2026-10-21", cat:"Exterior",
+   note:"Also shut interior shut-offs to frost-free sillcocks if you have them."},
+  {id:"weather", name:"Weatherstrip & seal air leaks", type:"interval", interval:365, flex:12, anchor:"2026-11-12", cat:"Exterior"},
+  {id:"icedam", name:"Check roofline for ice dams", type:"interval", interval:365, flex:6, anchor:"2027-01-15", months:[12,1,2], cat:"Exterior",
+   note:"Icicles at the gutter line = heat escaping the attic. Rake heavy snow off the first few feet of roof."},
+  {id:"sprstart", name:"Sprinkler startup + backflow test (book a pro)", type:"interval", interval:365, flex:8, anchor:"2027-04-15", cat:"Sprinklers",
+   note:"Columbus-area water requires an annual backflow test — the startup company files it."},
+  {id:"actune", name:"A/C tune-up (book a pro)", type:"interval", interval:365, flex:10, anchor:"2027-04-02", cat:"HVAC"},
+  {id:"roof", name:"Roof & attic inspection", type:"interval", interval:365, flex:12, anchor:"2027-04-22", cat:"Exterior",
+   note:"2007 roof is mid-life — look for lifted/missing shingles, granules in gutters, daylight or stains in the attic."},
+  {id:"pest", name:"Termite / pest inspection", type:"interval", interval:365, flex:12, anchor:"2027-05-12", cat:"Exterior"},
+  // ----- bills (fixed dates) -----
   {id:"utilities", name:"Pay utilities", type:"monthly", dayOfMonth:1, cat:"Bills"},
   {id:"mortgage", name:"Pay mortgage", type:"monthly", dayOfMonth:13, cat:"Bills"},
   {id:"cards", name:"Pay credit cards", type:"monthly", dayOfMonth:15, cat:"Bills"}
@@ -252,51 +330,67 @@ var SEED_HABITS = [
   {id:"sleep", name:"Wind down for good sleep"}
 ];
 
-/* ---------------- state ---------------- */
+/* ================= state + migration ================= */
 var state = {
-  maint:   lsGet("maint", null) || SEED_MAINT.map(function(t){ t.lastDone=null; return t; }),
+  maint:   lsGet("maint", null),
+  removed: lsGet("removed", []),
   habits:  lsGet("habits", null) || SEED_HABITS.slice(),
   habitLog:lsGet("habitLog", {}),
   journal: lsGet("journal", {}),
   projects:lsGet("projects", []),
   events:  lsGet("events", {events:[], syncedAt:null}),
-  maintView: "due",
+  wx:      lsGet("wx", null),
+  planTab: "plan",
   calView: "week"
 };
 function save(key){ lsSet(key, state[key]); }
 
-/* ---------------- events loading ---------------- */
+/* merge seeds into stored tasks: keep user's lastDone/snooze/custom tasks,
+   refresh seed definitions (names, notes, flex), add new seed tasks unless removed */
+(function migrate(){
+  var stored = state.maint || [];
+  var byId = {};
+  stored.forEach(function(t){ byId[t.id]=t; });
+  var out = [];
+  SEED_MAINT.forEach(function(seed){
+    if(state.removed.indexOf(seed.id)!==-1) return;
+    var old = byId[seed.id];
+    var t = JSON.parse(JSON.stringify(seed));
+    if(old){ t.lastDone = old.lastDone||null; t.snooze = old.snooze||null; }
+    else { t.lastDone = null; }
+    out.push(t); delete byId[seed.id];
+  });
+  // user-added custom tasks
+  Object.keys(byId).forEach(function(id){
+    var t = byId[id];
+    if(t.flex===undefined) t.flex = (t.type==="monthly")?0:Math.min(10, Math.max(2, Math.round((t.interval||30)/8)));
+    out.push(t);
+  });
+  state.maint = out; save("maint");
+})();
+
+/* ================= events ================= */
 function loadEvents(){
-  // try network events.json; fall back to cached copy in localStorage
   fetch("events.json", {cache:"no-store"}).then(function(r){
     if(!r.ok) throw 0; return r.json();
   }).then(function(data){
-    if(data && data.events){
-      state.events = data; save("events"); renderCalendar();
-      renderFoot();
-    }
-  }).catch(function(){ /* offline / file:// — keep cached */ });
+    if(data && data.events){ state.events = data; save("events"); renderAll(); }
+  }).catch(function(){});
 }
-
-// events occurring on a given date (Date)
 function eventsOnDay(d){
-  var ds = ymd(d), out=[];
+  var out=[];
   (state.events.events||[]).forEach(function(e){
     var s=parseYMD(e.start), en=e.end?parseYMD(e.end):s;
-    if(d>=s && d<=en){
-      out.push(e);
-    }
+    if(d>=s && d<=en) out.push(e);
   });
-  // timed first by start time, all-day after
   out.sort(function(a,b){
     var at=a.allDay?"99":(a.startTime||"00"), bt=b.allDay?"99":(b.startTime||"00");
     return at<bt?-1:at>bt?1:0;
   });
   return out;
 }
-// upcoming list (collapsed ranges) after the visible week
 function upcomingEvents(fromDate){
-  var list = (state.events.events||[]).slice().filter(function(e){
+  var list = (state.events.events||[]).filter(function(e){
     var en=e.end?parseYMD(e.end):parseYMD(e.start);
     return en >= fromDate;
   });
@@ -304,98 +398,390 @@ function upcomingEvents(fromDate){
   return list;
 }
 
-/* ---------------- maintenance engine ---------------- */
-function nextDue(t){
+/* ================= weather (Open-Meteo, free, no key — Dublin OH) ================= */
+function loadWeather(){
+  var fresh = state.wx && state.wx.fetchedAt && (Date.now()-state.wx.fetchedAt < 3*3600*1000);
+  if(fresh) return;
+  fetch("https://api.open-meteo.com/v1/forecast?latitude=40.0992&longitude=-83.1141&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code&temperature_unit=fahrenheit&timezone=America%2FNew_York&forecast_days=14")
+    .then(function(r){ if(!r.ok) throw 0; return r.json(); })
+    .then(function(j){
+      if(!j.daily) return;
+      var byDay={};
+      j.daily.time.forEach(function(t,i){
+        byDay[t]={hi:Math.round(j.daily.temperature_2m_max[i]), lo:Math.round(j.daily.temperature_2m_min[i]),
+                  rain:j.daily.precipitation_probability_max[i], code:j.daily.weather_code[i]};
+      });
+      state.wx={fetchedAt:Date.now(), byDay:byDay}; save("wx"); renderAll();
+    }).catch(function(){});
+}
+function wxIcon(code){
+  if(code===0) return "☀️"; if(code<=2) return "🌤"; if(code===3) return "☁️";
+  if(code<=48) return "🌫"; if(code<=57) return "🌦"; if(code<=67) return "🌧";
+  if(code<=77) return "❄️"; if(code<=82) return "🌧"; if(code<=86) return "❄️";
+  return "⛈";
+}
+function wxFor(d){ return state.wx && state.wx.byDay ? state.wx.byDay[ymd(d)] : null; }
+
+/* ================= scheduling engine =================
+   Bills are pinned to their day of month. Flexible tasks are placed on
+   the least-loaded day within [due − min(2,flex), due + flex], preferring
+   an empty day closest to the natural due date — that's what enforces
+   the "about one thing a day" rule. Deterministic for a given state.  */
+var PLAN_HORIZON = 200; // days
+var _plan = null;
+function invalidatePlan(){ _plan = null; }
+function monthAllowed(t, d){ return !t.months || t.months.indexOf(d.getMonth()+1)!==-1; }
+/* days you're away (trips / multi-day all-day events) — chores avoid these */
+function busyDaySet(){
+  var busy={};
+  (state.events.events||[]).forEach(function(e){
+    var multi = e.end && e.end!==e.start;
+    if(!(e.trip || (e.allDay && multi))) return;
+    var d=parseYMD(e.start), en=e.end?parseYMD(e.end):d;
+    while(d<=en){ busy[ymd(d)]=true; d=addDays(d,1); }
+  });
+  return busy;
+}
+
+function occurrencesFor(t){
+  var occs=[], horizon=addDays(TODAY, PLAN_HORIZON);
   if(t.type==="monthly"){
-    var base = new Date(TODAY.getFullYear(), TODAY.getMonth(), t.dayOfMonth);
-    var ld = t.lastDone?parseYMD(t.lastDone):null;
-    if(base < TODAY) base = new Date(TODAY.getFullYear(), TODAY.getMonth()+1, t.dayOfMonth);
-    if(ld && ld >= base) base = new Date(base.getFullYear(), base.getMonth()+1, t.dayOfMonth);
-    // if done this period already, push next month
-    if(ld){
-      var thisOcc = new Date(TODAY.getFullYear(), TODAY.getMonth(), t.dayOfMonth);
-      if(ld >= thisOcc && thisOcc >= addDays(TODAY,-3)){ /* recently paid */ }
+    for(var m=-1;m<8;m++){
+      var d=new Date(TODAY.getFullYear(), TODAY.getMonth()+m, Math.min(t.dayOfMonth,28));
+      if(d>horizon) break;
+      var paid = t.lastDone && (function(){ var ld=parseYMD(t.lastDone);
+        return ld.getFullYear()===d.getFullYear() && ld.getMonth()===d.getMonth(); })();
+      if(paid) continue;
+      if(d<TODAY && m<-0) { if(dayDiff(TODAY,d)<=20) occs.push(d); continue; } // recent unpaid → overdue
+      if(d>=TODAY) occs.push(d);
     }
-    return base;
+    return occs;
   }
-  // interval
-  var anchor = parseYMD(t.anchor);
-  if(t.lastDone){
-    return addDays(parseYMD(t.lastDone), t.interval);
+  // interval task
+  var start;
+  if(t.lastDone) start = addDays(parseYMD(t.lastDone), t.interval);
+  else { start = parseYMD(t.anchor); while(start < addDays(TODAY,-t.interval)) start = addDays(start, t.interval); }
+  if(t.snooze){ var sn=parseYMD(t.snooze); if(sn>start) start=sn; }
+  var d2 = start, guard=0;
+  while(d2<=horizon && guard<400){
+    guard++;
+    if(monthAllowed(t,d2)){ if(d2>=addDays(TODAY,-45)) occs.push(d2); d2=addDays(d2,t.interval); }
+    else d2=addDays(d2,t.interval===7?7:Math.min(t.interval,30));
   }
-  var due = anchor;
-  // never done: roll forward in interval steps until >= today (so no ancient overdue)
-  while(due < TODAY) due = addDays(due, t.interval);
-  return due;
+  return occs;
 }
-function inSeason(t){
-  if(!t.months) return true;
-  return t.months.indexOf(TODAY.getMonth()+1) !== -1;
+
+function buildPlan(){
+  if(_plan) return _plan;
+  var load={}, items=[], busy=busyDaySet();
+  function loadOf(ds){ return load[ds]||0; }
+  function put(ds, item){ load[ds]=(load[ds]||0)+1; items.push(item); }
+  // 1. fixed: bills + zero-flex tasks on their natural dates
+  var flexOccs=[];
+  state.maint.forEach(function(t){
+    occurrencesFor(t).forEach(function(due){
+      var overdue = dayDiff(due,TODAY)<0;
+      if(t.type==="monthly" || !t.flex){
+        var day = overdue ? TODAY : due;
+        put(ymd(day), {t:t, due:due, day:day, overdue:overdue?-dayDiff(due,TODAY):0});
+      } else flexOccs.push({t:t, due:due});
+    });
+  });
+  // 2. flexible: earliest due first, shorter flex first (less room = pick first)
+  flexOccs.sort(function(a,b){ return (a.due-b.due) || (a.t.flex-b.t.flex); });
+  flexOccs.forEach(function(o){
+    var t=o.t, due=o.due;
+    var overdue = dayDiff(due,TODAY)<0;
+    if(overdue){ put(ymd(TODAY), {t:t, due:due, day:TODAY, overdue:-dayDiff(due,TODAY)}); return; }
+    var early=Math.min(2,t.flex), late=t.flex;
+    var best=null, bestScore=1e9;
+    for(var off=-early; off<=late; off++){
+      var d=addDays(due,off);
+      if(d<TODAY) continue;
+      if(!monthAllowed(t,d)) continue;
+      var score = loadOf(ymd(d))*100 + (busy[ymd(d)]?500:0) + Math.abs(off)*2 + (off<0?1:0);
+      if(score<bestScore){ bestScore=score; best=d; }
+    }
+    // whole window busy (away) → slide to first free day after, up to ~3 weeks
+    if(best && bestScore>=500){
+      for(var ext=late+1; ext<=late+Math.min(t.interval||21,21); ext++){
+        var d3=addDays(due,ext);
+        if(d3<TODAY || !monthAllowed(t,d3)) continue;
+        if(!busy[ymd(d3)] && loadOf(ymd(d3))===0){ best=d3; break; }
+      }
+    }
+    if(!best) best=due<TODAY?TODAY:due;
+    put(ymd(best), {t:t, due:due, day:best, overdue:0});
+  });
+  var byDay={};
+  items.forEach(function(it){
+    var ds=ymd(it.day);
+    (byDay[ds]=byDay[ds]||[]).push(it);
+  });
+  Object.keys(byDay).forEach(function(ds){
+    byDay[ds].sort(function(a,b){ return (b.overdue-a.overdue) || (a.t.cat==="Bills"?-1:1); });
+  });
+  _plan = byDay;
+  return byDay;
 }
-function statusOf(t){
-  if(!inSeason(t)) return {cls:"off", days:9999, due:null};
-  var due = nextDue(t);
-  var dd = dayDiff(due, TODAY);
-  var cls = dd<=0 ? "due" : (dd<=10 ? "soon" : "later");
-  return {cls:cls, days:dd, due:due};
+function nextAssigned(taskId){
+  var plan=buildPlan(), best=null;
+  Object.keys(plan).forEach(function(ds){
+    plan[ds].forEach(function(it){
+      if(it.t.id!==taskId) return;
+      if(!best || it.day<best.day) best=it;
+    });
+  });
+  return best;
+}
+function completeTask(t){
+  t.lastDone = ymd(TODAY); t.snooze = null;
+  save("maint"); invalidatePlan(); renderAll();
+}
+function snoozeTask(t, days){
+  var it = nextAssigned(t.id);
+  var from = it ? (it.day>TODAY?it.day:TODAY) : TODAY;
+  t.snooze = ymd(addDays(from, days));
+  save("maint"); invalidatePlan(); renderAll();
 }
 function cadenceLabel(t){
-  if(t.type==="monthly") return "Monthly · "+nth(t.dayOfMonth);
+  if(t.type==="monthly") return "Monthly · the "+nth(t.dayOfMonth);
   var i=t.interval;
-  if(i===7) return "Weekly";
-  if(i>=28&&i<=31) return "Monthly";
-  if(i>=88&&i<=93) return "Quarterly";
-  if(i>=360&&i<=370) return "Yearly";
-  if(i>=720&&i<=740) return "Every 2 years";
-  if(i===14) return "Every 2 weeks";
+  if(i===7) return "Weekly"; if(i===14) return "Every 2 weeks";
+  if(i>=28&&i<=31) return "Monthly"; if(i>=88&&i<=93) return "Quarterly";
+  if(i>=170&&i<=190) return "Every 6 months";
+  if(i>=360&&i<=370) return "Yearly"; if(i>=720&&i<=740) return "Every 2 years";
   return "Every "+i+" days";
 }
-function dueText(st){
-  if(st.cls==="due"){
-    if(st.days===0) return "<span class='due'>Due today</span>";
-    return "<span class='due'>Overdue "+(-st.days)+"d</span>";
-  }
-  if(st.cls==="soon") return "<span class='soon'>In "+st.days+" day"+(st.days===1?"":"s")+"</span> · "+fmtShort(st.due);
-  return "In "+st.days+" days · "+fmtShort(st.due);
-}
 
-/* ---------------- rendering ---------------- */
+/* ================= rendering ================= */
 var app = document.getElementById("app");
-
 function renderHeader(){
   var isToday = dayDiff(view,TODAY)===0;
   document.getElementById("dateLabel").textContent = isToday ? "Today" : fmtLong(view);
   document.getElementById("dateSub").textContent = isToday ? fmtLong(view) : (dayDiff(view,TODAY)===-1?"Yesterday":dayDiff(view,TODAY)===1?"Tomorrow":"");
   document.getElementById("todayBtn").style.visibility = isToday ? "hidden" : "visible";
 }
-
 function renderBanner(){
   var b=document.getElementById("banner");
-  if(!storageOK){
-    b.innerHTML = "<div class='banner'>⚠️ Saving isn’t working in this browser — your entries won’t persist. Open the hosted link (not a private/incognito window) so data can save.</div>";
-  } else { b.innerHTML=""; }
+  b.innerHTML = storageOK ? "" :
+    "<div class='banner'>⚠️ Saving isn’t working in this browser — your entries won’t persist. Open the hosted link (not a private window).</div>";
 }
-
 function renderAll(){
   renderHeader(); renderBanner();
   app.innerHTML =
+    sectionToday() +
+    sectionPlan() +
     sectionCalendar() +
-    sectionMaint() +
     sectionHabits() +
     sectionBreath() +
     sectionJournal() +
     sectionProjects();
-  bindCalendar(); bindMaint(); bindHabits(); bindBreath(); bindJournal(); bindProjects();
+  bindToday(); bindPlan(); bindCalendar(); bindHabits(); bindBreath(); bindJournal(); bindProjects();
   renderFoot();
 }
 
-/* ----- Calendar ----- */
+/* ----- TODAY: weather + events + the day's assigned tasks ----- */
+function taskRowHTML(it, ctx){
+  var t=it.t, isBill=t.cat==="Bills";
+  var sub;
+  if(it.overdue) sub="<span class='due'>Overdue "+it.overdue+"d</span>"+(isBill?"":" · was due "+fmtShort(it.due));
+  else if(isBill) sub="Due "+fmtShort(it.due);
+  else if(ymd(it.day)!==ymd(it.due)) sub=cadenceLabel(t)+" · placed here (due ~"+fmtShort(it.due)+")";
+  else sub=cadenceLabel(t);
+  return "<div class='task' data-task='"+t.id+"'>"+
+    "<button class='check"+(isBill?" bill":"")+"' data-done='"+t.id+"'></button>"+
+    "<div class='info'><div class='nm'>"+esc(t.name)+"<span class='cat'>"+esc(t.cat)+"</span></div>"+
+    "<div class='sub'>"+sub+"</div>"+
+    (t.note?"<div class='note'>💡 "+esc(t.note)+"</div>":"")+
+    "</div>"+
+    (ctx==="today" && !isBill ? "<button class='snz' data-snz='"+t.id+"' title='Push to tomorrow'>↷ later</button>" : "")+
+    "</div>";
+}
+function sectionToday(){
+  var plan=buildPlan();
+  var dayItems = (plan[ymd(view)]||[]);
+  var evs = eventsOnDay(view);
+  var wx = wxFor(view);
+  var h = "<section class='card'><div class='sechead'><h2>"+(dayDiff(view,TODAY)===0?"Your day":"That day")+"</h2>"+
+    "<span class='meta'>"+(dayItems.length? dayItems.length+" task"+(dayItems.length===1?"":"s"):"")+"</span></div>";
+  if(wx) h+="<div class='wx'><span class='big'>"+wxIcon(wx.code)+"</span>"+
+    "<span><span class='hi'>"+wx.hi+"°</span> <span class='lo'>/ "+wx.lo+"°</span></span>"+
+    (wx.rain>=20?"<span class='rain'>☔ "+wx.rain+"% rain</span>":"<span class='rain' style='color:var(--muted)'>"+(wx.rain||0)+"% rain</span>")+"</div>";
+  // events
+  h+="<div class='agendahead'>Schedule</div>";
+  if(evs.length){
+    evs.forEach(function(e){
+      h+="<div class='evt'><div class='t'>"+(e.allDay?"All day":fmtTime(e.startTime))+"</div>"+
+        "<div class='body'><div class='nm'>"+(e.emoji?e.emoji+" ":"")+esc(e.title)+"</div>"+
+        (e.location?"<div class='loc'>"+esc(e.location)+"</div>":"")+"</div></div>";
+    });
+  } else h+="<div class='noevt'>Nothing on the calendar</div>";
+  // tasks
+  h+="<div class='agendahead'>Tasks</div>";
+  if(dayItems.length) h+=dayItems.map(function(it){ return taskRowHTML(it,"today"); }).join("");
+  else h+="<div class='clearday'>✓ Clear day — nothing assigned.</div>";
+  h+="</section>";
+  return h;
+}
+function bindToday(){
+  document.querySelectorAll("[data-done]").forEach(function(el){
+    el.onclick=function(){
+      var t=getTask(el.getAttribute("data-done")); if(!t) return;
+      el.classList.add("done");
+      setTimeout(function(){ completeTask(t); }, 220);
+    };
+  });
+  document.querySelectorAll("[data-snz]").forEach(function(el){
+    el.onclick=function(){ var t=getTask(el.getAttribute("data-snz")); if(t) snoozeTask(t,1); };
+  });
+  document.querySelectorAll(".task .info").forEach(function(el){
+    el.onclick=function(){ el.closest(".task").classList.toggle("open"); };
+  });
+}
+function getTask(id){ return state.maint.filter(function(x){return x.id===id;})[0]; }
+
+/* ----- PLAN: 14-day outlook / all tasks / bills ----- */
+function sectionPlan(){
+  return "<section class='card' id='planCard'>"+
+    "<div class='sechead'><h2>The plan</h2><span class='meta'>auto-balanced · ~1/day</span></div>"+
+    "<div class='tabs'>"+
+    "<div class='tab "+(state.planTab==='plan'?'on':'')+"' data-pt='plan'>Next 14 days</div>"+
+    "<div class='tab "+(state.planTab==='all'?'on':'')+"' data-pt='all'>All tasks</div>"+
+    "<div class='tab "+(state.planTab==='bills'?'on soon':'')+"' data-pt='bills'>Bills</div>"+
+    "</div><div id='planBody'>"+planBodyHTML()+"</div>"+
+    (state.planTab!=='plan'?"<button class='addbtn' id='addTask'>+ Add a task or bill</button>":"")+
+    "</section>";
+}
+function planBodyHTML(){
+  var plan=buildPlan();
+  if(state.planTab==="plan"){
+    var h="";
+    for(var i=0;i<14;i++){
+      var d=addDays(TODAY,i), ds=ymd(d), items=plan[ds]||[], evs=eventsOnDay(d), wx=wxFor(d);
+      h+="<div class='pday"+(i===0?" today":"")+"'><div class='pd'><div class='d1'>"+(i===0?"Today":DOW[d.getDay()])+"</div><div class='d2'>"+fmtShort(d)+"</div></div>"+
+        "<div class='pbody'>";
+      evs.slice(0,2).forEach(function(e){ h+="<div class='pitem evt2'>"+(e.emoji?e.emoji+" ":"📅 ")+esc(e.title)+"</div>"; });
+      items.forEach(function(it){
+        var bill=it.t.cat==="Bills";
+        h+="<div class='pitem"+(bill?" bill":"")+"'>"+(bill?"💵 ":"• ")+esc(it.t.name)+
+          (it.overdue?" <span class='pin' style='color:var(--terra)'>overdue</span>":"")+"</div>";
+      });
+      if(!items.length && !evs.length) h+="<div class='free'>free</div>";
+      h+="</div><div class='pwx'>"+(wx?wxIcon(wx.code)+" "+wx.hi+"°":"")+"</div></div>";
+    }
+    return h;
+  }
+  if(state.planTab==="bills"){
+    var bills=state.maint.filter(function(t){return t.cat==="Bills";});
+    if(!bills.length) return "<div class='empty'>No bills set up.</div>";
+    return bills.map(function(t){
+      var paidThisMonth = t.lastDone && (function(){var ld=parseYMD(t.lastDone);
+        return ld.getMonth()===TODAY.getMonth() && ld.getFullYear()===TODAY.getFullYear();})();
+      return "<div class='task'><button class='check bill"+(paidThisMonth?" done":"")+"' data-done='"+t.id+"'></button>"+
+        "<div class='info'><div class='nm'>"+esc(t.name)+"</div>"+
+        "<div class='sub'>"+cadenceLabel(t)+(paidThisMonth?" · <span style='color:var(--sage);font-weight:700'>paid this month</span>":"")+"</div></div>"+
+        "<button class='snz' data-edit='"+t.id+"'>edit</button></div>";
+    }).join("");
+  }
+  // all tasks (management)
+  var items = state.maint.filter(function(t){return t.cat!=="Bills";}).map(function(t){
+    return {t:t, next:nextAssigned(t.id)};
+  });
+  items.sort(function(a,b){
+    var ad=a.next?a.next.day:addDays(TODAY,999), bd=b.next?b.next.day:addDays(TODAY,999);
+    return ad-bd;
+  });
+  return items.map(function(x){
+    var t=x.t, n=x.next;
+    var when = n ? (n.overdue?"<span class='due'>Overdue "+n.overdue+"d</span>":
+      (dayDiff(n.day,TODAY)===0?"<span class='due'>Today</span>":
+       dayDiff(n.day,TODAY)<=10?"<span class='soon'>"+fmtShort(n.day)+"</span>":fmtShort(n.day))) : "out of season";
+    return "<div class='task' data-task='"+t.id+"'>"+
+      "<button class='check later' data-done='"+t.id+"'></button>"+
+      "<div class='info'><div class='nm'>"+esc(t.name)+"<span class='cat'>"+esc(t.cat)+"</span></div>"+
+      "<div class='sub'>"+cadenceLabel(t)+" · next: "+when+"</div>"+
+      (t.note?"<div class='note'>💡 "+esc(t.note)+"</div>":"")+"</div>"+
+      "<button class='snz' data-edit='"+t.id+"'>edit</button></div>";
+  }).join("");
+}
+function bindPlan(){
+  document.querySelectorAll("[data-pt]").forEach(function(el){
+    el.onclick=function(){ state.planTab=el.getAttribute("data-pt"); renderAll(); };
+  });
+  document.querySelectorAll("[data-edit]").forEach(function(el){
+    el.onclick=function(){ openTaskEditor(getTask(el.getAttribute("data-edit"))); };
+  });
+  var add=document.getElementById("addTask");
+  if(add) add.onclick=function(){ openTaskEditor(null); };
+}
+
+/* ----- task editor sheet ----- */
+function openTaskEditor(t){
+  var isNew=!t;
+  var cad = t ? (t.type==="monthly"?"bill":(t.interval===7?"weekly":t.interval<=31?"monthly":t.interval<=93?"quarterly":t.interval<=190?"semiannual":"yearly")) : "monthly";
+  var sheet=document.getElementById("sheet");
+  sheet.innerHTML="<h3>"+(isNew?"New task or bill":"Edit task")+"</h3>"+
+    "<div class='field'><label>Name</label><input class='txt' id='te-name' value='"+(t?esc(t.name):"")+"'></div>"+
+    "<div class='row2'><div class='field'><label>How often</label><select class='sel' id='te-cad'>"+
+      ["weekly","monthly","quarterly","semiannual","yearly","bill"].map(function(c){
+        var lbl={weekly:"Weekly",monthly:"Monthly",quarterly:"Quarterly",semiannual:"Every 6 months",yearly:"Yearly",bill:"Bill (fixed day of month)"}[c];
+        return "<option value='"+c+"'"+(c===cad?" selected":"")+">"+lbl+"</option>";
+      }).join("")+"</select></div>"+
+    "<div class='field'><label>Category</label><select class='sel' id='te-cat'>"+
+      ["Chores","Lawn","Interior","Exterior","Systems","HVAC","Safety","Appliances","Sprinklers","Bills","Custom"].map(function(c){
+        return "<option"+(t&&t.cat===c?" selected":"")+">"+c+"</option>";
+      }).join("")+"</select></div></div>"+
+    "<div class='field' id='te-daywrap' style='display:"+(cad==="bill"?"block":"none")+"'><label>Day of month</label><input class='txt' id='te-day' type='number' min='1' max='28' value='"+(t&&t.dayOfMonth?t.dayOfMonth:1)+"'></div>"+
+    "<div class='field'><label>Note / how-to (optional)</label><input class='txt' id='te-note' value='"+(t&&t.note?esc(t.note):"")+"'></div>"+
+    "<div class='row2'>"+
+    "<button class='btn' id='te-save'>"+(isNew?"Add":"Save")+"</button>"+
+    "<button class='btn ghost' id='te-cancel'>Cancel</button>"+
+    (isNew?"":"<button class='btn danger' id='te-del'>Delete</button>")+
+    "</div>";
+  document.getElementById("ovl").classList.add("on");
+  document.getElementById("te-cad").onchange=function(){
+    document.getElementById("te-daywrap").style.display=this.value==="bill"?"block":"none";
+  };
+  document.getElementById("te-cancel").onclick=closeSheet;
+  document.getElementById("te-save").onclick=function(){
+    var name=document.getElementById("te-name").value.trim(); if(!name) return;
+    var cad2=document.getElementById("te-cad").value;
+    var cat=document.getElementById("te-cat").value;
+    var note=document.getElementById("te-note").value.trim();
+    var obj = t || {id:uid(), lastDone:null};
+    obj.name=name; obj.cat=(cad2==="bill"?"Bills":cat); obj.note=note||undefined;
+    if(cad2==="bill"){
+      obj.type="monthly"; obj.dayOfMonth=Math.max(1,Math.min(28,+document.getElementById("te-day").value||1));
+      delete obj.interval; delete obj.anchor; obj.flex=0;
+    } else {
+      obj.type="interval";
+      obj.interval={weekly:7,monthly:30,quarterly:90,semiannual:182,yearly:365}[cad2];
+      obj.flex={weekly:2,monthly:4,quarterly:6,semiannual:8,yearly:10}[cad2];
+      if(!obj.anchor) obj.anchor=ymd(addDays(TODAY,1));
+      delete obj.dayOfMonth;
+    }
+    if(isNew) state.maint.push(obj);
+    save("maint"); invalidatePlan(); closeSheet(); renderAll();
+  };
+  var del=document.getElementById("te-del");
+  if(del) del.onclick=function(){
+    if(!confirm("Delete “"+t.name+"”?")) return;
+    state.maint=state.maint.filter(function(x){return x.id!==t.id;});
+    if(state.removed.indexOf(t.id)===-1) state.removed.push(t.id);
+    save("maint"); save("removed"); invalidatePlan(); closeSheet(); renderAll();
+  };
+}
+function closeSheet(){ document.getElementById("ovl").classList.remove("on"); }
+document.getElementById("ovl").addEventListener("click", function(e){ if(e.target.id==="ovl") closeSheet(); });
+
+/* ----- calendar (week ahead / upcoming) ----- */
 function sectionCalendar(){
   return "<section class='card' id='calCard'>"+
     "<div class='sechead'><h2>The week ahead</h2></div>"+
     "<div class='tabs'><div class='tab "+(state.calView==='week'?'on':'')+"' data-cal='week'>Week</div>"+
     "<div class='tab "+(state.calView==='up'?'on green':'')+"' data-cal='up'>Upcoming</div></div>"+
-    "<div id='calBody'></div>"+
+    "<div id='calBody'>"+calBodyHTML()+"</div>"+
     "<div class='syncbar'><button class='syncbtn' id='copySync'>↻ Sync calendar</button>"+
     "<span class='synchint'>"+(state.events.syncedAt?("Synced "+fmtShort(parseYMD(state.events.syncedAt))):"Not synced yet")+"</span></div>"+
     "</section>";
@@ -405,123 +791,39 @@ function calBodyHTML(){
     var html="";
     for(var i=0;i<7;i++){
       var d=addDays(view,i), evs=eventsOnDay(d), isT=dayDiff(d,TODAY)===0;
-      html+="<div class='day"+(isT?" today":"")+"'><div class='dl'>"+fmtLong(d)+(isT?"<span class='todaytag'>TODAY</span>":"")+"</div>";
+      html+="<div class='pday"+(isT?" today":"")+"'><div class='pd'><div class='d1'>"+(isT?"Today":DOW[d.getDay()])+"</div><div class='d2'>"+fmtShort(d)+"</div></div><div class='pbody'>";
       if(evs.length){
         evs.forEach(function(e){
-          var multi = e.end && ymd(parseYMD(e.start))!==ymd(parseYMD(e.end));
-          var tlabel = e.allDay ? (multi?"All day":"All day") : fmtTime(e.startTime);
-          html+="<div class='evt'><div class='t'>"+tlabel+"</div><div class='body'><div class='nm'>"+(e.emoji?e.emoji+" ":"")+esc(e.title)+"</div>"+(e.location?"<div class='loc'>"+esc(e.location)+"</div>":"")+"</div></div>";
+          html+="<div class='pitem evt2'>"+(e.allDay?"":("<b>"+fmtTime(e.startTime)+"</b> "))+(e.emoji?e.emoji+" ":"")+esc(e.title)+
+            (e.location?" <span class='pin'>· "+esc(e.location)+"</span>":"")+"</div>";
         });
-      } else {
-        html+="<div class='noevt'>Nothing scheduled</div>";
-      }
-      html+="</div>";
+      } else html+="<div class='free'>free</div>";
+      html+="</div></div>";
     }
     return html;
-  } else {
-    var from = addDays(view,7);
-    var list = upcomingEvents(from);
-    if(!list.length) return "<div class='empty'>Nothing further out. Tap “Sync calendar” to refresh.</div>";
-    var h="";
-    list.forEach(function(e){
-      var s=parseYMD(e.start), en=e.end?parseYMD(e.end):s;
-      var when = e.end && ymd(s)!==ymd(en) ? fmtShort(s)+" – "+fmtShort(en) : fmtShort(s)+(e.allDay?"":" · "+fmtTime(e.startTime));
-      h+="<div class='uprow'><div class='when'>"+when+"</div><div class='nm'>"+(e.emoji?e.emoji+" ":"")+esc(e.title)+(e.location?"<div class='loc'>"+esc(e.location)+"</div>":"")+"</div></div>";
-    });
-    return h;
   }
+  var from = addDays(view,7);
+  var list = upcomingEvents(from);
+  if(!list.length) return "<div class='empty'>Nothing further out. Tap “Sync calendar” to refresh.</div>";
+  var h="";
+  list.forEach(function(e){
+    var s=parseYMD(e.start), en=e.end?parseYMD(e.end):s;
+    var when = e.end && ymd(s)!==ymd(en) ? fmtShort(s)+" – "+fmtShort(en) : fmtShort(s)+(e.allDay?"":" · "+fmtTime(e.startTime));
+    h+="<div class='uprow'><div class='when'>"+when+"</div><div class='nm'>"+(e.emoji?e.emoji+" ":"")+esc(e.title)+(e.location?"<div class='loc'>"+esc(e.location)+"</div>":"")+"</div></div>";
+  });
+  return h;
 }
-function renderCalendar(){ var el=document.getElementById("calBody"); if(el) el.innerHTML=calBodyHTML();
-  var hint=document.querySelector("#calCard .synchint"); if(hint) hint.textContent = state.events.syncedAt?("Synced "+fmtShort(parseYMD(state.events.syncedAt))):"Not synced yet"; }
 function bindCalendar(){
-  renderCalendar();
   document.querySelectorAll("[data-cal]").forEach(function(el){
     el.onclick=function(){ state.calView=el.getAttribute("data-cal"); renderAll(); };
   });
   var cs=document.getElementById("copySync");
   if(cs) cs.onclick=function(){
-    var msg="Sync my dashboard calendar: pull all my Google Calendar events from today through the next 4 months and give me the updated events.json.";
-    copyText(msg, cs, "↻ Sync calendar");
+    copyText("Sync my dashboard calendar: pull all my Google Calendar events from today through the next 4 months and give me the updated events.json.", cs, "↻ Sync calendar");
   };
 }
 
-/* ----- Maintenance ----- */
-function sectionMaint(){
-  return "<section class='card' id='maintCard'>"+
-    "<div class='sechead'><h2>Home & recurring tasks</h2></div>"+
-    "<div class='tabs'>"+
-    "<div class='tab "+(state.maintView==='due'?'on':'')+"' data-mv='due'>Due now</div>"+
-    "<div class='tab "+(state.maintView==='soon'?'on soon':'')+"' data-mv='soon'>Coming soon</div>"+
-    "<div class='tab "+(state.maintView==='all'?'on':'')+"' data-mv='all'>All</div>"+
-    "</div><div id='maintBody'></div>"+
-    (state.maintView==='all'?"<button class='addbtn' id='addTask'>+ Add a task</button>":"")+
-    "</section>";
-}
-function maintBodyHTML(){
-  var items = state.maint.map(function(t){ return {t:t, st:statusOf(t)}; });
-  var view = state.maintView, list, empty;
-  if(view==="due"){
-    list = items.filter(function(x){ return x.st.cls==="due"; });
-    empty = "Nothing due today. 🎉";
-  } else if(view==="soon"){
-    list = items.filter(function(x){ return x.st.cls==="soon"; });
-    empty = "Nothing coming up in the next 10 days.";
-  } else {
-    list = items.filter(function(x){ return x.st.cls!=="off"; });
-    empty = "No tasks yet.";
-  }
-  list.sort(function(a,b){ return a.st.days-b.st.days; });
-  if(!list.length) return "<div class='empty'>"+empty+"</div>";
-  return list.map(function(x){
-    var t=x.t, st=x.st;
-    var ck = "check "+(st.cls==="soon"?"soon":st.cls==="later"?"later":"");
-    return "<div class='task'><button class='"+ck+"' data-done='"+t.id+"'></button>"+
-      "<div class='info'><div class='nm'>"+esc(t.name)+"<span class='cat'>"+t.cat+"</span></div>"+
-      "<div class='sub'>"+(view==="all"?cadenceLabel(t)+" · "+dueText(st):dueText(st))+"</div></div>"+
-      (view==="all"?"<button class='xbtn' data-del='"+t.id+"'>×</button>":"")+
-      "</div>";
-  }).join("");
-}
-function renderMaint(){ var el=document.getElementById("maintBody"); if(el) el.innerHTML=maintBodyHTML(); bindMaintRows(); }
-function bindMaint(){
-  renderMaint();
-  document.querySelectorAll("[data-mv]").forEach(function(el){ el.onclick=function(){ state.maintView=el.getAttribute("data-mv"); renderAll(); }; });
-  var add=document.getElementById("addTask");
-  if(add) add.onclick=addTaskFlow;
-}
-function bindMaintRows(){
-  document.querySelectorAll("[data-done]").forEach(function(el){
-    el.onclick=function(){
-      var id=el.getAttribute("data-done");
-      var t=state.maint.filter(function(x){return x.id===id;})[0]; if(!t)return;
-      t.lastDone = ymd(TODAY); save("maint"); renderMaint();
-    };
-  });
-  document.querySelectorAll("[data-del]").forEach(function(el){
-    el.onclick=function(){
-      var id=el.getAttribute("data-del");
-      var t=state.maint.filter(function(x){return x.id===id;})[0];
-      if(t && confirm("Delete “"+t.name+"”?")){ state.maint=state.maint.filter(function(x){return x.id!==id;}); save("maint"); renderMaint(); }
-    };
-  });
-}
-function addTaskFlow(){
-  var name=prompt("Task name:"); if(!name) return;
-  var kind=prompt("How often? Type one of:\n  weekly, monthly, quarterly, yearly\n  a number of days (e.g. 14)\n  or  bill:13  for a monthly bill on the 13th","monthly");
-  if(!kind) return;
-  kind=kind.trim().toLowerCase();
-  var t={id:uid(), name:name, cat:"Custom", lastDone:null};
-  if(kind.indexOf("bill:")===0){ t.type="monthly"; t.dayOfMonth=Math.max(1,Math.min(28,parseInt(kind.slice(5),10)||1)); t.cat="Bills"; }
-  else {
-    t.type="interval";
-    var map={weekly:7, monthly:30, quarterly:90, yearly:365};
-    t.interval = map[kind] || (parseInt(kind,10)||30);
-    t.anchor = ymd(addDays(TODAY,1));
-  }
-  state.maint.push(t); save("maint"); renderAll();
-}
-
-/* ----- Habits ----- */
+/* ----- habits ----- */
 function sectionHabits(){
   return "<section class='card' id='habitCard'>"+
     "<div class='sechead'><h2>Daily habits</h2><span class='meta' id='habitMeta'></span></div>"+
@@ -532,7 +834,6 @@ function sectionHabits(){
 }
 function habitStreak(id){
   var n=0, d=new Date(TODAY);
-  // count back from today (or from view if viewing past day, anchor at view? use TODAY)
   while(true){
     var log=state.habitLog[ymd(d)];
     if(log && log[id]){ n++; d=addDays(d,-1); } else break;
@@ -577,7 +878,7 @@ function bindHabits(){
   };
 }
 
-/* ----- Breathwork ----- */
+/* ----- breathwork ----- */
 var PATTERNS={
   box:{name:"Box", steps:[["in",4],["hold",4],["out",4],["hold",4]]},
   "478":{name:"4-7-8", steps:[["in",4],["hold",7],["out",8]]},
@@ -615,11 +916,9 @@ function runStep(){
   var circle=document.getElementById("bcircle"); var idle=document.getElementById("bidle");
   if(idle) idle.style.display="none";
   circle.innerHTML="<div class='bphase'>"+(phase==="in"?"Breathe in":phase==="out"?"Breathe out":"Hold")+"</div><div class='bcount'>"+dur+"</div>";
-  // animate size
   circle.style.transitionDuration=dur+"s";
   if(phase==="in"){ circle.classList.remove("out"); circle.style.transform="scale(1)"; }
   else if(phase==="out"){ circle.classList.add("out"); circle.style.transform="scale(.62)"; }
-  // hold keeps current scale/color
   breath.remain=dur;
   breath.timer=setInterval(function(){
     breath.remain--;
@@ -635,7 +934,7 @@ function stopBreath(){
   if(circle){ circle.classList.remove("out"); circle.style.transitionDuration=".5s"; circle.style.transform="scale(.62)"; circle.innerHTML="<div class='bidle'>Nice work.<br>Begin again anytime.</div>"; }
 }
 
-/* ----- Journal ----- */
+/* ----- journal ----- */
 function sectionJournal(){
   var ds=ymd(view), j=state.journal[ds]||{mode:"guided"};
   var mode=j.mode||"guided";
@@ -666,7 +965,7 @@ function bindJournal(){
   });
   document.querySelectorAll("[data-j]").forEach(function(el){
     el.oninput=function(){
-      var ds=ymd(view); if(!state.journal[ds]) state.journal[ds]={mode:document.querySelector("[data-jm].on")?"guided":"guided"};
+      var ds=ymd(view); if(!state.journal[ds]) state.journal[ds]={mode:"guided"};
       var key=el.getAttribute("data-j");
       if(!state.journal[ds].mode) state.journal[ds].mode = (key==="free")?"free":"guided";
       state.journal[ds][key]=el.value; save("journal"); flashSaved();
@@ -676,7 +975,7 @@ function bindJournal(){
 var savedT;
 function flashSaved(){ var s=document.getElementById("jsaved"); if(!s)return; s.classList.add("show"); clearTimeout(savedT); savedT=setTimeout(function(){s.classList.remove("show");},900); }
 
-/* ----- Projects ----- */
+/* ----- projects ----- */
 function sectionProjects(){
   return "<section class='card' id='projCard'>"+
     "<div class='sechead'><h2>Projects & goals</h2></div>"+
@@ -707,27 +1006,59 @@ function bindProjects(){
   };
 }
 
-/* ---------------- utilities ---------------- */
-function esc(s){ return (s==null?"":""+s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+/* ----- utilities ----- */
 function copyText(text, btn, restore){
   function ok(){ if(btn){ btn.textContent="Copied — paste to Claude"; setTimeout(function(){btn.textContent=restore;},1800);} }
   if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(text).then(ok, function(){ fallback(); }); }
   else fallback();
   function fallback(){ var ta=document.createElement("textarea"); ta.value=text; document.body.appendChild(ta); ta.select(); try{document.execCommand("copy"); ok();}catch(e){ prompt("Copy this message to Claude:", text); } document.body.removeChild(ta); }
 }
+
+/* ----- backup ----- */
+var BACKUP_KEYS=["maint","removed","habits","habitLog","journal","projects","events"];
+function exportBackup(){
+  var data={_dd:1, exportedAt:new Date().toISOString()};
+  BACKUP_KEYS.forEach(function(k){ data[k]=lsGet(k,null); });
+  var blob=new Blob([JSON.stringify(data,null,1)],{type:"application/json"});
+  var a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="dashboard-backup-"+ymd(TODAY)+".json";
+  a.click(); URL.revokeObjectURL(a.href);
+}
+function importBackup(file){
+  var r=new FileReader();
+  r.onload=function(){
+    try{
+      var d=JSON.parse(r.result);
+      if(!d || d._dd!==1) throw 0;
+      BACKUP_KEYS.forEach(function(k){ if(d[k]!=null){ state[k]=d[k]; lsSet(k,d[k]); } });
+      invalidatePlan(); renderAll();
+      alert("Backup restored ✓");
+    }catch(e){ alert("That doesn't look like a dashboard backup file."); }
+  };
+  r.readAsText(file);
+}
+document.getElementById("importfile").addEventListener("change", function(){
+  if(this.files[0]) importBackup(this.files[0]); this.value="";
+});
 function renderFoot(){
   var f=document.getElementById("foot");
-  f.textContent = (storageOK?"Saving locally on this device":"⚠ Not saving")+(state.events.syncedAt?" · calendar synced "+fmtShort(parseYMD(state.events.syncedAt)):"");
+  f.innerHTML = (storageOK?"Saving locally on this device":"⚠ Not saving")+
+    (state.events.syncedAt?" · calendar synced "+fmtShort(parseYMD(state.events.syncedAt)):"")+
+    " · <button id='bk-ex'>backup</button> · <button id='bk-im'>restore</button>";
+  document.getElementById("bk-ex").onclick=exportBackup;
+  document.getElementById("bk-im").onclick=function(){ document.getElementById("importfile").click(); };
 }
 
-/* ---------------- nav ---------------- */
+/* ----- nav ----- */
 document.getElementById("prevDay").onclick=function(){ view=addDays(view,-1); renderAll(); };
 document.getElementById("nextDay").onclick=function(){ view=addDays(view,1); renderAll(); };
 document.getElementById("todayBtn").onclick=function(){ view=new Date(TODAY); renderAll(); };
 
-/* ---------------- go ---------------- */
+/* ----- go ----- */
 renderAll();
 loadEvents();
+loadWeather();
 if("serviceWorker" in navigator){ navigator.serviceWorker.register("sw.js").catch(function(){}); }
 </script>
 </body>

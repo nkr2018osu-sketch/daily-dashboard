@@ -345,14 +345,20 @@ const VOL_LO = 10, VOL_HI = 20;
 const LS = "lift.v1";
 let S = load();
 function load(){
-  try{ const s = JSON.parse(localStorage.getItem(LS)); if(s && s.history) return s; }catch(e){}
-  return { rot:0, units:"lb", deload:false, history:[], swaps:{}, active:null };
+  try{ const s = JSON.parse(localStorage.getItem(LS));
+    if(s && s.history){ s.customEx=s.customEx||{}; if(s.program===undefined) s.program=null; return s; }
+  }catch(e){}
+  return { rot:0, units:"lb", deload:false, history:[], swaps:{}, active:null, program:null, customEx:{} };
 }
 function save(){ localStorage.setItem(LS, JSON.stringify(S)); }
 function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
 function fmtDate(iso){ const d=new Date(iso); return d.toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"}); }
 function esc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
-function exFor(slot){ return EX[S.swaps[slot.id] || slot.ex]; }
+function EXD(id){ return EX[id] || (S.customEx && S.customEx[id]) || null; }
+function allExIds(){ return Object.keys(EX).concat(Object.keys(S.customEx||{})); }
+function prog(){ return (S.program && S.program.days && S.program.days.length) ? S.program.days : PROGRAM; }
+function progName(){ return S.program ? (S.program.name || "Custom program") : "Nippard free PPL (built-in)"; }
+function exFor(slot){ return EXD(S.swaps[slot.id] || slot.ex); }
 function exIdFor(slot){ return S.swaps[slot.id] || slot.ex; }
 function unitInc(ex){ return S.units==="kg" ? (ex.inc>=5?2.5:1.25) : ex.inc; }
 function roundInc(w, ex){ const i=unitInc(ex); return Math.max(i, Math.round(w/i)*i); }
@@ -384,7 +390,7 @@ function lastPerfs(exId, n){
   return out;
 }
 function recommend(slot){
-  const exId = exIdFor(slot), ex = EX[exId];
+  const exId = exIdFor(slot), ex = EXD(exId);
   const hist = lastPerfs(exId, 2);
   if(!hist.length){
     return {type:"find", weight:null, repsAim:slot.lo,
@@ -442,7 +448,7 @@ function warmupPlan(workW, ex){
 
 /* ============================================================ ACTIVE WORKOUT */
 function startWorkout(dayIdx){
-  const day = PROGRAM[dayIdx];
+  const day = prog()[dayIdx];
   S.active = { id:uid(), dayIdx:dayIdx, date:new Date().toISOString(), deload:S.deload,
     entries: day.slots.map(slot=>{
       const rec = recommend(slot);
@@ -464,10 +470,11 @@ function finishWorkout(){
   for(const en of entries){
     const prevBest = bestE1RM(en.ex);
     const nowBest = Math.max(...en.sets.map(s=>e1rm(s.w,s.r,s.rir)));
-    if(prevBest && nowBest > prevBest*1.001) prs.push(EX[en.ex].name);
+    if(prevBest && nowBest > prevBest*1.001) prs.push(EXD(en.ex).name);
   }
-  S.history.push({ id:a.id, date:a.date, dayIdx:a.dayIdx, deload:a.deload, entries:entries });
-  S.rot = (a.dayIdx+1) % PROGRAM.length;
+  const dayName = prog()[a.dayIdx] ? prog()[a.dayIdx].name : "Workout";
+  S.history.push({ id:a.id, date:a.date, dayIdx:a.dayIdx, dayName:dayName, deload:a.deload, entries:entries });
+  S.rot = (a.dayIdx+1) % prog().length;
   S.active = null;
   save(); timerStop();
   go("today");
@@ -516,13 +523,15 @@ function render(){
   if(view==="today") el.innerHTML = S.active ? rActive() : rHome();
   else if(view==="progress") el.innerHTML = rProgress();
   else if(view==="coach") el.innerHTML = rCoach();
+  else if(view==="editor") el.innerHTML = rEditor();
   else el.innerHTML = rSettings();
   if(view==="progress") drawCharts();
 }
 
 /* ---------- Today / home ---------- */
 function rHome(){
-  const next = PROGRAM[S.rot];
+  if(S.rot >= prog().length){ S.rot = 0; save(); }
+  const next = prog()[S.rot];
   const wk = weekVolume(0);
   const totalSets = MUSCLES.reduce((a,m)=>a+wk[m],0);
   const last = S.history[S.history.length-1];
@@ -556,12 +565,13 @@ function rHome(){
 }
 function pickDay(){
   modal(`<h3 style="margin-top:0">Start which session?</h3>` +
-    PROGRAM.map((d,i)=>`<button class="subopt" onclick="closeModal();startWorkout(${i})">${d.name}${i===S.rot?' <span class="pill acc">next up</span>':''}</button>`).join("") );
+    prog().map((d,i)=>`<button class="subopt" onclick="closeModal();startWorkout(${i})">${d.name}${i===S.rot?' <span class="pill acc">next up</span>':''}</button>`).join("") );
 }
 
 /* ---------- Active workout ---------- */
 function rActive(){
-  const a=S.active, day=PROGRAM[a.dayIdx];
+  const a=S.active, day=prog()[a.dayIdx];
+  if(!day){ S.active=null; save(); return rHome(); }
   let h = `<div class="row" style="margin-bottom:10px">
     <div class="grow"><b style="font-size:19px">${day.name}</b><div class="tiny">${fmtDate(a.date)}${a.deload?" · DELOAD":""}</div></div>
     <button class="btn ghost small" onclick="abandonWorkout()">Discard</button>
@@ -605,7 +615,7 @@ function rActive(){
         <span onclick="plateSheet(${si})">🏋️ Plates</span>
         <span onclick="addSet(${si})">+ Set</span>
       </div>
-      <ul class="cues">${ex.cues.map(c=>`<li>${c}</li>`).join("")}</ul>
+      <ul class="cues">${ex.cues.length?ex.cues.map(c=>`<li>${c}</li>`).join(""):"<li>Custom exercise — follow the program's own technique notes.</li>"}</ul>
       <textarea class="note" placeholder="Notes (seat height, grip…)" onchange="S.active.entries[${si}].note=this.value;save()">${esc(en.note)}</textarea>
     </div>`;
   });
@@ -620,7 +630,7 @@ function tickSet(si,ki,btn){
   btn.classList.toggle("on", s.done);
   save();
   if(s.done){
-    const slot=PROGRAM[S.active.dayIdx].slots[si];
+    const slot=prog()[S.active.dayIdx].slots[si];
     const isLastSet = ki===S.active.entries[si].sets.length-1;
     if(!isLastSet || si<S.active.entries.length-1) startTimer(exFor(slot).rest, "Rest — "+exFor(slot).name);
   }
@@ -637,14 +647,14 @@ function abandonWorkout(){
    <button class="btn grow" style="background:var(--bad)" onclick="S.active=null;save();closeModal();render()">Discard</button></div>`);
 }
 function swapSheet(si){
-  const slot=PROGRAM[S.active.dayIdx].slots[si];
+  const slot=prog()[S.active.dayIdx].slots[si];
   const cur=exIdFor(slot);
-  const opts=[slot.ex, ...EX[slot.ex].subs].filter((v,i,a)=>a.indexOf(v)===i);
+  const opts=[slot.ex, ...(EXD(slot.ex).subs||[])].filter((v,i,a)=>a.indexOf(v)===i);
   modal(`<h3 style="margin-top:0">Swap exercise</h3><div class="tiny" style="margin-bottom:8px">Same muscle, equally good per Jeff — pick what your gym has and what feels best in the stretch.</div>` +
-    opts.map(id=>`<button class="subopt" onclick="doSwap('${slot.id}','${id}',${si})">${EX[id].name}${id===cur?' <span class="pill acc">current</span>':''}</button>`).join(""));
+    opts.map(id=>`<button class="subopt" onclick="doSwap('${slot.id}','${id}',${si})">${EXD(id).name}${id===cur?' <span class="pill acc">current</span>':''}</button>`).join(""));
 }
 function doSwap(slotId, exId, si){
-  const slot = PROGRAM[S.active.dayIdx].slots[si];
+  const slot = prog()[S.active.dayIdx].slots[si];
   if(exId===slot.ex) delete S.swaps[slotId]; else S.swaps[slotId]=exId;
   S.active.entries[si].ex = exId;
   const rec = recommend(slot);
@@ -668,13 +678,13 @@ function plateSheet(si){
 /* ---------- Progress ---------- */
 function rProgress(){
   if(!S.history.length) return `<div class="card"><h3>No workouts yet</h3><div class="muted">Finish your first session and your strength curves, PRs and volume audit show up here.</div></div>`;
-  const exsWithHist = Object.keys(EX).filter(id=>lastPerfs(id,1).length);
+  const exsWithHist = allExIds().filter(id=>lastPerfs(id,1).length);
   const sel = window._chartEx && exsWithHist.includes(window._chartEx) ? window._chartEx : exsWithHist[0];
   window._chartEx = sel;
   let h = `<div class="card"><h3>Strength trend (e1RM)</h3>
     <div class="tiny" style="margin-bottom:8px">Estimated 1-rep max per session — Epley formula, credit for reps left in the tank. Up and to the right = progressive overload is happening.</div>
     <select class="wide" onchange="window._chartEx=this.value;render()">
-      ${exsWithHist.map(id=>`<option value="${id}" ${id===sel?"selected":""}>${EX[id].name}</option>`).join("")}
+      ${exsWithHist.map(id=>`<option value="${id}" ${id===sel?"selected":""}>${EXD(id).name}</option>`).join("")}
     </select>
     <div id="chart-e1rm" style="margin-top:10px"></div></div>`;
   h += `<div class="card"><h3>Weekly volume audit</h3>
@@ -685,17 +695,17 @@ function rProgress(){
     .sort((a,b)=>b.v-a.v).slice(0,8);
   h += `<div class="card"><h3>Best estimated 1RMs</h3>` +
     prs.map(p=>`<div class="row" style="padding:5px 0;border-bottom:1px solid var(--line)">
-      <div class="grow" style="font-size:14px">${EX[p.id].name}</div>
+      <div class="grow" style="font-size:14px">${EXD(p.id).name}</div>
       <b style="color:var(--accent2)">${Math.round(p.v)} ${S.units}</b></div>`).join("") + `</div>`;
   // history
   h += `<div class="card"><h3>History</h3>` + S.history.slice().reverse().slice(0,30).map(w=>{
-    const day=PROGRAM[w.dayIdx]?PROGRAM[w.dayIdx].name:"Workout";
+    const day=w.dayName || (prog()[w.dayIdx]?prog()[w.dayIdx].name:"Workout");
     const ns=w.entries.reduce((a,e)=>a+e.sets.length,0);
     return `<div class="histday">
       <div class="row"><b class="grow">${day}${w.deload?' <span class="pill warn">deload</span>':''}</b>
         <span class="tiny">${fmtDate(w.date)}</span>
         <button class="btn ghost small" onclick="delWorkout('${w.id}')">🗑</button></div>
-      <div class="tiny">${w.entries.map(e=>EX[e.ex].name.split("(")[0].trim()+" "+e.sets.map(s=>s.w+"×"+s.r).join(", ")).join(" · ")}</div>
+      <div class="tiny">${w.entries.map(e=>(EXD(e.ex)?EXD(e.ex).name:e.ex).split("(")[0].trim()+" "+e.sets.map(s=>s.w+"×"+s.r).join(", ")).join(" · ")}</div>
       <div class="tiny">${ns} sets</div></div>`;
   }).join("") + `</div>`;
   return h;
@@ -714,7 +724,7 @@ function weekVolume(weeksAgo){
     const d=new Date(w.date);
     if(d<monday||d>=sunday) continue;
     for(const en of w.entries){
-      const ex=EX[en.ex]; if(!ex) continue;
+      const ex=EXD(en.ex); if(!ex) continue;
       ex.mg.forEach(m=>{ if(v[m]!=null) v[m]+=en.sets.length; });
       (ex.mg2||[]).forEach(m=>{ if(v[m]!=null) v[m]+=en.sets.length*0.5; });
     }
@@ -808,12 +818,168 @@ function rCoach(){
     <div class="muted">These rules are the app's actual logic — recommendations, timers, targets and the volume audit all follow them. Each card links to Jeff's own video on the topic as the source of truth.</div></div>` +
    P.map(p=>`<details><summary>${p[0]}</summary><div class="body">${p[1]}<br><br>
      <a href="${ytq(p[2])}" target="_blank" rel="noopener">▶ Watch Jeff explain it</a></div></details>`).join("") +
-   `<div class="card tiny">Built on Jeff Nippard's freely published teaching (YouTube) and the structure of his free PPL programming. Not affiliated. His paid programs at <a style="color:var(--accent2)" href="https://jeffnippard.com" target="_blank" rel="noopener">jeffnippard.com</a> include periodized blocks beyond this scope.</div>`;
+   `<div class="card tiny">Built on Jeff Nippard's freely published teaching (YouTube) and the structure of his free PPL programming. Not affiliated. Own one of his paid programs? Enter it via Settings → Program — it stays in your private storage and the engine will run it with the same rules.</div>`;
+}
+
+/* ---------- Program editor ---------- */
+function openEditor(){
+  window._edit = JSON.parse(JSON.stringify(S.program || {name:"My program", days:PROGRAM}));
+  go("editor");
+}
+function exOptions(sel){
+  const ids = allExIds().sort((a,b)=>EXD(a).name.localeCompare(EXD(b).name));
+  return ids.map(id=>`<option value="${id}" ${id===sel?"selected":""}>${EXD(id).name}</option>`).join("")
+    + `<option value="__new">＋ New exercise…</option>`;
+}
+function rEditor(){
+  const E = window._edit;
+  if(!E) { go("settings"); return ""; }
+  let h = `<div class="card"><div class="row">
+    <input class="grow" style="padding:10px;font-size:16px;font-weight:700;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:9px"
+      value="${esc(E.name)}" onchange="window._edit.name=this.value">
+    </div>
+    <div class="tiny" style="margin-top:8px">Your program is saved only on this device (and in backups) — never to the public site. Set each exercise's rep range and RIR target and the progression engine coaches it exactly like the built-in program.</div>
+    <div class="row" style="margin-top:10px">
+      <button class="btn grow" onclick="saveProgram()">Save program</button>
+      <button class="btn ghost" onclick="window._edit=null;go('settings')">Cancel</button>
+    </div></div>`;
+  E.days.forEach((d,di)=>{
+    h += `<div class="card">
+      <div class="row">
+        <input class="grow" style="padding:9px;font-size:15px;font-weight:700;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:9px"
+          value="${esc(d.name)}" onchange="window._edit.days[${di}].name=this.value">
+        <button class="btn ghost small" onclick="edDelDay(${di})">🗑 day</button>
+      </div>`;
+    d.slots.forEach((s,si)=>{
+      h += `<div style="border-top:1px solid var(--line);margin-top:10px;padding-top:10px">
+        <div class="row">
+          <select class="wide grow" onchange="edExChange(${di},${si},this)">${exOptions(s.ex)}</select>
+          <button class="btn ghost small" onclick="edDelSlot(${di},${si})">✕</button>
+        </div>
+        <div class="row" style="margin-top:6px">
+          ${[["sets","Sets"],["lo","Min reps"],["hi","Max reps"],["rir","RIR"]].map(f=>`
+            <label class="grow" style="font-size:11px;color:var(--faint)">${f[1]}
+              <input type="number" inputmode="numeric" value="${s[f[0]]}" style="width:100%;padding:9px 4px;text-align:center;font-size:15px;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:8px"
+                onchange="window._edit.days[${di}].slots[${si}].${f[0]}=+this.value"></label>`).join("")}
+          <label style="font-size:11px;color:var(--faint);text-align:center">Last→fail
+            <button class="tick ${s.lastFail?'on':''}" style="display:block;margin:0 auto" onclick="window._edit.days[${di}].slots[${si}].lastFail=!window._edit.days[${di}].slots[${si}].lastFail;render()">🔥</button></label>
+        </div>
+        <input placeholder="Note (optional — e.g. 'close grip', 'tempo 3-0-1')" value="${esc(s.note||"")}" style="width:100%;margin-top:6px;padding:8px;font-size:13px;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:8px"
+          onchange="window._edit.days[${di}].slots[${si}].note=this.value">
+      </div>`;
+    });
+    h += `<button class="btn ghost small" style="margin-top:10px" onclick="edAddSlot(${di})">+ Exercise</button></div>`;
+  });
+  h += `<button class="btn ghost" style="width:100%" onclick="edAddDay()">+ Add training day</button>
+    <div style="height:10px"></div>
+    <button class="btn" style="width:100%" onclick="saveProgram()">Save program</button>`;
+  return h;
+}
+function edAddSlot(di){
+  window._edit.days[di].slots.push({id:"c"+uid(), ex:"bench", sets:3, lo:8, hi:10, rir:2});
+  render();
+}
+function edDelSlot(di,si){ window._edit.days[di].slots.splice(si,1); render(); }
+function edAddDay(){
+  window._edit.days.push({key:"c"+uid(), name:"Day "+(window._edit.days.length+1), slots:[]});
+  render();
+}
+function edDelDay(di){ window._edit.days.splice(di,1); render(); }
+function edExChange(di,si,sel){
+  if(sel.value==="__new"){ newExSheet(di,si); sel.value=window._edit.days[di].slots[si].ex; return; }
+  window._edit.days[di].slots[si].ex = sel.value;
+}
+function newExSheet(di,si){
+  modal(`<h3 style="margin-top:0">New exercise</h3>
+    <input id="nx-name" placeholder="Name (e.g. Larsen Press)" style="width:100%;padding:11px;font-size:15px;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:9px;margin-bottom:8px">
+    <div class="row" style="margin-bottom:8px">
+      <select id="nx-mg" class="wide grow">${MUSCLES.map(m=>`<option>${m}</option>`).join("")}</select>
+      <select id="nx-type" class="wide grow"><option value="compound">Compound</option><option value="iso" selected>Isolation</option></select>
+    </div>
+    <div class="row" style="margin-bottom:12px">
+      <label class="grow tiny">Rest (sec)<input id="nx-rest" type="number" value="90" style="width:100%;padding:9px;text-align:center;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:8px"></label>
+      <label class="grow tiny">Weight jump (lb)<input id="nx-inc" type="number" value="5" step="2.5" style="width:100%;padding:9px;text-align:center;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:8px"></label>
+    </div>
+    <button class="btn" style="width:100%" onclick="createCustomEx(${di},${si})">Add exercise</button>`);
+}
+function createCustomEx(di,si){
+  const name=document.getElementById("nx-name").value.trim();
+  if(!name){ toast("Give it a name"); return; }
+  const id="cx_"+name.toLowerCase().replace(/[^a-z0-9]+/g,"_").slice(0,24);
+  S.customEx[id]={ name:name, mg:[document.getElementById("nx-mg").value], type:document.getElementById("nx-type").value,
+    inc:+document.getElementById("nx-inc").value||5, rest:+document.getElementById("nx-rest").value||90,
+    cues:[], q:"jeff nippard "+name+" technique", subs:[] };
+  save();
+  if(window._edit) window._edit.days[di].slots[si].ex=id;
+  closeModal(); render();
+}
+function saveProgram(){
+  const E=window._edit;
+  if(!E || !E.days.length || E.days.some(d=>!d.slots.length)){ toast("Every day needs at least one exercise"); return; }
+  for(const d of E.days) for(const s of d.slots){
+    s.sets=Math.max(1,+s.sets||3); s.lo=Math.max(1,+s.lo||8);
+    s.hi=Math.max(s.lo,+s.hi||s.lo); s.rir=Math.max(0,+s.rir||0);
+    if(!s.id) s.id="c"+uid();
+    if(!EXD(s.ex)) { toast("Unknown exercise in "+d.name); return; }
+  }
+  S.program=E; S.active=null; S.rot=0; window._edit=null;
+  save(); go("settings"); toast("Program saved — it's now your rotation");
+}
+function exportProgram(){
+  const usedCustom={};
+  prog().forEach(d=>d.slots.forEach(s=>{ if(S.customEx[s.ex]) usedCustom[s.ex]=S.customEx[s.ex]; }));
+  const data={ name:progName(), days:prog(), customEx:usedCustom };
+  const blob=new Blob([JSON.stringify(data,null,1)],{type:"application/json"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="lift-program-"+new Date().toISOString().slice(0,10)+".json";
+  a.click(); URL.revokeObjectURL(a.href);
+}
+function importProgram(inp){
+  const f=inp.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{ try{
+      const d=JSON.parse(r.result);
+      if(!d || !Array.isArray(d.days) || !d.days.length) throw 0;
+      if(d.customEx) Object.keys(d.customEx).forEach(k=>{ S.customEx[k]=d.customEx[k]; });
+      for(const day of d.days){
+        if(!day.name || !Array.isArray(day.slots)) throw 0;
+        for(const s of day.slots){
+          if(!EXD(s.ex)) throw "Unknown exercise id: "+s.ex;
+          if(!s.id) s.id="c"+uid();
+          s.sets=+s.sets||3; s.lo=+s.lo||8; s.hi=Math.max(+s.hi||s.lo,+s.lo||8); s.rir=Math.max(0,+s.rir||0);
+        }
+      }
+      S.program={name:d.name||"Imported program", days:d.days};
+      S.active=null; S.rot=0; save(); render();
+      toast("Program imported ✓");
+    }catch(e){ toast(typeof e==="string"?e:"Not a valid program file"); }
+    inp.value="";
+  };
+  r.readAsText(f);
+}
+function resetProgram(){
+  modal(`<h3 style="margin-top:0">Back to the built-in Nippard PPL?</h3><div class="muted">Your custom program will be removed (export it first if you want a copy). Workout history is kept.</div>
+   <div class="row" style="margin-top:12px"><button class="btn ghost grow" onclick="closeModal()">Cancel</button>
+   <button class="btn grow" onclick="S.program=null;S.rot=0;S.active=null;save();closeModal();render()">Reset</button></div>`);
 }
 
 /* ---------- Settings ---------- */
 function rSettings(){
-  return `<div class="card"><h3>Training</h3>
+  return `<div class="card"><h3>Program</h3>
+    <div class="muted" style="margin:6px 0 10px">Active: <b style="color:var(--accent2)">${progName()}</b> · ${prog().length} days</div>
+    <div class="tiny" style="margin-bottom:10px">Run your own program (including purchased ones) — it stays in this browser's private storage, never on the public site. Build it in the editor or import a program file.</div>
+    <div class="row">
+      <button class="btn ghost grow" onclick="openEditor()">${S.program?"Edit program":"Customize program"}</button>
+      <button class="btn ghost grow" onclick="document.getElementById('importprog').click()">Import</button>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <button class="btn ghost grow small" onclick="exportProgram()">Export program file</button>
+      ${S.program?`<button class="btn ghost grow small" onclick="resetProgram()">Reset to built-in PPL</button>`:""}
+    </div>
+    <input type="file" id="importprog" accept=".json" style="display:none" onchange="importProgram(this)">
+  </div>
+  <div class="card"><h3>Training</h3>
     <div class="row" style="margin:10px 0">
       <div class="grow">Units</div>
       <button class="btn ghost small ${S.units==='lb'?'':''}" onclick="S.units='lb';save();render()" ${S.units==='lb'?'style="border-color:var(--accent);color:var(--accent2)"':''}>lb</button>
@@ -824,9 +990,9 @@ function rSettings(){
       <button class="btn ${S.deload?'':'ghost'} small" onclick="S.deload=!S.deload;save();render()">${S.deload?"ON":"off"}</button>
     </div>
     <div class="row" style="margin:10px 0">
-      <div class="grow">Next session<div class="tiny">currently ${PROGRAM[S.rot].name}</div></div>
+      <div class="grow">Next session<div class="tiny">currently ${(prog()[S.rot]||prog()[0]).name}</div></div>
       <select class="wide" style="max-width:140px" onchange="S.rot=+this.value;save();render()">
-        ${PROGRAM.map((d,i)=>`<option value="${i}" ${i===S.rot?"selected":""}>${d.name}</option>`).join("")}
+        ${prog().map((d,i)=>`<option value="${i}" ${i===S.rot?"selected":""}>${d.name}</option>`).join("")}
       </select>
     </div></div>
   <div class="card"><h3>Your data</h3>

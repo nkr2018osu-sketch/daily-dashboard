@@ -1,0 +1,43 @@
+name: Grocery note sync
+
+# Receives the shared Apple Notes grocery list from an iPhone Shortcut
+# (repository_dispatch POST) and publishes it as grocery-note.txt so the
+# dashboard's Grocery tab can mirror it.
+on:
+  repository_dispatch:
+    types: [grocery-sync]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: grocery-sync
+  cancel-in-progress: true
+
+jobs:
+  write:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Write grocery-note.txt
+        env:
+          TEXT: ${{ github.event.client_payload.text }}
+        run: |
+          {
+            echo "#synced $(TZ=America/New_York date '+%Y-%m-%d %H:%M')"
+            printf '%s\n' "$TEXT"
+          } > grocery-note.txt
+
+      - name: Commit if the list changed (ignore the timestamp line)
+        run: |
+          if ! git diff -I '^#synced ' --quiet grocery-note.txt; then
+            git config user.name "grocery-sync[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add grocery-note.txt
+            git commit -m "Sync grocery note"
+            git push
+            echo "Grocery note updated."
+          else
+            echo "No changes in the note."
+          fi

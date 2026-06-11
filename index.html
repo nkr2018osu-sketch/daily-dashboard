@@ -352,6 +352,8 @@ var state = {
   grocery: lsGet("grocery", []),
   dinner:  lsGet("dinner", {}),
   inbox:   lsGet("inbox", []),
+  noteTxt: lsGet("noteTxt", null),
+  noteLink:lsGet("noteLink", null),
   planTab: "plan",
   calView: "week",
   listTab: "g"
@@ -389,6 +391,25 @@ function loadEvents(){
   }).then(function(data){
     if(data && data.events){ state.events = data; save("events"); renderAll(); }
   }).catch(function(){});
+}
+/* shared Apple Notes grocery list, mirrored via iPhone Shortcut → GitHub */
+function loadNoteList(){
+  fetch("grocery-note.txt", {cache:"no-store"}).then(function(r){
+    if(!r.ok) throw 0; return r.text();
+  }).then(function(txt){
+    if(txt!==state.noteTxt){ state.noteTxt=txt; save("noteTxt"); renderAll(); }
+  }).catch(function(){});
+}
+function parseNote(){
+  if(!state.noteTxt) return null;
+  var lines=state.noteTxt.split(/\r?\n/), ts=null, items=[];
+  lines.forEach(function(ln,i){
+    if(i===0 && ln.indexOf("#synced")===0){ ts=ln.replace("#synced","").trim(); return; }
+    var s=ln.replace(/^[\s\-\*•◦‣·☐☑✓•]+/,"").trim();
+    if(s) items.push(s);
+  });
+  if(ts==="never" && !items.length) return null;
+  return {ts:ts, items:items};
 }
 function eventsOnDay(d){
   var out=[];
@@ -656,6 +677,24 @@ function sectionLists(){
     "<div style='display:flex; gap:8px; margin-bottom:6px'>"+
     "<input class='txt' id='li-in' placeholder='"+(state.listTab==='g'?"Add groceries…":"Add an errand…")+"' style='flex:1'>"+
     "<button class='btn' id='li-add' style='padding:9px 14px'>+</button></div>";
+  // mirrored shared Apple Notes list (grocery tab only)
+  if(state.listTab==='g'){
+    var note=parseNote();
+    if(note && note.items.length){
+      h+="<div style='background:var(--amber-soft); border:1px solid #e6cf9a; border-radius:12px; padding:9px 11px; margin-bottom:8px'>"+
+        "<div style='display:flex; align-items:baseline; gap:8px'>"+
+        "<b style='font-size:13px'>📝 Shared note</b>"+
+        "<span style='font-size:11px; color:#7a5a14'>"+(note.ts && note.ts!=="never"?"synced "+esc(note.ts):"")+"</span>"+
+        (state.noteLink?"<a href='"+esc(state.noteLink)+"' style='margin-left:auto; font-size:12px; font-weight:700; color:var(--terra); text-decoration:none'>Open in Notes ↗</a>":"")+
+        "</div>"+
+        note.items.map(function(s){ return "<div style='font-size:13.5px; padding:2px 0'>• "+esc(s)+"</div>"; }).join("")+
+        "<div style='font-size:10.5px; color:#7a5a14; margin-top:4px'>Edit in the Notes app — this is a mirror.</div></div>";
+    }
+    h+="<div style='display:flex; gap:10px; margin-bottom:4px'>"+
+      (state.noteLink && !(note&&note.items.length)?"<a href='"+esc(state.noteLink)+"' style='font-size:12px; font-weight:700; color:var(--terra)'>Open shared note ↗</a>":"")+
+      "<button id='li-link' style='border:none; background:none; font-size:11.5px; color:var(--muted); text-decoration:underline; cursor:pointer; padding:0'>"+
+      (state.noteLink?"change note link":"🔗 link the shared note")+"</button></div>";
+  }
   function row(x){
     return "<div class='habit'><button class='hcheck"+(x.done?" done":"")+"' data-li='"+x.id+"'></button>"+
       "<div class='hn"+(x.done?" done":"")+"'>"+esc(x.name)+"</div>"+
@@ -688,6 +727,12 @@ function bindLists(){
   if(cl) cl.onclick=function(){
     state.grocery=state.grocery.filter(function(i){return (i.kind||"g")!==state.listTab || !i.done;});
     save("grocery"); renderAll();
+  };
+  var lk=document.getElementById("li-link");
+  if(lk) lk.onclick=function(){
+    var v=prompt("Paste the shared note's link (in Notes: open the note → share icon → Copy Link). Saved only on this device.", state.noteLink||"");
+    if(v===null) return;
+    state.noteLink=v.trim()||null; save("noteLink"); renderAll();
   };
 }
 
@@ -1182,6 +1227,7 @@ document.getElementById("todayBtn").onclick=function(){ view=new Date(TODAY); re
 renderAll();
 loadEvents();
 loadWeather();
+loadNoteList();
 if("serviceWorker" in navigator){ navigator.serviceWorker.register("sw.js").catch(function(){}); }
 </script>
 </body>

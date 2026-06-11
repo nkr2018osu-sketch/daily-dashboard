@@ -460,8 +460,9 @@ function startWorkout(dayIdx){
 }
 function finishWorkout(){
   const a = S.active;
+  // a set counts if weight+reps are filled in, ticked or not — never silently drop typed data
   const entries = a.entries.map(en=>({ slot:en.slot, ex:en.ex, note:en.note,
-      sets: en.sets.filter(s=>s.done && s.w!=="" && s.r!=="")
+      sets: en.sets.filter(s=>s.w!=="" && s.r!=="")
                    .map(s=>({w:+s.w, r:+s.r, rir:(s.rir==="F"?0:+s.rir), fail:s.rir==="F"})) }))
     .filter(en=>en.sets.length);
   if(!entries.length){ toast("Nothing logged yet"); return; }
@@ -473,12 +474,14 @@ function finishWorkout(){
     if(prevBest && nowBest > prevBest*1.001) prs.push(EXD(en.ex).name);
   }
   const dayName = prog()[a.dayIdx] ? prog()[a.dayIdx].name : "Workout";
-  S.history.push({ id:a.id, date:a.date, dayIdx:a.dayIdx, dayName:dayName, deload:a.deload, entries:entries });
+  const dur = Math.max(1, Math.round((Date.now()-new Date(a.date).getTime())/60000));
+  S.history.push({ id:a.id, date:a.date, dayIdx:a.dayIdx, dayName:dayName, deload:a.deload, dur:dur, entries:entries });
   S.rot = (a.dayIdx+1) % prog().length;
   S.active = null;
   save(); timerStop();
   go("today");
-  toast(prs.length ? "🎉 New e1RM PR: "+prs.join(", ") : "Workout saved 💪");
+  if(S.history.length % 10 === 0) toast("Workout saved 💪 — "+S.history.length+" logged. Good time for Settings → Export backup!");
+  else toast(prs.length ? "🎉 New e1RM PR: "+prs.join(", ") : "Workout saved 💪");
 }
 function bestE1RM(exId){
   let best=0;
@@ -706,7 +709,7 @@ function rProgress(){
         <span class="tiny">${fmtDate(w.date)}</span>
         <button class="btn ghost small" onclick="delWorkout('${w.id}')">🗑</button></div>
       <div class="tiny">${w.entries.map(e=>(EXD(e.ex)?EXD(e.ex).name:e.ex).split("(")[0].trim()+" "+e.sets.map(s=>s.w+"×"+s.r).join(", ")).join(" · ")}</div>
-      <div class="tiny">${ns} sets</div></div>`;
+      <div class="tiny">${ns} sets${w.dur?" · "+w.dur+" min":""}</div></div>`;
   }).join("") + `</div>`;
   return h;
 }
@@ -1043,6 +1046,8 @@ function closeModal(){ document.getElementById("modal").classList.remove("on"); 
 document.getElementById("modal").addEventListener("click", e=>{ if(e.target.id==="modal") closeModal(); });
 
 if("serviceWorker" in navigator && location.protocol==="https:") navigator.serviceWorker.register("../sw.js");
+/* ask the browser to never evict this site's data under storage pressure */
+if(navigator.storage && navigator.storage.persist) navigator.storage.persist();
 render();
 </script>
 </body>

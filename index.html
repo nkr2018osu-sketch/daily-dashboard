@@ -370,6 +370,7 @@ function save(key){ lsSet(key, state[key]); }
   SEED_MAINT.forEach(function(seed){
     if(state.removed.indexOf(seed.id)!==-1) return;
     var old = byId[seed.id];
+    if(old && old.userEdited){ out.push(old); delete byId[seed.id]; return; } // user's edits win over seed refresh
     var t = JSON.parse(JSON.stringify(seed));
     if(old){ t.lastDone = old.lastDone||null; t.snooze = old.snooze||null; }
     else { t.lastDone = null; }
@@ -389,7 +390,7 @@ function loadEvents(){
   fetch("events.json", {cache:"no-store"}).then(function(r){
     if(!r.ok) throw 0; return r.json();
   }).then(function(data){
-    if(data && data.events){ state.events = data; save("events"); renderAll(); }
+    if(data && data.events){ state.events = data; save("events"); invalidatePlan(); renderAll(); }
   }).catch(function(){});
 }
 /* shared Apple Notes grocery list, mirrored via iPhone Shortcut → GitHub */
@@ -461,7 +462,7 @@ function wxFor(d){ return state.wx && state.wx.byDay ? state.wx.byDay[ymd(d)] : 
    the least-loaded day within [due − min(2,flex), due + flex], preferring
    an empty day closest to the natural due date — that's what enforces
    the "about one thing a day" rule. Deterministic for a given state.  */
-var PLAN_HORIZON = 200; // days
+var PLAN_HORIZON = 400; // days — covers every yearly task so "next" dates always show
 var _plan = null;
 function invalidatePlan(){ _plan = null; }
 function monthAllowed(t, d){ return !t.months || t.months.indexOf(d.getMonth()+1)!==-1; }
@@ -480,14 +481,15 @@ function busyDaySet(){
 function occurrencesFor(t){
   var occs=[], horizon=addDays(TODAY, PLAN_HORIZON);
   if(t.type==="monthly"){
-    for(var m=-1;m<8;m++){
+    for(var m=-1;m<14;m++){
       var d=new Date(TODAY.getFullYear(), TODAY.getMonth()+m, Math.min(t.dayOfMonth,28));
       if(d>horizon) break;
       var paid = t.lastDone && (function(){ var ld=parseYMD(t.lastDone);
         return ld.getFullYear()===d.getFullYear() && ld.getMonth()===d.getMonth(); })();
       if(paid) continue;
-      if(d<TODAY && m<-0) { if(dayDiff(TODAY,d)<=20) occs.push(d); continue; } // recent unpaid → overdue
-      if(d>=TODAY) occs.push(d);
+      // past + unpaid (this month or last) → surface as overdue, up to 25 days back
+      if(d<TODAY){ if(dayDiff(TODAY,d)<=25) occs.push(d); continue; }
+      occs.push(d);
     }
     return occs;
   }
@@ -497,7 +499,7 @@ function occurrencesFor(t){
   else { start = parseYMD(t.anchor); while(start < addDays(TODAY,-t.interval)) start = addDays(start, t.interval); }
   if(t.snooze){ var sn=parseYMD(t.snooze); if(sn>start) start=sn; }
   var d2 = start, guard=0;
-  while(d2<=horizon && guard<400){
+  while(d2<=horizon && guard<800){
     guard++;
     if(monthAllowed(t,d2)){ if(d2>=addDays(TODAY,-45)) occs.push(d2); d2=addDays(d2,t.interval); }
     else d2=addDays(d2,t.interval===7?7:Math.min(t.interval,30));
@@ -569,8 +571,15 @@ function nextAssigned(taskId){
   return best;
 }
 function completeTask(t){
+  window._undo = {id:t.id, name:t.name, prevLastDone:t.lastDone||null, prevSnooze:t.snooze||null};
   t.lastDone = ymd(TODAY); t.snooze = null;
   save("maint"); invalidatePlan(); renderAll();
+}
+function undoLast(){
+  var u=window._undo; if(!u) return;
+  var t=getTask(u.id);
+  if(t){ t.lastDone=u.prevLastDone; t.snooze=u.prevSnooze; save("maint"); invalidatePlan(); }
+  window._undo=null; renderAll();
 }
 function snoozeTask(t, days){
   var it = nextAssigned(t.id);
@@ -774,6 +783,8 @@ function sectionToday(){
   } else h+="<div class='noevt'>Nothing on the calendar</div>";
   // tasks
   h+="<div class='agendahead'>Tasks</div>";
+  if(window._undo) h+="<div style='font-size:12px; color:var(--sage); padding:3px 0'>✓ "+esc(window._undo.name)+" logged · "+
+    "<button id='undo-btn' style='border:none;background:none;color:var(--terra);font-weight:700;font-size:12px;text-decoration:underline;cursor:pointer;padding:0'>undo</button></div>";
   if(dayItems.length) h+=dayItems.map(function(it){ return taskRowHTML(it,"today"); }).join("");
   else h+="<div class='clearday'>✓ Clear day — nothing assigned.</div>";
   // dinner
@@ -790,9 +801,21 @@ function bindToday(){
     if(di.value.trim()) state.dinner[ds]=di.value; else delete state.dinner[ds];
     save("dinner");
   };
+  var ub=document.getElementById("undo-btn");
+  if(ub) ub.onclick=undoLast;
   document.querySelectorAll("[data-done]").forEach(function(el){
     el.onclick=function(){
       var t=getTask(el.getAttribute("data-done")); if(!t) return;
+      // a bill already paid this month → offer to mark it unpaid (mis-tap recovery)
+      if(t.type==="monthly" && t.lastDone){
+        var ld=parseYMD(t.lastDone);
+        if(ld.getMonth()===TODAY.getMonth() && ld.getFullYear()===TODAY.getFullYear()){
+          if(confirm("“"+t.name+"” is marked paid this month. Mark it UNPAID?")){
+            t.lastDone=null; save("maint"); invalidatePlan(); renderAll();
+          }
+          return;
+        }
+      }
       el.classList.add("done");
       setTimeout(function(){ completeTask(t); }, 220);
     };
@@ -862,7 +885,8 @@ function planBodyHTML(){
     var t=x.t, n=x.next;
     var when = n ? (n.overdue?"<span class='due'>Overdue "+n.overdue+"d</span>":
       (dayDiff(n.day,TODAY)===0?"<span class='due'>Today</span>":
-       dayDiff(n.day,TODAY)<=10?"<span class='soon'>"+fmtShort(n.day)+"</span>":fmtShort(n.day))) : "out of season";
+       dayDiff(n.day,TODAY)<=10?"<span class='soon'>"+fmtShort(n.day)+"</span>":
+       fmtShort(n.day)+(dayDiff(n.day,TODAY)>200?" "+n.day.getFullYear():""))) : "further out";
     return "<div class='task' data-task='"+t.id+"'>"+
       "<button class='check later' data-done='"+t.id+"'></button>"+
       "<div class='info'><div class='nm'>"+esc(t.name)+"<span class='cat'>"+esc(t.cat)+"</span></div>"+
@@ -899,6 +923,7 @@ function openTaskEditor(t, prefillName){
         return "<option"+(t&&t.cat===c?" selected":"")+">"+c+"</option>";
       }).join("")+"</select></div></div>"+
     "<div class='field' id='te-daywrap' style='display:"+(cad==="bill"?"block":"none")+"'><label>Day of month</label><input class='txt' id='te-day' type='number' min='1' max='28' value='"+(t&&t.dayOfMonth?t.dayOfMonth:1)+"'></div>"+
+    "<div class='field' id='te-duewrap' style='display:"+(cad==="bill"?"none":"block")+"'><label>Next due date (optional — pin when this lands next)</label><input class='txt' id='te-due' type='date'></div>"+
     "<div class='field'><label>Note / how-to (optional)</label><input class='txt' id='te-note' value='"+(t&&t.note?esc(t.note):"")+"'></div>"+
     "<div class='row2'>"+
     "<button class='btn' id='te-save'>"+(isNew?"Add":"Save")+"</button>"+
@@ -908,6 +933,7 @@ function openTaskEditor(t, prefillName){
   document.getElementById("ovl").classList.add("on");
   document.getElementById("te-cad").onchange=function(){
     document.getElementById("te-daywrap").style.display=this.value==="bill"?"block":"none";
+    document.getElementById("te-duewrap").style.display=this.value==="bill"?"none":"block";
   };
   document.getElementById("te-cancel").onclick=closeSheet;
   document.getElementById("te-save").onclick=function(){
@@ -916,6 +942,7 @@ function openTaskEditor(t, prefillName){
     var cat=document.getElementById("te-cat").value;
     var note=document.getElementById("te-note").value.trim();
     var obj = t || {id:uid(), lastDone:null};
+    obj.userEdited=true; // survives seed refresh on reload
     obj.name=name; obj.cat=(cad2==="bill"?"Bills":cat); obj.note=note||undefined;
     if(cad2==="bill"){
       obj.type="monthly"; obj.dayOfMonth=Math.max(1,Math.min(28,+document.getElementById("te-day").value||1));
@@ -924,7 +951,9 @@ function openTaskEditor(t, prefillName){
       obj.type="interval";
       obj.interval={weekly:7,monthly:30,quarterly:90,semiannual:182,yearly:365}[cad2];
       obj.flex={weekly:2,monthly:4,quarterly:6,semiannual:8,yearly:10}[cad2];
-      if(!obj.anchor) obj.anchor=ymd(addDays(TODAY,1));
+      var due=document.getElementById("te-due").value;
+      if(due){ obj.anchor=due; obj.lastDone=null; obj.snooze=null; }
+      else if(!obj.anchor) obj.anchor=ymd(addDays(TODAY,1));
       delete obj.dayOfMonth;
     }
     if(isNew) state.maint.push(obj);
@@ -1001,7 +1030,10 @@ function sectionHabits(){
     "</section>";
 }
 function habitStreak(id){
+  // grace: if today isn't logged yet, the streak counts from yesterday
   var n=0, d=new Date(TODAY);
+  var t0=state.habitLog[ymd(d)];
+  if(!(t0 && t0[id])) d=addDays(d,-1);
   while(true){
     var log=state.habitLog[ymd(d)];
     if(log && log[id]){ n++; d=addDays(d,-1); } else break;
@@ -1228,6 +1260,14 @@ renderAll();
 loadEvents();
 loadWeather();
 loadNoteList();
+/* iOS keeps PWAs alive for days — when the app comes back to the foreground,
+   roll over to the new day and refresh remote data */
+document.addEventListener("visibilitychange", function(){
+  if(document.visibilityState!=="visible") return;
+  var now=new Date();
+  if(ymd(now)!==ymd(TODAY)){ location.reload(); return; }
+  loadEvents(); loadWeather(); loadNoteList();
+});
 if("serviceWorker" in navigator){ navigator.serviceWorker.register("sw.js").catch(function(){}); }
 </script>
 </body>

@@ -1,0 +1,883 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Lift — Science-Based Tracker</title>
+<meta name="theme-color" content="#16181d">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<style>
+  :root{
+    --bg:#16181d; --card:#1f2229; --card2:#262a33; --line:#32363f;
+    --ink:#e8e6e1; --dim:#9aa0ab; --faint:#6b717c;
+    --accent:#e8833a; --accent2:#f0a868; --good:#6fbf73; --warn:#e0b455; --bad:#d9776f;
+    --r:14px;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+  html,body{margin:0; padding:0; background:var(--bg); color:var(--ink);
+    font:16px/1.45 -apple-system,"Segoe UI",Roboto,sans-serif;}
+  body{padding-bottom:calc(120px + env(safe-area-inset-bottom));}
+  header{padding:18px 16px 6px; display:flex; align-items:baseline; gap:10px;}
+  header h1{font-size:22px; margin:0; letter-spacing:.3px;}
+  header .sub{color:var(--faint); font-size:12px;}
+  nav{display:flex; gap:6px; padding:10px 12px; position:sticky; top:0; background:var(--bg);
+    z-index:20; border-bottom:1px solid var(--line);}
+  nav button{flex:1; padding:10px 4px; border:0; border-radius:10px; background:transparent;
+    color:var(--dim); font-size:14px; font-weight:600;}
+  nav button.on{background:var(--card2); color:var(--accent2);}
+  main{padding:14px 12px; max-width:560px; margin:0 auto;}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:var(--r);
+    padding:14px; margin-bottom:12px;}
+  .card h3{margin:0 0 6px; font-size:16px;}
+  .muted{color:var(--dim); font-size:13px;}
+  .tiny{color:var(--faint); font-size:12px;}
+  .pill{display:inline-block; padding:2px 9px; border-radius:99px; font-size:12px; font-weight:600;
+    background:var(--card2); color:var(--dim); border:1px solid var(--line);}
+  .pill.acc{color:var(--accent2); border-color:#5a4434;}
+  .pill.good{color:var(--good);} .pill.warn{color:var(--warn);} .pill.bad{color:var(--bad);}
+  button.btn{border:0; border-radius:11px; padding:12px 16px; font-size:15px; font-weight:700;
+    background:var(--accent); color:#1b1208;}
+  button.ghost{background:var(--card2); color:var(--ink); border:1px solid var(--line);}
+  button.small{padding:7px 12px; font-size:13px; border-radius:9px;}
+  .row{display:flex; gap:8px; align-items:center;}
+  .grow{flex:1;}
+  /* exercise card */
+  .ex{margin-bottom:14px;}
+  .ex .head{display:flex; justify-content:space-between; align-items:flex-start; gap:8px;}
+  .ex .name{font-weight:700; font-size:16px;}
+  .ex .target{color:var(--dim); font-size:13px; margin-top:2px;}
+  .recbox{margin:8px 0 4px; padding:9px 11px; background:var(--card2); border-radius:10px;
+    font-size:13.5px; border-left:3px solid var(--accent);}
+  .recbox.find{border-left-color:var(--warn);}
+  .recbox .why{color:var(--faint); font-size:12px; margin-top:3px; display:none;}
+  .recbox.open .why{display:block;}
+  table.sets{width:100%; border-collapse:collapse; margin-top:8px;}
+  table.sets th{font-size:11px; color:var(--faint); font-weight:600; text-transform:uppercase;
+    letter-spacing:.5px; text-align:left; padding:2px 4px;}
+  table.sets td{padding:3px 3px;}
+  table.sets input, table.sets select{width:100%; padding:10px 6px; font-size:16px; text-align:center;
+    background:var(--bg); color:var(--ink); border:1px solid var(--line); border-radius:9px;}
+  table.sets input:focus{outline:1px solid var(--accent); border-color:var(--accent);}
+  td.done-cell{width:46px; text-align:center;}
+  .tick{width:40px; height:40px; border-radius:10px; border:1px solid var(--line);
+    background:var(--bg); color:var(--faint); font-size:18px; font-weight:800;}
+  .tick.on{background:var(--good); color:#10240f; border-color:var(--good);}
+  .exlinks{display:flex; gap:14px; margin-top:8px; flex-wrap:wrap;}
+  .exlinks a, .exlinks span{color:var(--accent2); font-size:13px; text-decoration:none; font-weight:600;}
+  .cues{display:none; margin:8px 0 0; padding:0 0 0 18px; color:var(--dim); font-size:13.5px;}
+  .cues.open{display:block;}
+  .cues li{margin-bottom:3px;}
+  textarea.note{width:100%; margin-top:8px; background:var(--bg); color:var(--ink);
+    border:1px solid var(--line); border-radius:9px; padding:8px; font-size:14px; min-height:38px;}
+  /* timer bar */
+  #timerbar{position:fixed; left:0; right:0; bottom:0; background:#23262e; border-top:1px solid var(--line);
+    padding:10px 14px calc(10px + env(safe-area-inset-bottom)); display:none; z-index:50;}
+  #timerbar.on{display:flex; align-items:center; gap:12px;}
+  #timerbar .t{font-size:26px; font-weight:800; font-variant-numeric:tabular-nums; color:var(--accent2);}
+  /* charts */
+  svg{display:block; width:100%;}
+  .axis{fill:var(--faint); font-size:10px;}
+  select.wide{width:100%; padding:11px; font-size:15px; background:var(--card2); color:var(--ink);
+    border:1px solid var(--line); border-radius:10px;}
+  .histday{border-bottom:1px solid var(--line); padding:10px 0;}
+  .histday:last-child{border-bottom:0;}
+  .bar{height:14px; border-radius:4px; background:var(--accent);}
+  .volrow{display:flex; align-items:center; gap:8px; margin:5px 0; font-size:13px;}
+  .volrow .lbl{width:84px; color:var(--dim);}
+  .volrow .n{width:54px; text-align:right; font-variant-numeric:tabular-nums;}
+  details{margin-bottom:10px; background:var(--card); border:1px solid var(--line); border-radius:var(--r);}
+  details summary{padding:13px 14px; font-weight:700; cursor:pointer; list-style:none;}
+  details summary::-webkit-details-marker{display:none;}
+  details summary:after{content:"+"; float:right; color:var(--faint);}
+  details[open] summary:after{content:"–";}
+  details .body{padding:0 14px 13px; color:var(--dim); font-size:14px;}
+  details .body a{color:var(--accent2);}
+  .toast{position:fixed; left:50%; transform:translateX(-50%); bottom:90px; background:var(--accent);
+    color:#1b1208; font-weight:700; padding:10px 18px; border-radius:99px; z-index:90; font-size:14px;
+    opacity:0; transition:opacity .25s; pointer-events:none;}
+  .toast.on{opacity:1;}
+  .modal{position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:80; display:none;
+    align-items:flex-end; justify-content:center;}
+  .modal.on{display:flex;}
+  .modal .sheet{background:var(--card); border-radius:18px 18px 0 0; padding:18px 16px
+    calc(18px + env(safe-area-inset-bottom)); width:100%; max-width:560px; max-height:80vh; overflow:auto;}
+  .subopt{display:block; width:100%; text-align:left; margin:6px 0; padding:12px; border-radius:10px;
+    background:var(--card2); border:1px solid var(--line); color:var(--ink); font-size:15px;}
+  .kpis{display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:12px;}
+  .kpi{background:var(--card); border:1px solid var(--line); border-radius:var(--r); padding:10px;}
+  .kpi .v{font-size:20px; font-weight:800; color:var(--accent2);}
+  .kpi .k{font-size:11px; color:var(--faint); text-transform:uppercase; letter-spacing:.5px;}
+</style>
+</head>
+<body>
+<header>
+  <h1>🏋️ Lift</h1>
+  <span class="sub">science-based tracker · Nippard principles</span>
+</header>
+<nav>
+  <button id="nav-today" class="on" onclick="go('today')">Today</button>
+  <button id="nav-progress" onclick="go('progress')">Progress</button>
+  <button id="nav-coach" onclick="go('coach')">Coach</button>
+  <button id="nav-settings" onclick="go('settings')">Settings</button>
+</nav>
+<main id="view"></main>
+
+<div id="timerbar">
+  <div class="t" id="timer-t">2:00</div>
+  <div class="grow tiny" id="timer-lbl">Rest</div>
+  <button class="btn ghost small" onclick="timerAdd(30)">+30s</button>
+  <button class="btn small" onclick="timerStop()">Skip</button>
+</div>
+<div class="toast" id="toast"></div>
+<div class="modal" id="modal"><div class="sheet" id="modal-body"></div></div>
+
+<script>
+"use strict";
+/* ============================================================
+   EXERCISE DATABASE
+   Cues paraphrase Jeff Nippard's free technique guidance; each
+   exercise links to his videos on YouTube as source of truth.
+   mg = primary muscles (count 1 set), mg2 = secondary (0.5).
+   inc = progression increment in lb. rest = seconds.
+   ============================================================ */
+const EX = {
+  bench:{name:"Barbell Bench Press", mg:["Chest"], mg2:["Triceps","Shoulders"], type:"compound", inc:5, rest:180,
+    cues:["Squeeze shoulder blades back and down; slight arch, feet planted","Lower to the lower chest with elbows tucked ~45–70°","Press up and slightly back toward your face"],
+    q:"jeff nippard bench press technique", subs:["dbbench","machpress"]},
+  dbbench:{name:"Dumbbell Bench Press", mg:["Chest"], mg2:["Triceps","Shoulders"], type:"compound", inc:5, rest:180,
+    cues:["Deep stretch at the bottom — let the dumbbells travel below chest level","Press up and slightly together, don't clank at the top"],
+    q:"jeff nippard dumbbell press", subs:["bench","machpress"]},
+  machpress:{name:"Machine Chest Press", mg:["Chest"], mg2:["Triceps"], type:"compound", inc:5, rest:150,
+    cues:["Set handles at mid-chest height","Control the stretch; stop one inch short of lockout to keep tension"],
+    q:"jeff nippard machine chest press", subs:["bench","dbbench"]},
+  shpress:{name:"Machine Shoulder Press", mg:["Shoulders"], mg2:["Triceps"], type:"compound", inc:5, rest:150,
+    cues:["Seat low enough that handles start at shoulder height","Elbows slightly in front, not flared straight out"],
+    q:"jeff nippard shoulder press technique", subs:["ohp","dbohp"]},
+  ohp:{name:"Overhead Press", mg:["Shoulders"], mg2:["Triceps"], type:"compound", inc:5, rest:180,
+    cues:["Squeeze glutes, ribs down — don't lean back","Bar path close to the face, head through at the top"],
+    q:"jeff nippard overhead press technique", subs:["shpress","dbohp"]},
+  dbohp:{name:"Seated DB Shoulder Press", mg:["Shoulders"], mg2:["Triceps"], type:"compound", inc:5, rest:150,
+    cues:["Start with dumbbells at ear level for a full stretch","Press up and slightly in; don't bounce at the bottom"],
+    q:"jeff nippard dumbbell shoulder press", subs:["ohp","shpress"]},
+  pecdeck:{name:"Pec Deck Fly", mg:["Chest"], type:"iso", inc:5, rest:90,
+    cues:["Seat set so handles are at mid-chest","Slight elbow bend — think 'hug a tree'","Let the arms travel back for a big stretch"],
+    q:"jeff nippard chest fly technique", subs:["cablefly","lowfly"]},
+  cablefly:{name:"Cable Crossover Fly", mg:["Chest"], type:"iso", inc:2.5, rest:90,
+    cues:["Step forward, slight forward lean","Big stretch at the back, hands meet in front of chest"],
+    q:"jeff nippard cable crossover", subs:["pecdeck","lowfly"]},
+  lowfly:{name:"Low-to-High Cable Fly", mg:["Chest"], type:"iso", inc:2.5, rest:90,
+    cues:["Pulleys at the lowest setting, step forward","Scoop up and in — hands finish at eye level","Biases the upper chest"],
+    q:"jeff nippard upper chest cable fly", subs:["cablefly","pecdeck"]},
+  catlat:{name:"Cable Lateral Raise", mg:["Shoulders"], type:"iso", inc:2.5, rest:90,
+    cues:["Lean slightly away from the stack","Lead with the elbow up to shoulder height","2-second lowering — no swinging"],
+    q:"jeff nippard cable lateral raise", subs:["dblat"]},
+  dblat:{name:"Dumbbell Lateral Raise", mg:["Shoulders"], type:"iso", inc:2.5, rest:90,
+    cues:["Slight forward lean, lead with the elbows","Pause briefly at the top; strict reps only"],
+    q:"jeff nippard lateral raise technique", subs:["catlat"]},
+  skull:{name:"EZ-Bar Skull Crusher", mg:["Triceps"], type:"iso", inc:2.5, rest:120,
+    cues:["Lower the bar behind your head for a bigger stretch","3-second eccentric, elbows stay tucked"],
+    q:"jeff nippard skull crusher technique", subs:["ohte","pressdown"]},
+  pressdown:{name:"Triceps Pressdown", mg:["Triceps"], type:"iso", inc:2.5, rest:90,
+    cues:["Pin elbows at your sides","Full stretch at the top, hard squeeze at lockout"],
+    q:"jeff nippard tricep pushdown", subs:["ohte","kick"]},
+  ohte:{name:"Overhead Cable Triceps Extension", mg:["Triceps"], type:"iso", inc:2.5, rest:90,
+    cues:["Face away from the stack, elbows by your ears","Deep stretch behind the head — the stretch is the point"],
+    q:"jeff nippard overhead tricep extension", subs:["skull","pressdown"]},
+  kick:{name:"Cable Triceps Kickback", mg:["Triceps"], type:"iso", inc:2.5, rest:75,
+    cues:["Hinge over, elbow pinned high","Full extension with a 1-second squeeze"],
+    q:"jeff nippard tricep kickback", subs:["pressdown","ohte"]},
+  pullup:{name:"Pull-Up (weighted if 8+)", mg:["Back"], mg2:["Biceps"], type:"compound", inc:5, rest:180,
+    cues:["Full hang at the bottom — every rep","Drive the elbows down toward your hips","Chest up; no swinging"],
+    q:"jeff nippard pull up technique", subs:["pulldown","omnigrip"]},
+  pulldown:{name:"Lat Pulldown", mg:["Back"], mg2:["Biceps"], type:"compound", inc:5, rest:150,
+    cues:["Grip just outside shoulder width","Pull to the collarbone, elbows down and back","Control 2–3s on the way up"],
+    q:"jeff nippard lat pulldown technique", subs:["pullup","omnigrip"]},
+  omnigrip:{name:"Omni-Grip Lat Pulldown", mg:["Back"], mg2:["Biceps"], type:"compound", inc:5, rest:150,
+    cues:["Rotate grips each set: wide → medium → underhand","Same control on every grip"],
+    q:"jeff nippard omni grip pulldown", subs:["pulldown","pullup"]},
+  cablerow:{name:"Seated Cable Row", mg:["Back"], mg2:["Biceps"], type:"compound", inc:5, rest:150,
+    cues:["Neutral spine; pull to the belly button","Squeeze the shoulder blades together","Let the shoulder blades glide forward at the stretch"],
+    q:"jeff nippard cable row technique", subs:["csrow"]},
+  csrow:{name:"Chest-Supported Row", mg:["Back"], mg2:["Biceps"], type:"compound", inc:5, rest:150,
+    cues:["Chest glued to the pad — no body english","Pull elbows back and down, 1-second squeeze"],
+    q:"jeff nippard chest supported row", subs:["cablerow"]},
+  pullover:{name:"Kneeling Cable Pullover", mg:["Back"], type:"iso", inc:2.5, rest:90,
+    cues:["Hinge ~30°, arms nearly straight","Pull with the lats, not the triceps","Big overhead stretch"],
+    q:"jeff nippard cable pullover", subs:["pulldown"]},
+  revpec:{name:"Reverse Pec Deck", mg:["Shoulders"], mg2:["Back"], type:"iso", inc:5, rest:75,
+    cues:["Handles at shoulder height","Lead with the pinkies in a wide arc","Pause 1s at the peak"],
+    q:"jeff nippard rear delt technique", subs:["facepull","revfly"]},
+  facepull:{name:"Rope Face Pull", mg:["Shoulders"], mg2:["Back"], type:"iso", inc:2.5, rest:75,
+    cues:["Rope at upper-face height","Pull apart toward the ears, rotate knuckles back"],
+    q:"jeff nippard face pull technique", subs:["revpec","revfly"]},
+  revfly:{name:"Reverse Cable Fly", mg:["Shoulders"], mg2:["Back"], type:"iso", inc:2.5, rest:75,
+    cues:["Cross the cables, lead with the pinkies","Slow and strict — rear delts give out fast"],
+    q:"jeff nippard reverse fly", subs:["revpec","facepull"]},
+  shrug:{name:"Dumbbell Shrug", mg:["Back"], type:"iso", inc:5, rest:75,
+    cues:["Straight up toward the ears, pause 1s","On an incline bench biases the upper traps"],
+    q:"jeff nippard trap training", subs:[]},
+  ezcurl:{name:"EZ-Bar Curl", mg:["Biceps"], type:"iso", inc:2.5, rest:90,
+    cues:["Elbows pinned slightly in front of the hips","2-second lowering; zero swing"],
+    q:"jeff nippard bicep curl technique", subs:["inccurl","hammer"]},
+  inccurl:{name:"Incline Dumbbell Curl", mg:["Biceps"], type:"iso", inc:2.5, rest:90,
+    cues:["Bench at 45–60°, arms hanging back","The loaded stretch at the bottom is the point","Don't let the elbows drift forward"],
+    q:"jeff nippard incline curl", subs:["ezcurl","preacher"]},
+  hammer:{name:"Hammer Curl", mg:["Biceps"], type:"iso", inc:2.5, rest:90,
+    cues:["Neutral grip; hits brachialis and forearms","Controlled both directions"],
+    q:"jeff nippard hammer curl", subs:["ezcurl","inccurl"]},
+  preacher:{name:"Machine Preacher Curl", mg:["Biceps"], type:"iso", inc:2.5, rest:90,
+    cues:["Armpits snug against the pad","Deep stretch at the bottom without slamming the elbows"],
+    q:"jeff nippard preacher curl", subs:["ezcurl","inccurl"]},
+  squat:{name:"Barbell Back Squat", mg:["Quads","Glutes"], type:"compound", inc:5, rest:210,
+    cues:["Bar over midfoot; big brace before you descend","Sit down between the hips to parallel or below","Drive the floor apart on the way up"],
+    q:"jeff nippard squat technique", subs:["hack","smith","legpress"]},
+  hack:{name:"Hack Squat", mg:["Quads","Glutes"], type:"compound", inc:10, rest:180,
+    cues:["Feet lower on the platform biases the quads","Deep, controlled descent"],
+    q:"jeff nippard hack squat", subs:["squat","smith","legpress"]},
+  smith:{name:"Smith Machine Squat", mg:["Quads","Glutes"], type:"compound", inc:5, rest:180,
+    cues:["Feet slightly forward of the bar","Sit straight down; let the machine handle balance"],
+    q:"jeff nippard smith machine squat", subs:["squat","hack"]},
+  rdl:{name:"Romanian Deadlift", mg:["Hamstrings","Glutes"], type:"compound", inc:5, rest:180,
+    cues:["Push the hips back; soft knees","Bar drags down the thighs","Stop at the hamstring stretch — not the floor"],
+    q:"jeff nippard romanian deadlift technique", subs:["sldl"]},
+  sldl:{name:"Stiff-Leg Deadlift", mg:["Hamstrings","Glutes"], type:"compound", inc:5, rest:180,
+    cues:["Like an RDL but with a longer range","Flat back, big stretch"],
+    q:"jeff nippard stiff leg deadlift", subs:["rdl"]},
+  dead:{name:"Deadlift (conv. or sumo)", mg:["Hamstrings","Glutes","Back"], type:"compound", inc:10, rest:240,
+    cues:["Bar over midfoot, shins to the bar","Wedge the hips, big brace, push the floor away","Keep 1–2 reps in the tank — deadlifts tax recovery"],
+    q:"jeff nippard deadlift technique", subs:["rdl"]},
+  legpress:{name:"Leg Press (single or double)", mg:["Quads","Glutes"], type:"compound", inc:10, rest:150,
+    cues:["Feet mid-platform","Deep knee bend under control","Never lock out hard"],
+    q:"jeff nippard leg press technique", subs:["hack","smith"]},
+  legext:{name:"Leg Extension", mg:["Quads"], type:"iso", inc:5, rest:90,
+    cues:["Seat back so the knee lines up with the pivot","3-second lowering phase","Pause and squeeze at the top"],
+    q:"jeff nippard leg extension technique", subs:[]},
+  legcurl:{name:"Seated Leg Curl", mg:["Hamstrings"], type:"iso", inc:5, rest:90,
+    cues:["Pad snug above the heels","Full stretch at the top of each rep","Optional: drop set on the final set"],
+    q:"jeff nippard leg curl technique", subs:[]},
+  thrust:{name:"Hip Thrust", mg:["Glutes"], mg2:["Hamstrings"], type:"compound", inc:10, rest:150,
+    cues:["Shoulder blades on the bench, chin tucked","Posterior pelvic tilt and 1-second squeeze at lockout"],
+    q:"jeff nippard hip thrust technique", subs:["backext"]},
+  backext:{name:"Back Extension (glute bias)", mg:["Glutes"], mg2:["Hamstrings"], type:"iso", inc:5, rest:90,
+    cues:["Round slightly through the upper back","Squeeze the glutes hard at the top"],
+    q:"jeff nippard back extension glutes", subs:["thrust"]},
+  standcalf:{name:"Standing Calf Raise", mg:["Calves"], type:"iso", inc:5, rest:75,
+    cues:["Pause 1 second in the deep stretch at the bottom","Full rise to the toes, 2 seconds down"],
+    q:"jeff nippard calf raise technique", subs:["seatcalf"]},
+  seatcalf:{name:"Seated Calf Raise", mg:["Calves"], type:"iso", inc:5, rest:75,
+    cues:["Stretch-pause at the bottom every rep","Higher reps work well here"],
+    q:"jeff nippard seated calf raise", subs:["standcalf"]},
+  crunch:{name:"Weighted Decline Crunch", mg:["Abs"], type:"iso", inc:2.5, rest:75,
+    cues:["Hold a plate on your chest","Curl the spine; exhale hard at the top"],
+    q:"jeff nippard ab training", subs:["legraise"]},
+  legraise:{name:"Hanging/Roman Leg Raise", mg:["Abs"], type:"iso", inc:2.5, rest:75,
+    cues:["Curl the pelvis up — don't just lift the legs","Slow lowering"],
+    q:"jeff nippard hanging leg raise", subs:["crunch"]},
+};
+
+/* ============================================================
+   PROGRAM — PPL A/B rotation modeled on Jeff Nippard's free
+   Push Pull Legs programming. Rotate through 6 sessions at
+   whatever weekly frequency you train; each muscle still gets
+   hit ~2x per week at 3-6 days/week.
+   rir = target reps in reserve. lastFail = take final set to failure.
+   ============================================================ */
+const PROGRAM = [
+ {key:"pushA", name:"Push A", slots:[
+   {id:"pA1", ex:"bench",    sets:3, lo:4,  hi:6,  rir:2},
+   {id:"pA2", ex:"shpress",  sets:3, lo:8,  hi:10, rir:2},
+   {id:"pA3", ex:"pecdeck",  sets:3, lo:12, hi:15, rir:1},
+   {id:"pA4", ex:"catlat",   sets:3, lo:12, hi:15, rir:1, lastFail:true},
+   {id:"pA5", ex:"skull",    sets:3, lo:8,  hi:10, rir:1},
+   {id:"pA6", ex:"pressdown",sets:2, lo:12, hi:15, rir:0, lastFail:true},
+ ]},
+ {key:"pullA", name:"Pull A", slots:[
+   {id:"lA1", ex:"pullup",   sets:3, lo:6,  hi:8,  rir:2},
+   {id:"lA2", ex:"cablerow", sets:3, lo:10, hi:12, rir:2},
+   {id:"lA3", ex:"pullover", sets:3, lo:12, hi:15, rir:1},
+   {id:"lA4", ex:"revpec",   sets:3, lo:15, hi:20, rir:1, lastFail:true},
+   {id:"lA5", ex:"ezcurl",   sets:3, lo:8,  hi:10, rir:1},
+   {id:"lA6", ex:"inccurl",  sets:2, lo:10, hi:12, rir:0, lastFail:true},
+ ]},
+ {key:"legsA", name:"Legs A", slots:[
+   {id:"gA1", ex:"squat",    sets:3, lo:4,  hi:6,  rir:2},
+   {id:"gA2", ex:"rdl",      sets:3, lo:8,  hi:10, rir:2},
+   {id:"gA3", ex:"legpress", sets:3, lo:12, hi:15, rir:1},
+   {id:"gA4", ex:"legext",   sets:3, lo:10, hi:12, rir:1},
+   {id:"gA5", ex:"legcurl",  sets:3, lo:10, hi:12, rir:1, lastFail:true},
+   {id:"gA6", ex:"standcalf",sets:3, lo:10, hi:12, rir:1},
+   {id:"gA7", ex:"crunch",   sets:2, lo:10, hi:15, rir:0, lastFail:true},
+ ]},
+ {key:"pushB", name:"Push B", slots:[
+   {id:"pB1", ex:"ohp",      sets:3, lo:4,  hi:6,  rir:2},
+   {id:"pB2", ex:"bench",    sets:3, lo:8,  hi:10, rir:2, note:"Close-grip: hands just inside shoulder width, elbows tucked — triceps focus."},
+   {id:"pB3", ex:"lowfly",   sets:3, lo:10, hi:12, rir:1},
+   {id:"pB4", ex:"dblat",    sets:3, lo:12, hi:20, rir:1, lastFail:true},
+   {id:"pB5", ex:"ohte",     sets:3, lo:10, hi:12, rir:1},
+   {id:"pB6", ex:"kick",     sets:2, lo:15, hi:20, rir:0, lastFail:true},
+ ]},
+ {key:"pullB", name:"Pull B", slots:[
+   {id:"lB1", ex:"omnigrip", sets:3, lo:10, hi:12, rir:2},
+   {id:"lB2", ex:"csrow",    sets:3, lo:10, hi:12, rir:2},
+   {id:"lB3", ex:"facepull", sets:3, lo:12, hi:15, rir:1},
+   {id:"lB4", ex:"shrug",    sets:3, lo:10, hi:12, rir:1},
+   {id:"lB5", ex:"revfly",   sets:2, lo:15, hi:20, rir:1, lastFail:true},
+   {id:"lB6", ex:"hammer",   sets:3, lo:8,  hi:10, rir:1},
+   {id:"lB7", ex:"preacher", sets:2, lo:12, hi:15, rir:0, lastFail:true},
+ ]},
+ {key:"legsB", name:"Legs B", slots:[
+   {id:"gB1", ex:"dead",     sets:2, lo:3,  hi:5,  rir:2},
+   {id:"gB2", ex:"hack",     sets:3, lo:8,  hi:10, rir:2},
+   {id:"gB3", ex:"thrust",   sets:3, lo:10, hi:12, rir:1},
+   {id:"gB4", ex:"legcurl",  sets:3, lo:10, hi:15, rir:1, lastFail:true},
+   {id:"gB5", ex:"backext",  sets:2, lo:10, hi:12, rir:1},
+   {id:"gB6", ex:"seatcalf", sets:3, lo:15, hi:20, rir:1},
+   {id:"gB7", ex:"legraise", sets:2, lo:10, hi:15, rir:0, lastFail:true},
+ ]},
+];
+
+const MUSCLES = ["Chest","Back","Shoulders","Biceps","Triceps","Quads","Hamstrings","Glutes","Calves","Abs"];
+/* Nippard's published weekly volume landmark: ~10–20 hard sets per muscle. */
+const VOL_LO = 10, VOL_HI = 20;
+
+/* ============================================================ STATE */
+const LS = "lift.v1";
+let S = load();
+function load(){
+  try{ const s = JSON.parse(localStorage.getItem(LS)); if(s && s.history) return s; }catch(e){}
+  return { rot:0, units:"lb", deload:false, history:[], swaps:{}, active:null };
+}
+function save(){ localStorage.setItem(LS, JSON.stringify(S)); }
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+function fmtDate(iso){ const d=new Date(iso); return d.toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"}); }
+function esc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function exFor(slot){ return EX[S.swaps[slot.id] || slot.ex]; }
+function exIdFor(slot){ return S.swaps[slot.id] || slot.ex; }
+function unitInc(ex){ return S.units==="kg" ? (ex.inc>=5?2.5:1.25) : ex.inc; }
+function roundInc(w, ex){ const i=unitInc(ex); return Math.max(i, Math.round(w/i)*i); }
+function ytq(q){ return "https://www.youtube.com/results?search_query="+encodeURIComponent(q); }
+
+/* e1RM via Epley adjusted for reps left in the tank */
+function e1rm(w, reps, rir){ const total = reps + (rir==null?0:rir); return w * (1 + total/30); }
+
+/* ============================================================
+   PROGRESSION ENGINE — transparent double progression,
+   per Nippard's published guidance:
+   1. Hit every set at the TOP of the rep range at (or above)
+      the target RIR → add the smallest increment, drop back to
+      the bottom of the range.
+   2. Otherwise → same weight, try to add a rep somewhere.
+   3. Below the bottom of the range two sessions in a row →
+      take 10% off and rebuild.
+   Deload mode: −20% load, half the sets (his deload protocol).
+   ============================================================ */
+function lastPerfs(exId, n){
+  const out=[];
+  for(let i=S.history.length-1; i>=0 && out.length<n; i--){
+    const w=S.history[i];
+    if(w.deload) continue;
+    for(const en of w.entries){
+      if(en.ex===exId && en.sets.length){ out.push({date:w.date, sets:en.sets}); break; }
+    }
+  }
+  return out;
+}
+function recommend(slot){
+  const exId = exIdFor(slot), ex = EX[exId];
+  const hist = lastPerfs(exId, 2);
+  if(!hist.length){
+    return {type:"find", weight:null, repsAim:slot.lo,
+      text:"First time — find your working weight",
+      why:"Pick a load you could lift for about "+slot.lo+"–"+slot.hi+" reps while leaving "+slot.rir+" reps in the tank. Err light; the engine takes over next session."};
+  }
+  const last = hist[0];
+  const w0 = Math.max(...last.sets.map(s=>s.w||0));
+  const topSets = last.sets.filter(s=>(s.w||0)>=w0);
+  const allTop = topSets.length>0 && topSets.every(s=> s.r>=slot.hi && (s.rir==null || s.rir>=slot.rir || s.fail));
+  const anyBelow = topSets.some(s=> s.r<slot.lo);
+  const prevBelow = hist[1] && Math.max(...hist[1].sets.map(s=>s.w||0))>=w0 &&
+                    hist[1].sets.some(s=> s.r<slot.lo);
+  let rec;
+  if(allTop){
+    const nw = roundInc(w0 + unitInc(ex), ex);
+    rec = {type:"up", weight:nw, repsAim:slot.lo,
+      text:"⬆ Increase to "+nw+" "+S.units+" × "+slot.lo+"+",
+      why:"Last session you hit "+slot.hi+"+ reps on every set at "+w0+" "+S.units+" with the target effort ("+slot.rir+" RIR). Double progression says: add the smallest jump and rebuild reps from "+slot.lo+"."};
+  } else if(anyBelow && prevBelow){
+    const nw = roundInc(w0*0.9, ex);
+    rec = {type:"down", weight:nw, repsAim:slot.lo,
+      text:"⬇ Back off to "+nw+" "+S.units,
+      why:"Two sessions in a row below "+slot.lo+" reps at "+w0+" "+S.units+". Take ~10% off, own the rep range again, and progress back up — pushing a stalled weight just buries recovery."};
+  } else {
+    const best = Math.max(...topSets.map(s=>s.r));
+    const aim = Math.min(slot.hi, best+1);
+    rec = {type:"reps", weight:w0, repsAim:aim,
+      text:"Same weight ("+w0+" "+S.units+") — beat last session's reps",
+      why:"Last time: "+topSets.map(s=>s.r).join(", ")+" reps at "+w0+" "+S.units+". Add a rep where you can (aim "+aim+") at "+slot.rir+" RIR. When every set reaches "+slot.hi+", the weight goes up."};
+  }
+  if(S.deload && rec.weight){
+    rec.weight = roundInc(rec.weight*0.8, ex);
+    rec.text = "Deload: "+rec.weight+" "+S.units+" — easy sets";
+    rec.why = "Deload week: 20% off your planned load and half the sets. Leave 4+ RIR. The goal is to dissipate fatigue, not to grow this week.";
+    rec.type = "deload";
+  }
+  return rec;
+}
+function warmupPlan(workW, ex){
+  if(!workW) return null;
+  const u=S.units, bar = u==="kg"?20:45;
+  const steps=[];
+  if(ex.type==="compound"){
+    if(workW>bar*1.3) steps.push({w:bar, r:10, lbl:"empty bar"});
+    [0.5,0.7,0.85].forEach((p,i)=>{
+      const w=roundInc(workW*p, ex);
+      if(w>bar && w<workW) steps.push({w:w, r:[5,3,1][i], lbl:Math.round(p*100)+"%"});
+    });
+  } else {
+    steps.push({w:roundInc(workW*0.6,ex), r:10, lbl:"60%"});
+  }
+  return steps;
+}
+
+/* ============================================================ ACTIVE WORKOUT */
+function startWorkout(dayIdx){
+  const day = PROGRAM[dayIdx];
+  S.active = { id:uid(), dayIdx:dayIdx, date:new Date().toISOString(), deload:S.deload,
+    entries: day.slots.map(slot=>{
+      const rec = recommend(slot);
+      const n = S.deload ? Math.max(1, Math.ceil(slot.sets/2)) : slot.sets;
+      return { slot:slot.id, ex:exIdFor(slot), note:"",
+        sets: Array.from({length:n}, ()=>({w:rec.weight||"", r:"", rir:slot.rir, done:false})) };
+    })};
+  save(); go("today");
+}
+function finishWorkout(){
+  const a = S.active;
+  const entries = a.entries.map(en=>({ slot:en.slot, ex:en.ex, note:en.note,
+      sets: en.sets.filter(s=>s.done && s.w!=="" && s.r!=="")
+                   .map(s=>({w:+s.w, r:+s.r, rir:(s.rir==="F"?0:+s.rir), fail:s.rir==="F"})) }))
+    .filter(en=>en.sets.length);
+  if(!entries.length){ toast("Nothing logged yet"); return; }
+  // PR check before saving
+  const prs=[];
+  for(const en of entries){
+    const prevBest = bestE1RM(en.ex);
+    const nowBest = Math.max(...en.sets.map(s=>e1rm(s.w,s.r,s.rir)));
+    if(prevBest && nowBest > prevBest*1.001) prs.push(EX[en.ex].name);
+  }
+  S.history.push({ id:a.id, date:a.date, dayIdx:a.dayIdx, deload:a.deload, entries:entries });
+  S.rot = (a.dayIdx+1) % PROGRAM.length;
+  S.active = null;
+  save(); timerStop();
+  go("today");
+  toast(prs.length ? "🎉 New e1RM PR: "+prs.join(", ") : "Workout saved 💪");
+}
+function bestE1RM(exId){
+  let best=0;
+  for(const w of S.history){ if(w.deload) continue;
+    for(const en of w.entries){ if(en.ex!==exId) continue;
+      for(const s of en.sets){ const v=e1rm(s.w,s.r,s.rir); if(v>best) best=v; } } }
+  return best;
+}
+
+/* ============================================================ TIMER */
+let timerEnd=0, timerInt=null, audioCtx=null;
+function startTimer(sec, lbl){
+  timerEnd = Date.now()+sec*1000;
+  document.getElementById("timerbar").classList.add("on");
+  document.getElementById("timer-lbl").textContent = lbl||"Rest";
+  clearInterval(timerInt);
+  timerInt = setInterval(tickTimer, 250); tickTimer();
+}
+function tickTimer(){
+  const left = Math.max(0, Math.round((timerEnd-Date.now())/1000));
+  document.getElementById("timer-t").textContent = Math.floor(left/60)+":"+String(left%60).padStart(2,"0");
+  if(left<=0){ timerStop(); beep(); if(navigator.vibrate) navigator.vibrate([200,100,200]); toast("Rest over — next set"); }
+}
+function timerAdd(s){ timerEnd += s*1000; tickTimer(); }
+function timerStop(){ clearInterval(timerInt); document.getElementById("timerbar").classList.remove("on"); }
+function beep(){
+  try{
+    audioCtx = audioCtx || new (window.AudioContext||window.webkitAudioContext)();
+    const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+    o.connect(g); g.connect(audioCtx.destination);
+    o.frequency.value=880; g.gain.setValueAtTime(.3,audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(.001,audioCtx.currentTime+.6);
+    o.start(); o.stop(audioCtx.currentTime+.6);
+  }catch(e){}
+}
+
+/* ============================================================ VIEWS */
+let view="today";
+function go(v){ view=v; document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on", b.id==="nav-"+v)); render(); window.scrollTo(0,0); }
+function render(){
+  const el=document.getElementById("view");
+  if(view==="today") el.innerHTML = S.active ? rActive() : rHome();
+  else if(view==="progress") el.innerHTML = rProgress();
+  else if(view==="coach") el.innerHTML = rCoach();
+  else el.innerHTML = rSettings();
+  if(view==="progress") drawCharts();
+}
+
+/* ---------- Today / home ---------- */
+function rHome(){
+  const next = PROGRAM[S.rot];
+  const wk = weekVolume(0);
+  const totalSets = MUSCLES.reduce((a,m)=>a+wk[m],0);
+  const last = S.history[S.history.length-1];
+  let h = "";
+  if(S.deload) h += `<div class="card" style="border-color:var(--warn)"><b style="color:var(--warn)">Deload week is ON</b><div class="muted">Loads −20%, sets halved. Turn it off in Settings when the week is done.</div></div>`;
+  h += `<div class="card">
+    <div class="tiny" style="text-transform:uppercase;letter-spacing:.5px">Up next</div>
+    <h3 style="font-size:22px;margin:2px 0 4px">${next.name}</h3>
+    <div class="muted">${next.slots.length} exercises · ${next.slots.map(s=>exFor(s).name.split(" ")[0]).slice(0,4).join(", ")}…</div>
+    <div class="row" style="margin-top:12px">
+      <button class="btn grow" onclick="startWorkout(${S.rot})">Start workout</button>
+      <button class="btn ghost" onclick="pickDay()">Switch day</button>
+    </div>
+  </div>`;
+  h += `<div class="kpis">
+    <div class="kpi"><div class="v">${S.history.length}</div><div class="k">workouts</div></div>
+    <div class="kpi"><div class="v">${totalSets}</div><div class="k">sets this wk</div></div>
+    <div class="kpi"><div class="v">${last?fmtDate(last.date).replace(/^\w+, /,""):"—"}</div><div class="k">last session</div></div>
+  </div>`;
+  h += `<div class="card"><h3>This week vs Jeff's volume landmarks</h3>
+    <div class="tiny" style="margin-bottom:8px">Direct hard sets per muscle, Mon–Sun. Target band ${VOL_LO}–${VOL_HI}.</div>`;
+  for(const m of MUSCLES){
+    const v=wk[m], pct=Math.min(100, v/VOL_HI*100);
+    const col = v>=VOL_LO? "var(--good)" : (v>0?"var(--warn)":"var(--line)");
+    h += `<div class="volrow"><div class="lbl">${m}</div>
+      <div class="grow" style="background:var(--bg);border-radius:4px"><div class="bar" style="width:${pct}%;background:${col}"></div></div>
+      <div class="n">${v%1?v.toFixed(1):v}</div></div>`;
+  }
+  h += `</div>`;
+  return h;
+}
+function pickDay(){
+  modal(`<h3 style="margin-top:0">Start which session?</h3>` +
+    PROGRAM.map((d,i)=>`<button class="subopt" onclick="closeModal();startWorkout(${i})">${d.name}${i===S.rot?' <span class="pill acc">next up</span>':''}</button>`).join("") );
+}
+
+/* ---------- Active workout ---------- */
+function rActive(){
+  const a=S.active, day=PROGRAM[a.dayIdx];
+  let h = `<div class="row" style="margin-bottom:10px">
+    <div class="grow"><b style="font-size:19px">${day.name}</b><div class="tiny">${fmtDate(a.date)}${a.deload?" · DELOAD":""}</div></div>
+    <button class="btn ghost small" onclick="abandonWorkout()">Discard</button>
+    <button class="btn small" onclick="finishWorkout()">Finish</button>
+  </div>`;
+  day.slots.forEach((slot, si)=>{
+    const ex = exFor(slot), en = a.entries[si];
+    const rec = recommend(slot);
+    const wu = (si===0 && rec.weight) ? warmupPlan(rec.weight, ex) : null;
+    h += `<div class="card ex">
+      <div class="head">
+        <div class="grow">
+          <div class="name">${ex.name}</div>
+          <div class="target">${en.sets.length} × ${slot.lo}–${slot.hi} reps @ ${slot.rir} RIR${slot.lastFail?" · last set to failure":""}</div>
+        </div>
+        <span class="pill">${ex.rest/60|0}:${String(ex.rest%60).padStart(2,"0")} rest</span>
+      </div>
+      ${slot.note?`<div class="tiny" style="margin-top:4px">${slot.note}</div>`:""}
+      <div class="recbox ${rec.type==='find'?'find':''}" onclick="this.classList.toggle('open')">
+        ${rec.text} <span class="tiny">· why?</span>
+        <div class="why">${rec.why}</div>
+      </div>
+      ${wu?`<div class="tiny" style="margin:4px 0">Warm-up: ${wu.map(s=>s.w+" "+S.units+" × "+s.r).join(" → ")}</div>`:""}
+      <table class="sets"><tr><th>Set</th><th>${S.units}</th><th>Reps</th><th>RIR</th><th></th></tr>`;
+    en.sets.forEach((s, ki)=>{
+      h += `<tr>
+        <td class="tiny" style="width:30px">${ki+1}${slot.lastFail&&ki===en.sets.length-1?"🔥":""}</td>
+        <td><input type="number" inputmode="decimal" value="${esc(s.w)}" onchange="setVal(${si},${ki},'w',this.value)"></td>
+        <td><input type="number" inputmode="numeric" placeholder="${rec.repsAim||''}" value="${esc(s.r)}" onchange="setVal(${si},${ki},'r',this.value)"></td>
+        <td style="width:64px"><select onchange="setVal(${si},${ki},'rir',this.value)">
+          ${["0","1","2","3","4","F"].map(o=>`<option ${String(s.rir)===o?"selected":""}>${o}</option>`).join("")}
+        </select></td>
+        <td class="done-cell"><button class="tick ${s.done?'on':''}" onclick="tickSet(${si},${ki},this)">✓</button></td>
+      </tr>`;
+    });
+    h += `</table>
+      <div class="exlinks">
+        <span onclick="this.closest('.ex').querySelector('.cues').classList.toggle('open')">📋 Cues</span>
+        <a href="${ytq(ex.q)}" target="_blank" rel="noopener">▶ Jeff's video</a>
+        <span onclick="swapSheet(${si})">⇄ Swap</span>
+        <span onclick="plateSheet(${si})">🏋️ Plates</span>
+        <span onclick="addSet(${si})">+ Set</span>
+      </div>
+      <ul class="cues">${ex.cues.map(c=>`<li>${c}</li>`).join("")}</ul>
+      <textarea class="note" placeholder="Notes (seat height, grip…)" onchange="S.active.entries[${si}].note=this.value;save()">${esc(en.note)}</textarea>
+    </div>`;
+  });
+  h += `<button class="btn" style="width:100%" onclick="finishWorkout()">Finish workout</button>`;
+  return h;
+}
+function setVal(si,ki,f,v){ S.active.entries[si].sets[ki][f]=v; save(); }
+function tickSet(si,ki,btn){
+  const s=S.active.entries[si].sets[ki];
+  s.done=!s.done;
+  if(s.done && s.w!=="" && s.r===""){ s.r=""; }
+  btn.classList.toggle("on", s.done);
+  save();
+  if(s.done){
+    const slot=PROGRAM[S.active.dayIdx].slots[si];
+    const isLastSet = ki===S.active.entries[si].sets.length-1;
+    if(!isLastSet || si<S.active.entries.length-1) startTimer(exFor(slot).rest, "Rest — "+exFor(slot).name);
+  }
+}
+function addSet(si){
+  const sets=S.active.entries[si].sets;
+  const last=sets[sets.length-1];
+  sets.push({w:last?last.w:"", r:"", rir:last?last.rir:2, done:false});
+  save(); render();
+}
+function abandonWorkout(){
+  modal(`<h3 style="margin-top:0">Discard this workout?</h3><div class="muted" style="margin-bottom:12px">Logged sets will be lost.</div>
+   <div class="row"><button class="btn ghost grow" onclick="closeModal()">Keep going</button>
+   <button class="btn grow" style="background:var(--bad)" onclick="S.active=null;save();closeModal();render()">Discard</button></div>`);
+}
+function swapSheet(si){
+  const slot=PROGRAM[S.active.dayIdx].slots[si];
+  const cur=exIdFor(slot);
+  const opts=[slot.ex, ...EX[slot.ex].subs].filter((v,i,a)=>a.indexOf(v)===i);
+  modal(`<h3 style="margin-top:0">Swap exercise</h3><div class="tiny" style="margin-bottom:8px">Same muscle, equally good per Jeff — pick what your gym has and what feels best in the stretch.</div>` +
+    opts.map(id=>`<button class="subopt" onclick="doSwap('${slot.id}','${id}',${si})">${EX[id].name}${id===cur?' <span class="pill acc">current</span>':''}</button>`).join(""));
+}
+function doSwap(slotId, exId, si){
+  const slot = PROGRAM[S.active.dayIdx].slots[si];
+  if(exId===slot.ex) delete S.swaps[slotId]; else S.swaps[slotId]=exId;
+  S.active.entries[si].ex = exId;
+  const rec = recommend(slot);
+  S.active.entries[si].sets.forEach(s=>{ if(!s.done){ s.w=rec.weight||""; } });
+  save(); closeModal(); render();
+}
+function plateSheet(si){
+  const en=S.active.entries[si];
+  const w=+(en.sets.find(s=>s.w!=="")||{}).w || 0;
+  const u=S.units, bar=u==="kg"?20:45;
+  const plates=u==="kg"?[25,20,15,10,5,2.5,1.25]:[45,35,25,10,5,2.5];
+  let per=(w-bar)/2, out=[];
+  for(const p of plates){ while(per>=p-0.01){ out.push(p); per-=p; } }
+  modal(`<h3 style="margin-top:0">Plate math</h3>
+    <div class="muted">${w||"—"} ${u} total · ${bar} ${u} bar</div>
+    <div style="font-size:20px;font-weight:800;margin:10px 0">${w>bar?("Per side: "+out.join(" + ")||"—"):"Just the bar"}</div>
+    <div class="tiny">${per>0.01?("(~"+per.toFixed(1)+" "+u+" per side unaccounted — round or add micro-plates)"):""}</div>
+    <button class="btn ghost" style="margin-top:10px;width:100%" onclick="closeModal()">Close</button>`);
+}
+
+/* ---------- Progress ---------- */
+function rProgress(){
+  if(!S.history.length) return `<div class="card"><h3>No workouts yet</h3><div class="muted">Finish your first session and your strength curves, PRs and volume audit show up here.</div></div>`;
+  const exsWithHist = Object.keys(EX).filter(id=>lastPerfs(id,1).length);
+  const sel = window._chartEx && exsWithHist.includes(window._chartEx) ? window._chartEx : exsWithHist[0];
+  window._chartEx = sel;
+  let h = `<div class="card"><h3>Strength trend (e1RM)</h3>
+    <div class="tiny" style="margin-bottom:8px">Estimated 1-rep max per session — Epley formula, credit for reps left in the tank. Up and to the right = progressive overload is happening.</div>
+    <select class="wide" onchange="window._chartEx=this.value;render()">
+      ${exsWithHist.map(id=>`<option value="${id}" ${id===sel?"selected":""}>${EX[id].name}</option>`).join("")}
+    </select>
+    <div id="chart-e1rm" style="margin-top:10px"></div></div>`;
+  h += `<div class="card"><h3>Weekly volume audit</h3>
+    <div class="tiny" style="margin-bottom:8px">Hard sets per muscle per week vs Jeff's ${VOL_LO}–${VOL_HI} landmark. Secondary muscles count half.</div>
+    <div id="chart-vol"></div></div>`;
+  // PR list
+  const prs = exsWithHist.map(id=>({id, v:bestE1RM(id)})).filter(p=>p.v>0)
+    .sort((a,b)=>b.v-a.v).slice(0,8);
+  h += `<div class="card"><h3>Best estimated 1RMs</h3>` +
+    prs.map(p=>`<div class="row" style="padding:5px 0;border-bottom:1px solid var(--line)">
+      <div class="grow" style="font-size:14px">${EX[p.id].name}</div>
+      <b style="color:var(--accent2)">${Math.round(p.v)} ${S.units}</b></div>`).join("") + `</div>`;
+  // history
+  h += `<div class="card"><h3>History</h3>` + S.history.slice().reverse().slice(0,30).map(w=>{
+    const day=PROGRAM[w.dayIdx]?PROGRAM[w.dayIdx].name:"Workout";
+    const ns=w.entries.reduce((a,e)=>a+e.sets.length,0);
+    return `<div class="histday">
+      <div class="row"><b class="grow">${day}${w.deload?' <span class="pill warn">deload</span>':''}</b>
+        <span class="tiny">${fmtDate(w.date)}</span>
+        <button class="btn ghost small" onclick="delWorkout('${w.id}')">🗑</button></div>
+      <div class="tiny">${w.entries.map(e=>EX[e.ex].name.split("(")[0].trim()+" "+e.sets.map(s=>s.w+"×"+s.r).join(", ")).join(" · ")}</div>
+      <div class="tiny">${ns} sets</div></div>`;
+  }).join("") + `</div>`;
+  return h;
+}
+function delWorkout(id){
+  modal(`<h3 style="margin-top:0">Delete this workout?</h3>
+   <div class="row" style="margin-top:10px"><button class="btn ghost grow" onclick="closeModal()">Cancel</button>
+   <button class="btn grow" style="background:var(--bad)" onclick="S.history=S.history.filter(w=>w.id!=='${id}');save();closeModal();render()">Delete</button></div>`);
+}
+function weekVolume(weeksAgo){
+  const now=new Date(); const day=(now.getDay()+6)%7; // Mon=0
+  const monday=new Date(now); monday.setHours(0,0,0,0); monday.setDate(now.getDate()-day-7*weeksAgo);
+  const sunday=new Date(monday); sunday.setDate(monday.getDate()+7);
+  const v={}; MUSCLES.forEach(m=>v[m]=0);
+  for(const w of S.history){
+    const d=new Date(w.date);
+    if(d<monday||d>=sunday) continue;
+    for(const en of w.entries){
+      const ex=EX[en.ex]; if(!ex) continue;
+      ex.mg.forEach(m=>{ if(v[m]!=null) v[m]+=en.sets.length; });
+      (ex.mg2||[]).forEach(m=>{ if(v[m]!=null) v[m]+=en.sets.length*0.5; });
+    }
+  }
+  return v;
+}
+function drawCharts(){
+  // e1RM line
+  const id=window._chartEx, host=document.getElementById("chart-e1rm");
+  if(host && id){
+    const pts=[];
+    for(const w of S.history){ if(w.deload) continue;
+      for(const en of w.entries){ if(en.ex!==id) continue;
+        const best=Math.max(...en.sets.map(s=>e1rm(s.w,s.r,s.rir)));
+        if(isFinite(best)) pts.push({t:new Date(w.date).getTime(), v:best}); } }
+    if(pts.length<1){ host.innerHTML='<div class="tiny">No data yet.</div>'; }
+    else{
+      const W=520,H=170,P=30;
+      const xs=pts.map(p=>p.t), ys=pts.map(p=>p.v);
+      const x0=Math.min(...xs), x1=Math.max(...xs)||x0+1;
+      let y0=Math.min(...ys), y1=Math.max(...ys); if(y0===y1){y0*=0.95;y1*=1.05;}
+      const X=t=>P+(W-2*P)*(x1===x0?0.5:(t-x0)/(x1-x0)), Y=v=>H-P-(H-2*P)*((v-y0)/(y1-y0));
+      const path=pts.map((p,i)=>(i?"L":"M")+X(p.t).toFixed(1)+","+Y(p.v).toFixed(1)).join(" ");
+      host.innerHTML=`<svg viewBox="0 0 ${W} ${H}">
+        <text class="axis" x="${P}" y="${Y(y1)-6}">${Math.round(y1)} ${S.units}</text>
+        <text class="axis" x="${P}" y="${Y(y0)+12}">${Math.round(y0)}</text>
+        <path d="${path}" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/>
+        ${pts.map(p=>`<circle cx="${X(p.t).toFixed(1)}" cy="${Y(p.v).toFixed(1)}" r="3.5" fill="var(--accent2)"/>`).join("")}
+      </svg>`;
+    }
+  }
+  // weekly volume grouped bars: last 4 weeks aggregated as current week per muscle
+  const vh=document.getElementById("chart-vol");
+  if(vh){
+    let rows="";
+    const wk=weekVolume(0), wkPrev=weekVolume(1);
+    for(const m of MUSCLES){
+      const v=wk[m], p=wkPrev[m];
+      const pct=Math.min(100,v/VOL_HI*100), pctP=Math.min(100,p/VOL_HI*100);
+      const col=v>=VOL_LO?"var(--good)":(v>0?"var(--warn)":"var(--line)");
+      rows+=`<div class="volrow"><div class="lbl">${m}</div>
+        <div class="grow" style="background:var(--bg);border-radius:4px;position:relative">
+          <div style="position:absolute;left:${VOL_LO/VOL_HI*100}%;top:-2px;bottom:-2px;width:1px;background:var(--faint)"></div>
+          <div class="bar" style="width:${pct}%;background:${col}"></div>
+          <div class="bar" style="width:${pctP}%;background:var(--line);height:5px;margin-top:2px"></div>
+        </div>
+        <div class="n">${v%1?v.toFixed(1):v} <span class="tiny">(${p%1?p.toFixed(1):p})</span></div></div>`;
+    }
+    vh.innerHTML=rows+`<div class="tiny" style="margin-top:6px">Bold bar = this week · grey = last week · tick = ${VOL_LO}-set minimum</div>`;
+  }
+}
+
+/* ---------- Coach (Nippard principles) ---------- */
+function rCoach(){
+  const P=[
+   ["Train hard: 0–3 reps in reserve",
+    "Effort drives growth. Most working sets should end 1–3 reps shy of failure, and isolation work can go all the way. If you could have done 5 more reps, the set barely counted. Log RIR honestly — the progression engine runs on it.",
+    "jeff nippard how hard should you train RIR"],
+   ["Volume: ~10–20 hard sets per muscle per week",
+    "Jeff's published landmark. Under ~10 sets leaves gains on the table for most intermediates; past ~20 you're mostly buying fatigue. Start near the bottom, add sets only when progress stalls and recovery is good. The Progress tab audits this for you.",
+    "jeff nippard how many sets per muscle"],
+   ["Frequency: hit each muscle 2× per week",
+    "Splitting volume over 2+ weekly sessions beats one giant day — better per-set quality, same total work. This PPL rotation does it automatically at anywhere from 3 to 6 gym days a week.",
+    "jeff nippard training frequency science"],
+   ["Rep ranges: 5–30 all work — use each where it shines",
+    "Anything from 5 to 30 reps grows muscle if the set is near failure. Practical split: 4–8 for heavy compounds (strength + tension), 8–15 for most work, 15–30 for isolation where heavy loading beats up the joints.",
+    "jeff nippard best rep range hypertrophy"],
+   ["Technique: full range, control the negative, love the stretch",
+    "Tension is the main driver of growth, and the stretched position is where it pays most. Full range of motion, ~2-second eccentric, no momentum. A lighter weight done deep beats an ego load cut short.",
+    "jeff nippard lengthened partials stretch training technique"],
+   ["Progression: double progression",
+    "Hit the top of the rep range on every set at the target RIR → add the smallest jump and rebuild from the bottom. That's the whole game, and it's exactly what the recommendation box on each exercise computes — tap 'why?' to see the rule fire.",
+    "jeff nippard progressive overload explained"],
+   ["Rest 2–3+ min on compounds, 1–2 on isolation",
+    "Resting longer lets you do more reps with better form, which is more stimulus. The auto-timer uses each exercise's prescription; don't rush it on squats and presses.",
+    "jeff nippard how long rest between sets"],
+   ["Deload every 4–8 weeks, or when you stall",
+    "When sleep is bad, joints ache, and weights feel heavy two sessions running — take a week at −20% load and half the sets. You don't grow during a deload; you uncover the growth you already stimulated. Toggle it in Settings.",
+    "jeff nippard deload week science"],
+   ["Exercise selection: stable, deep stretch, progressable",
+    "Pick movements that are stable enough to push hard, load the muscle in its stretched position, and let you add small increments for months. That's why this program leans on machines and cables for isolation and free weights for the big lifts. Swap freely (⇄) within the listed options.",
+    "jeff nippard best exercises science"],
+   ["Warm up with ramps, not marathons",
+    "5 minutes to raise body temp, then ramp the first lift: empty bar ×10, 50%×5, 70%×3, 85%×1, go. Later exercises need at most one light set. The app prints the ramp on your first lift.",
+    "jeff nippard warm up routine science"],
+   ["Eat to grow: protein + small surplus",
+    "Training earns the stimulus; food pays for it. ~1.6–2.2 g protein per kg bodyweight daily, slight calorie surplus to build (250–500), slight deficit to cut. Track body weight trends, not day-to-day noise.",
+    "jeff nippard how much protein science"],
+  ];
+  return `<div class="card"><h3>Jeff Nippard's principles, baked in</h3>
+    <div class="muted">These rules are the app's actual logic — recommendations, timers, targets and the volume audit all follow them. Each card links to Jeff's own video on the topic as the source of truth.</div></div>` +
+   P.map(p=>`<details><summary>${p[0]}</summary><div class="body">${p[1]}<br><br>
+     <a href="${ytq(p[2])}" target="_blank" rel="noopener">▶ Watch Jeff explain it</a></div></details>`).join("") +
+   `<div class="card tiny">Built on Jeff Nippard's freely published teaching (YouTube) and the structure of his free PPL programming. Not affiliated. His paid programs at <a style="color:var(--accent2)" href="https://jeffnippard.com" target="_blank" rel="noopener">jeffnippard.com</a> include periodized blocks beyond this scope.</div>`;
+}
+
+/* ---------- Settings ---------- */
+function rSettings(){
+  return `<div class="card"><h3>Training</h3>
+    <div class="row" style="margin:10px 0">
+      <div class="grow">Units</div>
+      <button class="btn ghost small ${S.units==='lb'?'':''}" onclick="S.units='lb';save();render()" ${S.units==='lb'?'style="border-color:var(--accent);color:var(--accent2)"':''}>lb</button>
+      <button class="btn ghost small" onclick="S.units='kg';save();render()" ${S.units==='kg'?'style="border-color:var(--accent);color:var(--accent2)"':''}>kg</button>
+    </div>
+    <div class="row" style="margin:10px 0">
+      <div class="grow">Deload week<div class="tiny">−20% load, half sets</div></div>
+      <button class="btn ${S.deload?'':'ghost'} small" onclick="S.deload=!S.deload;save();render()">${S.deload?"ON":"off"}</button>
+    </div>
+    <div class="row" style="margin:10px 0">
+      <div class="grow">Next session<div class="tiny">currently ${PROGRAM[S.rot].name}</div></div>
+      <select class="wide" style="max-width:140px" onchange="S.rot=+this.value;save();render()">
+        ${PROGRAM.map((d,i)=>`<option value="${i}" ${i===S.rot?"selected":""}>${d.name}</option>`).join("")}
+      </select>
+    </div></div>
+  <div class="card"><h3>Your data</h3>
+    <div class="tiny" style="margin-bottom:10px">Everything lives in this browser only (localStorage) — nothing is uploaded. Export a backup occasionally, especially before clearing browser data.</div>
+    <div class="row">
+      <button class="btn ghost grow" onclick="exportData()">Export backup</button>
+      <button class="btn ghost grow" onclick="document.getElementById('importfile').click()">Import</button>
+    </div>
+    <input type="file" id="importfile" accept=".json" style="display:none" onchange="importData(this)">
+    <button class="btn small" style="background:var(--bad);margin-top:12px" onclick="resetAll()">Erase everything</button>
+  </div>
+  <div class="card tiny">Part of your <a style="color:var(--accent2)" href="../index.html">daily dashboard</a>. Add to home screen for the full-screen app.</div>`;
+}
+function exportData(){
+  const blob=new Blob([JSON.stringify(S,null,1)],{type:"application/json"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="lift-backup-"+new Date().toISOString().slice(0,10)+".json";
+  a.click(); URL.revokeObjectURL(a.href);
+}
+function importData(inp){
+  const f=inp.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{ try{
+      const d=JSON.parse(r.result);
+      if(!d||!Array.isArray(d.history)) throw 0;
+      S=d; save(); render(); toast("Backup restored");
+    }catch(e){ toast("Not a valid backup file"); } };
+  r.readAsText(f);
+}
+function resetAll(){
+  modal(`<h3 style="margin-top:0">Erase all workout data?</h3><div class="muted">This cannot be undone. Export a backup first.</div>
+   <div class="row" style="margin-top:12px"><button class="btn ghost grow" onclick="closeModal()">Cancel</button>
+   <button class="btn grow" style="background:var(--bad)" onclick="localStorage.removeItem(LS);S=load();save();closeModal();render()">Erase</button></div>`);
+}
+
+/* ---------- shared ---------- */
+function toast(msg){
+  const t=document.getElementById("toast");
+  t.textContent=msg; t.classList.add("on");
+  clearTimeout(window._tt); window._tt=setTimeout(()=>t.classList.remove("on"),2600);
+}
+function modal(html){
+  document.getElementById("modal-body").innerHTML=html;
+  document.getElementById("modal").classList.add("on");
+}
+function closeModal(){ document.getElementById("modal").classList.remove("on"); }
+document.getElementById("modal").addEventListener("click", e=>{ if(e.target.id==="modal") closeModal(); });
+
+if("serviceWorker" in navigator && location.protocol==="https:") navigator.serviceWorker.register("../sw.js");
+render();
+</script>
+</body>
+</html>

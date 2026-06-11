@@ -313,6 +313,15 @@ var SEED_MAINT = [
   {id:"roof", name:"Roof & attic inspection", type:"interval", interval:365, flex:12, anchor:"2027-04-22", cat:"Exterior",
    note:"2007 roof is mid-life — look for lifted/missing shingles, granules in gutters, daylight or stains in the attic."},
   {id:"pest", name:"Termite / pest inspection", type:"interval", interval:365, flex:12, anchor:"2027-05-12", cat:"Exterior"},
+  // ----- car -----
+  {id:"oilchange", name:"Oil change", type:"interval", interval:180, flex:10, anchor:"2026-08-20", cat:"Car",
+   note:"Or every 5,000–7,500 miles, whichever comes first. Synthetic stretches the interval."},
+  {id:"tirerot", name:"Rotate tires", type:"interval", interval:180, flex:10, anchor:"2026-11-18", cat:"Car",
+   note:"Easy to bundle with an oil change if the shop does both — check tread depth while you're at it."},
+  {id:"carreg", name:"Renew vehicle registration (BMV)", type:"interval", interval:365, flex:6, anchor:"2026-12-28", cat:"Car",
+   note:"Ohio renewals are due by the owner's birthday — EDIT this date to match yours. Renew online at oplates.com."},
+  {id:"wipers", name:"Replace wiper blades", type:"interval", interval:365, flex:12, anchor:"2026-10-30", cat:"Car",
+   note:"Do it before winter — streaking blades + first frost is a bad mix."},
   // ----- bills (fixed dates) -----
   {id:"utilities", name:"Pay utilities", type:"monthly", dayOfMonth:1, cat:"Bills"},
   {id:"mortgage", name:"Pay mortgage", type:"monthly", dayOfMonth:13, cat:"Bills"},
@@ -340,8 +349,12 @@ var state = {
   projects:lsGet("projects", []),
   events:  lsGet("events", {events:[], syncedAt:null}),
   wx:      lsGet("wx", null),
+  grocery: lsGet("grocery", []),
+  dinner:  lsGet("dinner", {}),
+  inbox:   lsGet("inbox", []),
   planTab: "plan",
-  calView: "week"
+  calView: "week",
+  listTab: "g"
 };
 function save(key){ lsSet(key, state[key]); }
 
@@ -570,15 +583,112 @@ function renderBanner(){
 function renderAll(){
   renderHeader(); renderBanner();
   app.innerHTML =
+    sectionInbox() +
     sectionToday() +
     sectionPlan() +
     sectionCalendar() +
+    sectionLists() +
     sectionHabits() +
     sectionBreath() +
     sectionJournal() +
     sectionProjects();
-  bindToday(); bindPlan(); bindCalendar(); bindHabits(); bindBreath(); bindJournal(); bindProjects();
+  bindInbox(); bindToday(); bindPlan(); bindCalendar(); bindLists(); bindHabits(); bindBreath(); bindJournal(); bindProjects();
   renderFoot();
+}
+
+/* ----- QUICK CAPTURE: jot it now, triage it later ----- */
+function sectionInbox(){
+  var h="<section class='card' id='inboxCard' style='padding:11px 14px'>"+
+    "<div style='display:flex; gap:8px'>"+
+    "<input class='txt' id='inb-in' placeholder='Quick capture — anything to deal with later…' style='flex:1'>"+
+    "<button class='btn' id='inb-add' style='padding:9px 14px'>+</button></div>";
+  if(state.inbox.length){
+    h+=state.inbox.map(function(it){
+      return "<div class='task' style='padding:7px 0'>"+
+        "<div class='info'><div class='nm'>"+esc(it.name)+"</div></div>"+
+        "<button class='snz' data-inb-g='"+it.id+"' title='Send to grocery/errand list'>🛒 list</button>"+
+        "<button class='snz' data-inb-t='"+it.id+"' title='Make it a scheduled task'>↻ task</button>"+
+        "<button class='snz' data-inb-p='"+it.id+"' title='Make it a project'>🎯 project</button>"+
+        "<button class='xbtn' data-inb-x='"+it.id+"'>×</button></div>";
+    }).join("");
+  }
+  return h+"</section>";
+}
+function inboxItem(id){ return state.inbox.filter(function(x){return x.id===id;})[0]; }
+function inboxRemove(id){ state.inbox=state.inbox.filter(function(x){return x.id!==id;}); save("inbox"); }
+function bindInbox(){
+  function add(){
+    var inp=document.getElementById("inb-in"); var v=inp.value.trim(); if(!v) return;
+    state.inbox.push({id:uid(), name:v}); save("inbox"); renderAll();
+    var ni=document.getElementById("inb-in"); if(ni) ni.focus();
+  }
+  document.getElementById("inb-add").onclick=add;
+  document.getElementById("inb-in").addEventListener("keydown", function(e){ if(e.key==="Enter") add(); });
+  document.querySelectorAll("[data-inb-g]").forEach(function(el){
+    el.onclick=function(){ var it=inboxItem(el.getAttribute("data-inb-g")); if(!it) return;
+      state.grocery.push({id:uid(), name:it.name, kind:state.listTab, done:false}); save("grocery");
+      inboxRemove(it.id); renderAll(); };
+  });
+  document.querySelectorAll("[data-inb-p]").forEach(function(el){
+    el.onclick=function(){ var it=inboxItem(el.getAttribute("data-inb-p")); if(!it) return;
+      state.projects.push({id:uid(), title:it.name, notes:"", done:false}); save("projects");
+      inboxRemove(it.id); renderAll(); };
+  });
+  document.querySelectorAll("[data-inb-t]").forEach(function(el){
+    el.onclick=function(){ var it=inboxItem(el.getAttribute("data-inb-t")); if(!it) return;
+      window._afterTaskSave=function(){ inboxRemove(it.id); };
+      openTaskEditor(null, it.name); };
+  });
+  document.querySelectorAll("[data-inb-x]").forEach(function(el){
+    el.onclick=function(){ inboxRemove(el.getAttribute("data-inb-x")); renderAll(); };
+  });
+}
+
+/* ----- GROCERIES & ERRANDS ----- */
+function sectionLists(){
+  var items=state.grocery.filter(function(x){return (x.kind||"g")===state.listTab;});
+  var open=items.filter(function(x){return !x.done;}), closed=items.filter(function(x){return x.done;});
+  var h="<section class='card' id='listCard'>"+
+    "<div class='sechead'><h2>Lists</h2><span class='meta'>"+(open.length?open.length+" open":"")+"</span></div>"+
+    "<div class='tabs'>"+
+    "<div class='tab "+(state.listTab==='g'?'on':'')+"' data-lt='g'>🛒 Grocery</div>"+
+    "<div class='tab "+(state.listTab==='e'?'on teal':'')+"' data-lt='e'>📍 Errands</div></div>"+
+    "<div style='display:flex; gap:8px; margin-bottom:6px'>"+
+    "<input class='txt' id='li-in' placeholder='"+(state.listTab==='g'?"Add groceries…":"Add an errand…")+"' style='flex:1'>"+
+    "<button class='btn' id='li-add' style='padding:9px 14px'>+</button></div>";
+  function row(x){
+    return "<div class='habit'><button class='hcheck"+(x.done?" done":"")+"' data-li='"+x.id+"'></button>"+
+      "<div class='hn"+(x.done?" done":"")+"'>"+esc(x.name)+"</div>"+
+      "<button class='xbtn' data-lix='"+x.id+"'>×</button></div>";
+  }
+  if(!items.length) h+="<div class='empty'>"+(state.listTab==='g'?"List's empty — nice.":"No errands queued.")+"</div>";
+  else h+=open.map(row).join("")+closed.map(row).join("");
+  if(closed.length) h+="<button class='addbtn' id='li-clear' style='border-style:solid;border-color:var(--line);color:var(--muted)'>Clear "+closed.length+" done</button>";
+  return h+"</section>";
+}
+function bindLists(){
+  document.querySelectorAll("[data-lt]").forEach(function(el){
+    el.onclick=function(){ state.listTab=el.getAttribute("data-lt"); renderAll(); };
+  });
+  function add(){
+    var inp=document.getElementById("li-in"); var v=inp.value.trim(); if(!v) return;
+    state.grocery.push({id:uid(), name:v, kind:state.listTab, done:false}); save("grocery"); renderAll();
+    var ni=document.getElementById("li-in"); if(ni) ni.focus();
+  }
+  document.getElementById("li-add").onclick=add;
+  document.getElementById("li-in").addEventListener("keydown", function(e){ if(e.key==="Enter") add(); });
+  document.querySelectorAll("[data-li]").forEach(function(el){
+    el.onclick=function(){ var x=state.grocery.filter(function(i){return i.id===el.getAttribute("data-li");})[0];
+      if(x){ x.done=!x.done; save("grocery"); renderAll(); } };
+  });
+  document.querySelectorAll("[data-lix]").forEach(function(el){
+    el.onclick=function(){ state.grocery=state.grocery.filter(function(i){return i.id!==el.getAttribute("data-lix");}); save("grocery"); renderAll(); };
+  });
+  var cl=document.getElementById("li-clear");
+  if(cl) cl.onclick=function(){
+    state.grocery=state.grocery.filter(function(i){return (i.kind||"g")!==state.listTab || !i.done;});
+    save("grocery"); renderAll();
+  };
 }
 
 /* ----- TODAY: weather + events + the day's assigned tasks ----- */
@@ -621,10 +731,20 @@ function sectionToday(){
   h+="<div class='agendahead'>Tasks</div>";
   if(dayItems.length) h+=dayItems.map(function(it){ return taskRowHTML(it,"today"); }).join("");
   else h+="<div class='clearday'>✓ Clear day — nothing assigned.</div>";
+  // dinner
+  h+="<div class='agendahead'>Dinner</div>"+
+    "<div style='display:flex; gap:8px; align-items:center'><span style='font-size:18px'>🍽</span>"+
+    "<input class='txt' id='dinner-in' placeholder='What’s for dinner?' value='"+esc(state.dinner[ymd(view)]||"")+"' style='flex:1'></div>";
   h+="</section>";
   return h;
 }
 function bindToday(){
+  var di=document.getElementById("dinner-in");
+  if(di) di.oninput=function(){
+    var ds=ymd(view);
+    if(di.value.trim()) state.dinner[ds]=di.value; else delete state.dinner[ds];
+    save("dinner");
+  };
   document.querySelectorAll("[data-done]").forEach(function(el){
     el.onclick=function(){
       var t=getTask(el.getAttribute("data-done")); if(!t) return;
@@ -667,7 +787,8 @@ function planBodyHTML(){
         h+="<div class='pitem"+(bill?" bill":"")+"'>"+(bill?"💵 ":"• ")+esc(it.t.name)+
           (it.overdue?" <span class='pin' style='color:var(--terra)'>overdue</span>":"")+"</div>";
       });
-      if(!items.length && !evs.length) h+="<div class='free'>free</div>";
+      if(state.dinner[ds]) h+="<div class='pitem'>🍽 "+esc(state.dinner[ds])+"</div>";
+      if(!items.length && !evs.length && !state.dinner[ds]) h+="<div class='free'>free</div>";
       h+="</div><div class='pwx'>"+(wx?wxIcon(wx.code)+" "+wx.hi+"°":"")+"</div></div>";
     }
     return h;
@@ -717,19 +838,19 @@ function bindPlan(){
 }
 
 /* ----- task editor sheet ----- */
-function openTaskEditor(t){
+function openTaskEditor(t, prefillName){
   var isNew=!t;
   var cad = t ? (t.type==="monthly"?"bill":(t.interval===7?"weekly":t.interval<=31?"monthly":t.interval<=93?"quarterly":t.interval<=190?"semiannual":"yearly")) : "monthly";
   var sheet=document.getElementById("sheet");
   sheet.innerHTML="<h3>"+(isNew?"New task or bill":"Edit task")+"</h3>"+
-    "<div class='field'><label>Name</label><input class='txt' id='te-name' value='"+(t?esc(t.name):"")+"'></div>"+
+    "<div class='field'><label>Name</label><input class='txt' id='te-name' value='"+(t?esc(t.name):esc(prefillName||""))+"'></div>"+
     "<div class='row2'><div class='field'><label>How often</label><select class='sel' id='te-cad'>"+
       ["weekly","monthly","quarterly","semiannual","yearly","bill"].map(function(c){
         var lbl={weekly:"Weekly",monthly:"Monthly",quarterly:"Quarterly",semiannual:"Every 6 months",yearly:"Yearly",bill:"Bill (fixed day of month)"}[c];
         return "<option value='"+c+"'"+(c===cad?" selected":"")+">"+lbl+"</option>";
       }).join("")+"</select></div>"+
     "<div class='field'><label>Category</label><select class='sel' id='te-cat'>"+
-      ["Chores","Lawn","Interior","Exterior","Systems","HVAC","Safety","Appliances","Sprinklers","Bills","Custom"].map(function(c){
+      ["Chores","Lawn","Interior","Exterior","Systems","HVAC","Safety","Appliances","Sprinklers","Car","Bills","Custom"].map(function(c){
         return "<option"+(t&&t.cat===c?" selected":"")+">"+c+"</option>";
       }).join("")+"</select></div></div>"+
     "<div class='field' id='te-daywrap' style='display:"+(cad==="bill"?"block":"none")+"'><label>Day of month</label><input class='txt' id='te-day' type='number' min='1' max='28' value='"+(t&&t.dayOfMonth?t.dayOfMonth:1)+"'></div>"+
@@ -762,7 +883,9 @@ function openTaskEditor(t){
       delete obj.dayOfMonth;
     }
     if(isNew) state.maint.push(obj);
-    save("maint"); invalidatePlan(); closeSheet(); renderAll();
+    save("maint"); invalidatePlan();
+    if(window._afterTaskSave){ window._afterTaskSave(); window._afterTaskSave=null; }
+    closeSheet(); renderAll();
   };
   var del=document.getElementById("te-del");
   if(del) del.onclick=function(){
@@ -772,7 +895,7 @@ function openTaskEditor(t){
     save("maint"); save("removed"); invalidatePlan(); closeSheet(); renderAll();
   };
 }
-function closeSheet(){ document.getElementById("ovl").classList.remove("on"); }
+function closeSheet(){ window._afterTaskSave=null; document.getElementById("ovl").classList.remove("on"); }
 document.getElementById("ovl").addEventListener("click", function(e){ if(e.target.id==="ovl") closeSheet(); });
 
 /* ----- calendar (week ahead / upcoming) ----- */
@@ -1015,7 +1138,7 @@ function copyText(text, btn, restore){
 }
 
 /* ----- backup ----- */
-var BACKUP_KEYS=["maint","removed","habits","habitLog","journal","projects","events"];
+var BACKUP_KEYS=["maint","removed","habits","habitLog","journal","projects","events","grocery","dinner","inbox"];
 function exportBackup(){
   var data={_dd:1, exportedAt:new Date().toISOString()};
   BACKUP_KEYS.forEach(function(k){ data[k]=lsGet(k,null); });

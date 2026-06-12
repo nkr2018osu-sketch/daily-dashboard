@@ -369,23 +369,40 @@ function pvSan(fen, pv, n){
   }catch(e){}
   return out;
 }
-function isSacrifice(fenBefore, mv, wpAfter){
-  if(wpAfter<45) return false;
-  const moved=PIECE_VAL[mv.piece]||0;
-  if(moved<3) return false;                       // pawn moves aren't "brilliant" sacs here
-  const captured=mv.captured?PIECE_VAL[mv.captured]:0;
+/* A move is a genuine sacrifice when, following the engine's best line after
+   it, the mover is still down >= 2 points of material (i.e. the investment is
+   never regained within the line) — or the line ends in mate while material
+   is down. Returns {deficit, mate}. */
+function pvSacrifice(fenBefore, playedUci, replyPv, maxPlies){
   try{
     const c=new Chess(fenBefore);
-    c.move({from:mv.from, to:mv.to, promotion:mv.promotion||undefined});
-    const opp=mv.color==="w"?"b":"w";
-    const atk=c.attackers(mv.to, opp), def=c.attackers(mv.to, mv.color);
-    if(!atk.length) return false;
-    if(captured>=moved) return false;             // winning/equal capture, not a sac
-    if(atk.length>def.length) return true;        // simply underdefended
-    // lowest attacker cheaper than the piece left there
-    const cheapest=Math.min(...atk.map(sq=>{ const p=c.get(sq); return p?PIECE_VAL[p.type]:9; }));
-    return cheapest < moved - captured;
-  }catch(e){ return false; }
+    const mover=c.turn();
+    const seq=[playedUci, ...(replyPv||[])].slice(0, maxPlies);
+    let bal=0; const steps=[];
+    for(const u of seq){
+      let m;
+      try{ m=c.move({from:u.slice(0,2), to:u.slice(2,4), promotion:u[4]||undefined}); }
+      catch(e){ break; }
+      if(!m) break;
+      if(m.captured) bal += (m.color===mover?1:-1)*PIECE_VAL[m.captured];
+      if(m.promotion) bal += (m.color===mover?1:-1)*(PIECE_VAL[m.promotion]-1);
+      const mate=c.isCheckmate();
+      steps.push({bal, byOpp:m.color!==mover, mate});
+      if(mate) break;
+    }
+    if(!steps.length) return {early:0, deficit:0, mate:false};
+    // early = material right after the opponent's first chances to cash in
+    // (first 4 plies). The investment must happen HERE to credit this move —
+    // otherwise the deficit belongs to a sacrifice later in the line.
+    let early=0;
+    for(let k=0;k<Math.min(4,steps.length);k++)
+      if(steps[k].byOpp) early=Math.min(early, steps[k].bal);
+    const last=steps[steps.length-1];
+    if(last.mate) return {early, deficit:last.bal, mate:true};
+    for(let k=steps.length-1;k>=0;k--)
+      if(steps[k].byOpp) return {early, deficit:steps[k].bal, mate:false};
+    return {early, deficit:last.bal, mate:false};
+  }catch(e){ return {early:0, deficit:0, mate:false}; }
 }
 
 async function analyzeGame(pgn, depth, onProgress){
@@ -430,8 +447,20 @@ async function analyzeGame(pgn, depth, onProgress){
     const playedUci=mv.from+mv.to+(mv.promotion||"");
     let cls;
     if(i<bookPlies) cls="book";
-    else if((bestUci&&playedUci===bestUci) || drop<=0.6)
-      cls=isSacrifice(fens[i], mv, wpa)?"brilliant":"best";
+    else if((bestUci&&playedUci===bestUci) || drop<=0.6){
+      cls="best";
+      // Brilliant: a verified sacrifice — engine-best play still leaves the
+      // mover down material, position not lost after, and either not already
+      // overwhelmingly winning or the sac line forces mate.
+      if(wpa>=42){
+        const pre=new Chess(fens[i]);
+        if(pre.moves().length>2){
+          const reply=engRes[i+1]?engRes[i+1].pv:[];
+          const sac=pvSacrifice(fens[i], playedUci, reply, 8);
+          if(sac.early<=-2 && sac.deficit<=-2 && (wpb<93 || sac.mate)) cls="brilliant";
+        }
+      }
+    }
     else if(drop<=2) cls="excellent";
     else if(drop<=5) cls="good";
     else if(drop<=10) cls=(wpb>=85&&wpa<60)?"miss":"inaccuracy";

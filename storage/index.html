@@ -211,7 +211,7 @@ function totesHTML(){
     <div class="n">${loose} item${loose===1?"":"s"}</div></div>`;
   if(!S.totes.length && !loose)
     h+=`<div class="card"><h3>No totes yet</h3><div class="muted">Tap <b>+ New tote</b>, give it a number-matching label (write “T1” on the real tote with a marker or print a label), then add items as you pack.</div></div>`;
-  h+=S.totes.slice().sort((a,b)=>num(a.id)-num(b.id)).map(t=>{
+  h+=S.totes.slice().sort(toteSort).map(t=>{
     const n=itemsIn(t.id).length;
     return `<div class="tote" onclick="openTote('${t.id}')"><span class="badge big">${esc(t.id)}</span>
       <div class="grow"><div class="nm">${esc(t.name||"(unnamed)")}</div><div class="loc">${esc(t.loc||"no location set")}</div></div>
@@ -220,6 +220,11 @@ function totesHTML(){
   return h;
 }
 function num(id){ const m=String(id).match(/\d+/); return m?+m[0]:0; }
+function toteSort(a,b){ /* T totes first, then other prefixes (e.g. B cable bins), numerically within each */
+  const pa=String(a.id)[0], pb=String(b.id)[0];
+  if(pa!==pb) return pa==="T"?-1 : pb==="T"?1 : pa.localeCompare(pb);
+  return num(a.id)-num(b.id);
+}
 
 /* ---------- Tote detail ---------- */
 function toteHTML(id){
@@ -309,7 +314,7 @@ function reallyDeleteTote(id,keepItems){
 }
 function editItem(id){
   const i=S.items.find(x=>x.id===id); if(!i) return;
-  const opts=[{id:"",label:"Loose (no tote)"}].concat(S.totes.map(t=>({id:t.id,label:t.id+(t.name?" · "+t.name:"")})));
+  const opts=[{id:"",label:"Loose (no tote)"}].concat(S.totes.slice().sort(toteSort).map(t=>({id:t.id,label:t.id+(t.name?" · "+t.name:"")})));
   modal(`<h3 style="margin-top:0">Edit item</h3>
   <label class="f">Name</label><input type="text" id="if-name" value="${esc(i.name)}">
   <label class="f">Quantity</label><input type="number" id="if-qty" value="${i.qty||1}" min="1" inputmode="numeric">
@@ -403,6 +408,27 @@ function eraseAll(){
 
 render();
 if("serviceWorker" in navigator && location.protocol==="https:") navigator.serviceWorker.register("../sw.js");
+
+/* First run: offer the starter inventory imported from the home-maintenance spreadsheet */
+if(!S.totes.length && !S.items.length && !localStorage.getItem(KEY+"SeedDismissed")){
+  fetch("seed.json").then(r=> r.ok ? r.json() : null).then(d=>{
+    if(!d || !Array.isArray(d.totes) || !Array.isArray(d.items)) return;
+    if(S.totes.length || S.items.length) return; // user started entering meanwhile
+    window._seed=d;
+    modal(`<h3 style="margin-top:0">Load your existing inventory?</h3>
+    <div class="muted" style="margin-bottom:14px">I found your storage catalog from the “5747 Home Maintenance” spreadsheet:
+      <b>${d.totes.length} containers</b> (totes T1–T14 + cable bins B1–B6) holding <b>${d.items.length} items</b>.
+      Everything stays editable afterwards.</div>
+    <button class="btn" style="width:100%;margin-bottom:8px" onclick='loadSeed()'>Load it</button>
+    <button class="ghost" style="width:100%" onclick='localStorage.setItem(KEY+"SeedDismissed","1");closeModal()'>No thanks, start empty</button>`);
+  }).catch(()=>{});
+}
+function loadSeed(){
+  S=window._seed; save();
+  localStorage.setItem(KEY+"SeedDismissed","1");
+  closeModal(); go("totes");
+  toast("Loaded "+S.items.length+" items — tap a tote to review");
+}
 </script>
 </body>
 </html>

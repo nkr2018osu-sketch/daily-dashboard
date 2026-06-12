@@ -1,8 +1,9 @@
 /* Daily Dashboard service worker — network-first everywhere so updates
    always arrive; the cache is the offline fallback. */
-var CACHE = "dd-cache-v3";
+var CACHE = "dd-cache-v4";
 var SHELL = ["./", "./index.html", "./manifest.webmanifest", "./icon.svg",
-             "./workout/index.html", "./workout/manifest.webmanifest", "./workout/icon.svg"];
+             "./workout/index.html", "./workout/manifest.webmanifest", "./workout/icon.svg",
+             "./storage/index.html", "./storage/manifest.webmanifest", "./storage/icon.svg"];
 
 self.addEventListener("install", function(e){
   self.skipWaiting();

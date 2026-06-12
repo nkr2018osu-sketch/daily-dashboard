@@ -76,6 +76,11 @@
   #board .sq.hl::after{content:""; position:absolute; inset:0; background:var(--hl)}
   #board .sq.chk::after{content:""; position:absolute; inset:0;
     background:radial-gradient(circle, rgba(220,60,50,.85) 0%, rgba(220,60,50,0) 70%)}
+  #board .sq .coord{position:absolute; font-size:10px; font-weight:700; line-height:1; pointer-events:none; z-index:1}
+  #board .sq .coord.rank{top:2px; left:3px}
+  #board .sq .coord.file{bottom:2px; right:3px}
+  #board .sq.l .coord{color:var(--sqD)}
+  #board .sq.d .coord{color:var(--sqL)}
   #pieces{position:absolute; inset:0; pointer-events:none}
   #pieces img{position:absolute; width:12.5%; height:12.5%; transition:left .12s,top .12s}
   #arrow{position:absolute; inset:0; pointer-events:none}
@@ -92,7 +97,7 @@
   #graphCard svg{display:block; width:100%; height:96px; border-radius:8px; background:#211d1a; cursor:pointer}
 
   #moves{display:grid; grid-template-columns:34px 1fr 1fr; gap:2px 6px; font-size:14.5px;
-    max-height:300px; overflow-y:auto; padding-right:4px}
+    max-height:300px; overflow-y:auto; padding-right:4px; position:relative}
   #moves .no{color:var(--dim); text-align:right; padding-top:3px; font-size:13px}
   #moves .mv{padding:3px 8px; border-radius:7px; cursor:pointer; display:flex; align-items:center; gap:6px}
   #moves .mv.cur{background:#46403a; outline:1px solid #5a5248}
@@ -550,6 +555,8 @@ function buildBoard(){
     const f=orient==="w"?x:7-x, r=orient==="w"?7-y:y;
     d.className="sq "+(((f+r)%2===1)?"l":"d");
     d.dataset.sq=String.fromCharCode(97+f)+(r+1);
+    if(x===0){ const s=document.createElement("span"); s.className="coord rank"; s.textContent=r+1; d.appendChild(s); }
+    if(y===7){ const s=document.createElement("span"); s.className="coord file"; s.textContent=String.fromCharCode(97+f); d.appendChild(s); }
     b.appendChild(d);
   }
 }
@@ -637,7 +644,14 @@ function renderPosition(){
   document.querySelectorAll("#moves .mv").forEach(el=>el.classList.remove("cur"));
   if(ply>0){
     const el=document.querySelector(`#moves .mv[data-ply="${ply-1}"]`);
-    if(el){ el.classList.add("cur"); el.scrollIntoView({block:"nearest"}); }
+    if(el){
+      el.classList.add("cur");
+      // scroll only the move list, never the page
+      const box=$("moves");
+      if(el.offsetTop < box.scrollTop) box.scrollTop = el.offsetTop - 4;
+      else if(el.offsetTop + el.offsetHeight > box.scrollTop + box.clientHeight)
+        box.scrollTop = el.offsetTop + el.offsetHeight - box.clientHeight + 4;
+    }
   }
   drawGraphCursor();
 }

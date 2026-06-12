@@ -1,0 +1,12 @@
+{
+  "name": "Game Review - chess analysis",
+  "short_name": "Review",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#1b1816",
+  "theme_color": "#1b1816",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

@@ -17,7 +17,8 @@
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
   body{margin:0; background:var(--bg); color:var(--text);
-    font:16px/1.45 -apple-system,"Segoe UI",Roboto,sans-serif; padding-bottom:40px}
+    font:16px/1.45 -apple-system,"Segoe UI",Roboto,sans-serif; padding-bottom:40px;
+    touch-action:manipulation} /* no double-tap zoom (fast ▶ taps), pinch still works */
   header{display:flex; align-items:center; gap:10px; padding:14px 16px 6px}
   header a.back{color:var(--dim); text-decoration:none; font-size:20px}
   header .t{font-size:20px; font-weight:700}
@@ -66,6 +67,13 @@
     font-size:13px; cursor:pointer; font-weight:600}
 
   .boardArea{display:flex; gap:8px; align-items:stretch; margin:10px 0 6px}
+  /* zoom: take the board, coach and controls fullscreen, board as large as fits */
+  #playArea.zoomed{position:fixed; inset:0; z-index:60; background:var(--bg);
+    margin:0; padding:8px 4px env(safe-area-inset-bottom,8px);
+    display:flex; flex-direction:column; justify-content:center; gap:8px}
+  #playArea.zoomed .boardArea, #playArea.zoomed #coach, #playArea.zoomed .ctrls{
+    width:100%; max-width:min(100vw - 8px, 78vh); margin:0 auto}
+  body.noscroll{overflow:hidden}
   #evalbar{width:16px; border-radius:6px; overflow:hidden; background:#3d3a36; position:relative; flex:none}
   #evalbar .w{position:absolute; bottom:0; left:0; right:0; background:#f5f1e8; transition:height .25s}
   #evalbar .num{position:absolute; left:0; right:0; text-align:center; font-size:8px; font-weight:800; z-index:2}
@@ -171,19 +179,22 @@
       <div class="moments" id="moments"></div>
     </div>
 
-    <div class="boardArea">
-      <div id="evalbar"><div class="num" id="evalNum">0.0</div><div class="w" id="evalW"></div></div>
-      <div id="boardBox">
-        <div id="board"></div>
-        <div id="pieces"></div>
-        <svg id="arrow" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
-        <div id="badgeLayer"></div>
+    <div id="playArea">
+      <div class="boardArea">
+        <div id="evalbar"><div class="num" id="evalNum">0.0</div><div class="w" id="evalW"></div></div>
+        <div id="boardBox">
+          <div id="board"></div>
+          <div id="pieces"></div>
+          <svg id="arrow" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
+          <div id="badgeLayer"></div>
+        </div>
       </div>
-    </div>
-    <div id="coach"></div>
-    <div class="ctrls">
-      <button id="cFirst">⏮</button><button id="cPrev">◀</button>
-      <button id="cNext">▶</button><button id="cLast">⏭</button><button id="cFlip">⇅</button>
+      <div id="coach"></div>
+      <div class="ctrls">
+        <button id="cFirst">⏮</button><button id="cPrev">◀</button>
+        <button id="cNext">▶</button><button id="cLast">⏭</button>
+        <button id="cFlip">⇅</button><button id="cZoom" title="Zoom board">⛶</button>
+      </div>
     </div>
 
     <div class="card" id="graphCard"><h2>Evaluation</h2><svg id="graph"></svg></div>
@@ -796,6 +807,12 @@ $("cPrev").onclick=()=>seek(ply-1);
 $("cNext").onclick=()=>seek(ply+1);
 $("cLast").onclick=()=>seek(1e9);
 $("cFlip").onclick=()=>{ orient=orient==="w"?"b":"w"; buildBoard(); renderPosition(); };
+$("cZoom").onclick=()=>{
+  const z=$("playArea").classList.toggle("zoomed");
+  document.body.classList.toggle("noscroll", z);
+  $("cZoom").textContent = z ? "✕" : "⛶";
+  $("cZoom").title = z ? "Exit zoom" : "Zoom board";
+};
 document.addEventListener("keydown",e=>{
   if($("vReview").classList.contains("hidden")) return;
   if(e.key==="ArrowLeft") seek(ply-1);

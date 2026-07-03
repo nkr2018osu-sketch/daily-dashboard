@@ -11,9 +11,9 @@
   :root{
     --bg:#1b1816; --card:#262220; --card2:#2e2926; --line:#3a342f;
     --text:#e8e4df; --dim:#a39b91; --green:#81b64c; --teal:#26c2a3;
-    --sqL:#ecd9b9; --sqD:#ae8a68; --hl:rgba(255,213,79,.45);
-    --brilliant:#26c2a3; --best:#81b64c; --excellent:#a3c05e; --good:#8f9f7a;
-    --book:#a88865; --inaccuracy:#e6b439; --mistake:#e58f2a; --blunder:#ca3431; --miss:#d4504c;
+    --sqL:#ebecd0; --sqD:#739552; --hl:rgba(245,246,80,.50);
+    --brilliant:#1baca6; --great:#5b8bb0; --best:#81b64c; --excellent:#96bc4b; --good:#9aa87f;
+    --book:#a88865; --inaccuracy:#f0c15c; --mistake:#e58f2a; --miss:#ee6b55; --blunder:#d33b32;
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
   body{margin:0; background:var(--bg); color:var(--text);
@@ -54,17 +54,30 @@
   #vProgress .fill{height:100%; width:0%; background:var(--green); transition:width .2s}
 
   /* review */
-  .acc{display:flex; gap:10px; margin:8px 0}
-  .acc .a{flex:1; background:var(--card2); border-radius:10px; padding:8px 10px; text-align:center}
-  .acc .a .n{font-size:24px; font-weight:800}
-  .acc .a .l{font-size:12px; color:var(--dim)}
-  table.counts{width:100%; border-collapse:collapse; font-size:13px; margin-top:6px}
+  .opening{font-weight:700; font-size:16px}
+  .opening .eco{color:var(--dim); font-weight:600}
+  .players2{display:flex; gap:10px; margin:10px 0 2px}
+  .pcard{flex:1; background:var(--card2); border-radius:12px; padding:10px; text-align:center; position:relative}
+  .pcard .side{font-size:11px; color:var(--dim); text-transform:uppercase; letter-spacing:.5px}
+  .pcard .nm{font-size:13px; font-weight:700; margin:1px 0 6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .pcard .acc{font-size:30px; font-weight:800; line-height:1; margin:0}
+  .pcard .accl{font-size:11px; color:var(--dim)}
+  .pcard .gr{margin-top:6px; font-size:12px; color:var(--text)}
+  .pcard .gr b{font-weight:800}
+  .pcard.win{outline:2px solid var(--best)}
+  table.counts{width:100%; border-collapse:collapse; font-size:13px; margin-top:10px}
   table.counts td{padding:3px 4px}
-  table.counts td.c{text-align:center; width:48px; font-weight:700}
-  .dot{display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:7px; vertical-align:baseline}
-  .moments{display:flex; flex-wrap:wrap; gap:6px; margin-top:8px}
+  table.counts td.c{text-align:center; width:48px; font-weight:800}
+  .dot{display:inline-block; width:13px; height:13px; border-radius:50%; margin-right:7px; vertical-align:-2px;
+    color:#fff; font-size:9px; font-weight:900; text-align:center; line-height:13px}
+  .agLabel{margin:10px 0 4px; font-weight:600}
+  .moments{display:flex; flex-wrap:wrap; gap:6px; margin-top:2px}
   .chip{background:var(--card2); border:1px solid var(--line); border-radius:16px; padding:5px 11px;
     font-size:13px; cursor:pointer; font-weight:600}
+  /* captured-material trays around the board */
+  .capTray{display:flex; align-items:center; gap:1px; min-height:20px; padding:1px 2px; font-size:13px}
+  .capTray img{width:17px; height:17px; margin-right:-5px}
+  .capTray .adv{margin-left:8px; font-weight:800; color:var(--dim); font-size:13px}
 
   .boardArea{display:flex; gap:8px; align-items:stretch; margin:10px 0 6px}
   /* zoom: take the board, coach and controls fullscreen, board as large as fits */
@@ -168,18 +181,17 @@
     <button class="ghost" id="btnBack" style="margin:4px 0">← New review</button>
 
     <div class="card" id="sumCard">
-      <div id="players" style="font-weight:700"></div>
+      <div id="openingLine" class="opening"></div>
       <div id="resultLine" class="dim small"></div>
-      <div class="acc">
-        <div class="a"><div class="n" id="accW">–</div><div class="l" id="accWl">White accuracy</div></div>
-        <div class="a"><div class="n" id="accB">–</div><div class="l" id="accBl">Black accuracy</div></div>
-      </div>
+      <div class="players2" id="players2"></div>
       <table class="counts" id="counts"></table>
-      <div class="small dim" id="perf" style="margin-top:6px"></div>
+      <div class="small dim" id="perf" style="margin-top:8px"></div>
+      <div class="agLabel small dim">Key moments — tap to jump</div>
       <div class="moments" id="moments"></div>
     </div>
 
     <div id="playArea">
+      <div class="capTray" id="capTop"></div>
       <div class="boardArea">
         <div id="evalbar"><div class="num" id="evalNum">0.0</div><div class="w" id="evalW"></div></div>
         <div id="boardBox">
@@ -189,11 +201,13 @@
           <div id="badgeLayer"></div>
         </div>
       </div>
+      <div class="capTray" id="capBottom"></div>
       <div id="coach"></div>
       <div class="ctrls">
         <button id="cFirst">⏮</button><button id="cPrev">◀</button>
         <button id="cNext">▶</button><button id="cLast">⏭</button>
         <button id="cFlip">⇅</button><button id="cZoom" title="Zoom board">⛶</button>
+        <button id="cSound" title="Sound on/off">🔊</button>
       </div>
     </div>
 
@@ -211,11 +225,11 @@ const LS = {
   get(k,d){ try{ const v=localStorage.getItem(k); return v===null?d:JSON.parse(v);}catch(e){return d;} },
   set(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
 };
-const PIECE_VAL = {p:1, n:3, b:3.2, r:5, q:9, k:0};
 const CLS_META = {
   brilliant:{label:"Brilliant", tag:"!!", color:"var(--brilliant)"},
+  great:{label:"Great", tag:"!", color:"var(--great)"},
   best:{label:"Best", tag:"★", color:"var(--best)"},
-  excellent:{label:"Excellent", tag:"!", color:"var(--excellent)"},
+  excellent:{label:"Excellent", tag:"✦", color:"var(--excellent)"},
   good:{label:"Good", tag:"✓", color:"var(--good)"},
   book:{label:"Book", tag:"⌂", color:"var(--book)"},
   inaccuracy:{label:"Inaccuracy", tag:"?!", color:"var(--inaccuracy)"},
@@ -223,6 +237,46 @@ const CLS_META = {
   miss:{label:"Missed win", tag:"✗", color:"var(--miss)"},
   blunder:{label:"Blunder", tag:"??", color:"var(--blunder)"},
 };
+const PIECE_PTS = {p:1, n:3, b:3, r:5, q:9};         // integer values for material display
+const CLS_ORDER = ["brilliant","great","best","excellent","good","book","inaccuracy","mistake","miss","blunder"];
+
+/* ---------------- move sounds (Web Audio, synthesized) ---------------- */
+const Sound = {
+  ctx:null, muted:LS.get("cr_mute", false),
+  ensure(){ if(!this.ctx){ try{ this.ctx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } return this.ctx; },
+  blip(freq, dur, type, gain, when){
+    const ctx=this.ctx; const t=ctx.currentTime+(when||0);
+    const o=ctx.createOscillator(), g=ctx.createGain();
+    o.type=type||"triangle"; o.frequency.setValueAtTime(freq, t);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(gain||0.18, t+0.006);
+    g.gain.exponentialRampToValueAtTime(0.0001, t+dur);
+    o.connect(g).connect(ctx.destination); o.start(t); o.stop(t+dur+0.02);
+  },
+  play(kind){
+    if(this.muted) return;
+    const ctx=this.ensure(); if(!ctx) return;
+    if(ctx.state==="suspended") ctx.resume();
+    switch(kind){
+      case "move":    this.blip(210,0.07,"triangle",0.16); break;
+      case "capture": this.blip(150,0.10,"sawtooth",0.16); this.blip(320,0.05,"square",0.08,0.005); break;
+      case "castle":  this.blip(190,0.08,"triangle",0.15); this.blip(190,0.08,"triangle",0.15,0.09); break;
+      case "check":   this.blip(660,0.10,"square",0.13); break;
+      case "promote": this.blip(330,0.08,"triangle",0.15); this.blip(520,0.10,"triangle",0.15,0.08); break;
+      case "end":     this.blip(440,0.12,"triangle",0.16); this.blip(294,0.18,"triangle",0.16,0.12); break;
+      default:        this.blip(210,0.07,"triangle",0.16);
+    }
+  }
+};
+function moveSoundKind(san){
+  if(!san) return "move";
+  if(san.includes("#")) return "end";
+  if(san.includes("+")) return "check";
+  if(san.includes("=")) return "promote";
+  if(san.startsWith("O-O")) return "castle";
+  if(san.includes("x")) return "capture";
+  return "move";
+}
 
 function cpWhite(ev){ // normalized white-perspective centipawns for math/graph
   if(ev.cp!==undefined) return Math.max(-1500, Math.min(1500, ev.cp));
@@ -230,6 +284,12 @@ function cpWhite(ev){ // normalized white-perspective centipawns for math/graph
   return m>0 ? 1800-Math.min(Math.abs(m),20)*10 : -1800+Math.min(Math.abs(m),20)*10;
 }
 function winPct(cp){ return 50 + 50*(2/(1+Math.exp(-0.00368208*cp))-1); }
+function cpOf(sc){ // centipawns from a raw {type,val} side-to-move score
+  if(!sc) return null;
+  if(sc.type==="cp") return Math.max(-1500, Math.min(1500, sc.val));
+  const m=sc.val;
+  return m>0 ? 1800-Math.min(Math.abs(m),20)*10 : -1800+Math.min(Math.abs(m),20)*10;
+}
 function evalText(ev){
   if(ev.cp!==undefined) return (ev.cp>=0?"+":"")+(ev.cp/100).toFixed(1);
   const m=ev.mate; if(Math.abs(m)===0.5) return "#";
@@ -328,6 +388,86 @@ function countBookPlies(sans){
   }
   return Math.min(best,16);
 }
+const GREAT_GAP = 18;   // win% the 2nd-best line must trail by for a "Great" move
+
+/* ---------------- opening names (longest SAN-prefix match) ---------------- */
+const OPENINGS = [
+["Ruy López, Morphy Defense","e4 e5 Nf3 Nc6 Bb5 a6"],
+["Ruy López, Berlin Defense","e4 e5 Nf3 Nc6 Bb5 Nf6"],
+["Ruy López","e4 e5 Nf3 Nc6 Bb5"],
+["Italian Game, Giuoco Piano","e4 e5 Nf3 Nc6 Bc4 Bc5 c3"],
+["Italian Game, Two Knights Defense","e4 e5 Nf3 Nc6 Bc4 Nf6"],
+["Italian Game","e4 e5 Nf3 Nc6 Bc4"],
+["Scotch Game","e4 e5 Nf3 Nc6 d4"],
+["Petrov's Defense","e4 e5 Nf3 Nf6"],
+["Philidor Defense","e4 e5 Nf3 d6"],
+["King's Gambit","e4 e5 f4"],
+["Vienna Game","e4 e5 Nc3"],
+["Bishop's Opening","e4 e5 Bc4"],
+["Center Game","e4 e5 d4"],
+["Sicilian, Najdorf","e4 c5 Nf3 d6 d4 cxd4 Nxd4 Nf6 Nc3 a6"],
+["Sicilian, Dragon","e4 c5 Nf3 d6 d4 cxd4 Nxd4 Nf6 Nc3 g6"],
+["Sicilian, Scheveningen","e4 c5 Nf3 d6 d4 cxd4 Nxd4 Nf6 Nc3 e6"],
+["Sicilian, Classical","e4 c5 Nf3 Nc6 d4 cxd4 Nxd4 Nf6"],
+["Sicilian, Accelerated Dragon","e4 c5 Nf3 Nc6 d4 cxd4 Nxd4 g6"],
+["Sicilian, Taimanov","e4 c5 Nf3 e6 d4 cxd4 Nxd4 Nc6"],
+["Sicilian, Alapin","e4 c5 c3"],
+["Sicilian, Closed","e4 c5 Nc3"],
+["Sicilian, Rossolimo","e4 c5 Nf3 Nc6 Bb5"],
+["Sicilian, Moscow","e4 c5 Nf3 d6 Bb5+"],
+["Sicilian Defense","e4 c5"],
+["French, Winawer","e4 e6 d4 d5 Nc3 Bb4"],
+["French, Classical","e4 e6 d4 d5 Nc3 Nf6"],
+["French, Tarrasch","e4 e6 d4 d5 Nd2"],
+["French, Advance","e4 e6 d4 d5 e5"],
+["French, Exchange","e4 e6 d4 d5 exd5"],
+["French Defense","e4 e6"],
+["Caro-Kann, Advance","e4 c6 d4 d5 e5"],
+["Caro-Kann, Classical","e4 c6 d4 d5 Nc3 dxe4 Nxe4 Bf5"],
+["Caro-Kann, Exchange","e4 c6 d4 d5 exd5"],
+["Caro-Kann, Panov","e4 c6 d4 d5 exd5 cxd5 c4"],
+["Caro-Kann Defense","e4 c6"],
+["Scandinavian Defense","e4 d5"],
+["Pirc Defense","e4 d6 d4 Nf6 Nc3 g6"],
+["Modern Defense","e4 g6"],
+["Alekhine's Defense","e4 Nf6"],
+["King's Pawn Opening","e4"],
+["Queen's Gambit Declined","d4 d5 c4 e6"],
+["Queen's Gambit Accepted","d4 d5 c4 dxc4"],
+["Slav Defense","d4 d5 c4 c6"],
+["Queen's Gambit","d4 d5 c4"],
+["King's Indian Defense","d4 Nf6 c4 g6 Nc3 Bg7 e4 d6"],
+["Grünfeld Defense","d4 Nf6 c4 g6 Nc3 d5"],
+["Nimzo-Indian Defense","d4 Nf6 c4 e6 Nc3 Bb4"],
+["Queen's Indian Defense","d4 Nf6 c4 e6 Nf3 b6"],
+["Bogo-Indian Defense","d4 Nf6 c4 e6 Nf3 Bb4+"],
+["Catalan Opening","d4 Nf6 c4 e6 g3"],
+["Benoni Defense","d4 Nf6 c4 c5 d5 e6"],
+["Benko Gambit","d4 Nf6 c4 c5 d5 b5"],
+["London System","d4 d5 Nf3 Nf6 Bf4"],
+["London System","d4 Nf6 Nf3 g6 Bf4"],
+["Trompowsky Attack","d4 Nf6 Bg5"],
+["Dutch Defense","d4 f5"],
+["Queen's Pawn Opening","d4"],
+["English, Reversed Sicilian","c4 e5"],
+["English, Symmetrical","c4 c5"],
+["English Opening","c4"],
+["Réti Opening","Nf3 d5 c4"],
+["King's Indian Attack","Nf3 d5 g3"],
+["Réti Opening","Nf3"],
+["Bird's Opening","f4"],
+];
+function detectOpening(sans){
+  const seq=sans.join(" ");
+  let bestName=null, bestLen=0;
+  for(const [name, line] of OPENINGS){
+    if((seq===line || seq.startsWith(line+" "))){
+      const len=line.split(" ").length;
+      if(len>bestLen){ bestLen=len; bestName=name; }
+    }
+  }
+  return bestName;
+}
 
 /* ---------------- engine ---------------- */
 let engine=null;
@@ -338,7 +478,11 @@ class Engine{
     return new Promise((res,rej)=>{
       const t=setTimeout(()=>rej(new Error("Engine failed to load (timeout).")), 30000);
       const h=e=>{ const line=""+e.data;
-        if(line==="uciok"){ this.send("setoption name Hash value 16"); this.send("isready"); }
+        if(line==="uciok"){
+          this.send("setoption name Hash value 16");
+          this.send("setoption name MultiPV value 2");   // top-2 lines -> "only move" detection
+          this.send("isready");
+        }
         else if(line==="readyok"){ clearTimeout(t); this.w.removeEventListener("message",h); res(); }
       };
       this.w.addEventListener("message",h);
@@ -346,19 +490,25 @@ class Engine{
       this.send("uci");
     });
   }
+  // Returns {score, best, pv, score2} where score/score2 are side-to-move
+  // perspective ({type:'cp'|'mate', val}); score2 is the 2nd-best line (null
+  // when only one legal move). Tracks the deepest info line per multipv slot.
   evalFen(fen, depth){
     return new Promise(res=>{
-      let sc=null, pv=null, sd=-1;
+      const slot={1:{d:-1,sc:null,pv:null}, 2:{d:-1,sc:null,pv:null}};
       const h=e=>{ const line=""+e.data;
         if(line.startsWith("info ") && line.includes(" score ")){
+          const mp=line.match(/ multipv (\d+)/); const idx=mp?+mp[1]:1;
           const dm=line.match(/ depth (\d+)/); const d=dm?+dm[1]:0;
           const sm=line.match(/ score (cp|mate) (-?\d+)/);
           const pm=line.match(/ pv (.+)$/);
-          if(sm && d>=sd){ sd=d; sc={type:sm[1], val:+sm[2]}; if(pm) pv=pm[1].split(" "); }
+          const s=slot[idx];
+          if(s && sm && d>=s.d){ s.d=d; s.sc={type:sm[1], val:+sm[2]}; if(pm) s.pv=pm[1].trim().split(" "); }
         } else if(line.startsWith("bestmove")){
           this.w.removeEventListener("message",h);
           const bm=line.split(/\s+/)[1];
-          res({score:sc, best:(bm && bm!=="(none)")?bm:null, pv:pv||[]});
+          res({score:slot[1].sc, best:(bm && bm!=="(none)")?bm:null,
+               pv:slot[1].pv||[], score2:slot[2].sc});
         }
       };
       this.w.addEventListener("message",h);
@@ -385,40 +535,34 @@ function pvSan(fen, pv, n){
   }catch(e){}
   return out;
 }
-/* A move is a genuine sacrifice when, following the engine's best line after
-   it, the mover is still down >= 2 points of material (i.e. the investment is
-   never regained within the line) — or the line ends in mate while material
-   is down. Returns {deficit, mate}. */
-function pvSacrifice(fenBefore, playedUci, replyPv, maxPlies){
-  try{
-    const c=new Chess(fenBefore);
-    const mover=c.turn();
-    const seq=[playedUci, ...(replyPv||[])].slice(0, maxPlies);
-    let bal=0; const steps=[];
-    for(const u of seq){
-      let m;
-      try{ m=c.move({from:u.slice(0,2), to:u.slice(2,4), promotion:u[4]||undefined}); }
-      catch(e){ break; }
-      if(!m) break;
-      if(m.captured) bal += (m.color===mover?1:-1)*PIECE_VAL[m.captured];
-      if(m.promotion) bal += (m.color===mover?1:-1)*(PIECE_VAL[m.promotion]-1);
-      const mate=c.isCheckmate();
-      steps.push({bal, byOpp:m.color!==mover, mate});
-      if(mate) break;
-    }
-    if(!steps.length) return {early:0, deficit:0, mate:false};
-    // early = material right after the opponent's first chances to cash in
-    // (first 4 plies). The investment must happen HERE to credit this move —
-    // otherwise the deficit belongs to a sacrifice later in the line.
-    let early=0;
-    for(let k=0;k<Math.min(4,steps.length);k++)
-      if(steps[k].byOpp) early=Math.min(early, steps[k].bal);
-    const last=steps[steps.length-1];
-    if(last.mate) return {early, deficit:last.bal, mate:true};
-    for(let k=steps.length-1;k>=0;k--)
-      if(steps[k].byOpp) return {early, deficit:steps[k].bal, mate:false};
-    return {early, deficit:last.bal, mate:false};
-  }catch(e){ return {early:0, deficit:0, mate:false}; }
+
+/* Static Exchange Evaluation (recursive over legal captures): the net material
+   the side-to-move wins by capturing on `sq`, assuming optimal recaptures, or 0
+   if initiating the capture loses material. Using legal moves means an illegal
+   king capture (into a defended square) is never considered. */
+const SEE_VAL={p:1, n:3, b:3, r:5, q:9, k:99};
+function seeCapture(board, sq){
+  const target=board.get(sq); if(!target) return 0;
+  const caps=board.moves({verbose:true})
+    .filter(m=>m.to===sq && (m.captured || (m.flags&&m.flags.includes("e"))));
+  if(!caps.length) return 0;
+  caps.sort((a,b)=>SEE_VAL[a.piece]-SEE_VAL[b.piece]);   // least valuable attacker first
+  const cap=caps[0];
+  board.move({from:cap.from, to:cap.to, promotion:cap.promotion||undefined});
+  const val=SEE_VAL[target.type] - seeCapture(board, sq);
+  board.undo();
+  return Math.max(0, val);
+}
+// largest material the side-to-move can win via any single capture (hanging piece)
+function maxCapture(fen){
+  const b=new Chess(fen);
+  let best=0; const seen=new Set();
+  for(const m of b.moves({verbose:true})){
+    if(!(m.captured || (m.flags&&m.flags.includes("e")))) continue;
+    if(seen.has(m.to)) continue; seen.add(m.to);
+    best=Math.max(best, seeCapture(b, m.to));
+  }
+  return best;
 }
 
 async function analyzeGame(pgn, depth, onProgress){
@@ -445,6 +589,9 @@ async function analyzeGame(pgn, depth, onProgress){
       if(r.score) ev = r.score.type==="cp"
         ? {cp: stmW?r.score.val:-r.score.val}
         : {mate: stmW?r.score.val:-r.score.val};
+      // how much worse is the 2nd-best move (win% units)? null = only one good/legal move
+      r.legal = pos.moves().length;
+      r.gap = (r.score && r.score2) ? (winPct(cpOf(r.score)) - winPct(cpOf(r.score2))) : null;
       evals.push(ev); engRes.push(r);
     }
     onProgress(i+1, fens.length);
@@ -461,21 +608,29 @@ async function analyzeGame(pgn, depth, onProgress){
     const drop=Math.max(0, wpb-wpa);
     const bestUci=engRes[i]&&engRes[i].best;
     const playedUci=mv.from+mv.to+(mv.promotion||"");
+    const er=engRes[i];
+    const isBest = (bestUci&&playedUci===bestUci);
     let cls;
     if(i<bookPlies) cls="book";
-    else if((bestUci&&playedUci===bestUci) || drop<=0.6){
+    else if(isBest || drop<=0.6){
       cls="best";
-      // Brilliant: a verified sacrifice — engine-best play still leaves the
-      // mover down material, position not lost after, and either not already
-      // overwhelmingly winning or the sac line forces mate.
-      if(wpa>=42){
-        const pre=new Chess(fens[i]);
-        if(pre.moves().length>2){
-          const reply=engRes[i+1]?engRes[i+1].pv:[];
-          const sac=pvSacrifice(fens[i], playedUci, reply, 8);
-          if(sac.early<=-2 && sac.deficit<=-2 && (wpb<93 || sac.mate)) cls="brilliant";
-        }
+      // Brilliant: the engine's move leaves real material hanging (a piece or
+      // exchange the opponent can win by SEE) yet keeps you at least equal — a
+      // genuine sacrifice. Allowed from a winning position only when the sac
+      // forces mate (the classic queen-sac finish), otherwise the game must not
+      // already be decided.
+      if(isBest && wpa>=48){
+        const hanging=maxCapture(fens[i+1]);   // what the opponent can grab after the move
+        const evA=evals[i+1];
+        const matesForMover = evA && evA.mate!==undefined &&
+          ((mv.color==="w" && evA.mate>0) || (mv.color==="b" && evA.mate<0));
+        if(hanging>=2 && (matesForMover || (wpb<92 && wpb>=28))) cls="brilliant";
       }
+      // Great: the engine's top move was clearly the ONLY good one (the 2nd-best
+      // line is far worse) in a live, undecided position.
+      if(cls==="best" && isBest && er && er.gap!=null && er.gap>=GREAT_GAP &&
+         er.legal>3 && drop<=1.5 && wpb>=22 && wpb<=96)
+        cls="great";
     }
     else if(drop<=2) cls="excellent";
     else if(drop<=5) cls="good";
@@ -491,8 +646,23 @@ async function analyzeGame(pgn, depth, onProgress){
       pv:(drop>5)?pvSan(fens[i], engRes[i]&&engRes[i].pv, 3):[],
     });
   }
-  return {headers, fens, evals, moves,
+  return {headers, fens, evals, moves, opening:detectOpening(sans),
           bests:engRes.map(r=>r&&r.best||null), depth, ts:Date.now()};
+}
+
+/* pieces each side has captured + the point lead, for the board trays */
+function captured(fen){
+  const c=new Chess(fen);
+  const cnt={w:{p:0,n:0,b:0,r:0,q:0}, b:{p:0,n:0,b:0,r:0,q:0}};
+  for(const row of c.board()) for(const p of row) if(p && p.type!=="k") cnt[p.color][p.type]++;
+  const start={p:8,n:2,b:2,r:2,q:1};
+  const byW=[], byB=[];   // byW = black pieces White has captured
+  for(const t of ["q","r","b","n","p"]){
+    for(let k=0;k<start[t]-cnt.b[t];k++) byW.push(t);
+    for(let k=0;k<start[t]-cnt.w[t];k++) byB.push(t);
+  }
+  const pts=a=>a.reduce((s,t)=>s+PIECE_PTS[t],0);
+  return {byW, byB, diff: pts(byW)-pts(byB)};
 }
 
 function summarize(a){
@@ -640,6 +810,7 @@ function renderPosition(){
     const pv=last.pv&&last.pv.length?` Follow-up: ${last.pv.join(" ")}.`:"";
     switch(last.cls){
       case "brilliant": txt=`${last.san} — a sacrifice that works!`; break;
+      case "great": txt=`${last.san} — the only move that held here. Well found.`; break;
       case "best": txt=`${last.san} is the engine's top choice.`; break;
       case "excellent": txt=`${last.san} keeps the position on track.`; break;
       case "good": txt=`${last.san} is fine${last.bestSan?`, though ${last.bestSan} was slightly more precise`:""}.`; break;
@@ -664,9 +835,29 @@ function renderPosition(){
         box.scrollTop = el.offsetTop + el.offsetHeight - box.clientHeight + 4;
     }
   }
+  renderCaptured();
   drawGraphCursor();
 }
-function seek(p){ ply=Math.max(0,Math.min(A.fens.length-1,p)); renderPosition(); }
+function renderCaptured(){
+  const cap=captured(A.fens[ply]);
+  const fill=(el, color)=>{
+    const list = color==="w" ? cap.byW : cap.byB;       // pieces this color has captured
+    const pieceColor = color==="w" ? "b" : "w";          // ...are the opponent's pieces
+    let html=list.map(t=>`<img src="pieces/${pieceColor}${t.toUpperCase()}.svg" alt="">`).join("");
+    const lead = color==="w" ? cap.diff : -cap.diff;
+    if(lead>0) html+=`<span class="adv">+${lead}</span>`;
+    el.innerHTML=html;
+  };
+  fill($("capTop"), orient==="w" ? "b" : "w");          // player shown at top of board
+  fill($("capBottom"), orient);                          // player shown at bottom
+}
+function seek(p, sound){
+  const prev=ply;
+  ply=Math.max(0,Math.min(A.fens.length-1,p));
+  renderPosition();
+  if(sound && ply!==prev)
+    Sound.play(ply>prev ? moveSoundKind(A.moves[ply-1].san) : "move");
+}
 
 function renderMoves(){
   const box=$("moves"); box.innerHTML="";
@@ -678,7 +869,7 @@ function renderMoves(){
         const m=A.moves[j], meta=CLS_META[m.cls];
         cell.className="mv"; cell.dataset.ply=j;
         cell.innerHTML=`<span>${m.san}</span><span class="tag" style="color:${meta.color}">${meta.tag}</span>`;
-        cell.onclick=()=>seek(j+1);
+        cell.onclick=()=>seek(j+1, true);
       }
       box.appendChild(cell);
     }
@@ -718,36 +909,60 @@ function drawGraphCursor(){
 }
 function renderSummary(){
   const h=A.headers;
-  $("players").textContent=`${h.White||"White"} (${h.WhiteElo||"?"}) vs ${h.Black||"Black"} (${h.BlackElo||"?"})`;
-  $("resultLine").textContent=[h.Result, h.Termination||"", h.Date||h.UTCDate||""].filter(Boolean).join(" · ")
-    +` · depth ${A.depth}`;
-  $("accW").textContent=SUM.w.acc.toFixed(1);
-  $("accB").textContent=SUM.b.acc.toFixed(1);
+  const res=h.Result||"";
+  $("openingLine").innerHTML = A.opening
+    ? A.opening : '<span class="dim">Opening</span>';
+  $("resultLine").textContent=[res, h.Termination||"", h.Date||h.UTCDate||""].filter(Boolean).join(" · ")
+    +` · Stockfish depth ${A.depth}`;
+
+  const wWon=res==="1-0", bWon=res==="0-1";
+  const card=(side)=>{
+    const s=SUM[side], nm = side==="w" ? (h.White||"White") : (h.Black||"Black");
+    const elo = side==="w" ? h.WhiteElo : h.BlackElo;
+    const won = side==="w" ? wWon : bWon;
+    return `<div class="pcard${won?" win":""}">
+      <div class="side">${side==="w"?"♔ White":"♚ Black"}${won?" · won":""}</div>
+      <div class="nm">${nm}${elo?` (${elo})`:""}</div>
+      <div class="acc">${s.acc.toFixed(1)}</div>
+      <div class="accl">Accuracy</div>
+      <div class="gr">Game rating <b>~${s.est}</b></div>
+    </div>`;
+  };
+  $("players2").innerHTML=card("w")+card("b");
+
   const tbl=$("counts"); tbl.innerHTML="";
-  for(const k of ["brilliant","best","excellent","good","book","inaccuracy","mistake","miss","blunder"]){
+  for(const k of CLS_ORDER){
     const w=SUM.w.counts[k], b=SUM.b.counts[k];
     if(!w&&!b) continue;
     const meta=CLS_META[k];
     tbl.insertAdjacentHTML("beforeend",
-      `<tr><td class="c">${w||""}</td><td style="text-align:center"><span class="dot" style="background:${meta.color}"></span>${meta.label}</td><td class="c">${b||""}</td></tr>`);
+      `<tr><td class="c" style="color:${meta.color}">${w||""}</td>`+
+      `<td style="text-align:center"><span class="dot" style="background:${meta.color}">${meta.tag}</span>${meta.label}</td>`+
+      `<td class="c" style="color:${meta.color}">${b||""}</td></tr>`);
   }
-  $("perf").textContent=`Estimated performance — White ~${SUM.w.est}, Black ~${SUM.b.est} (rough engine-based estimate)`;
+  $("perf").textContent="Game rating is a rough engine estimate from average accuracy, not your real rating.";
+
   const mom=$("moments"); mom.innerHTML="";
+  let any=false;
   A.moves.forEach((m,i)=>{
-    if(["blunder","miss","brilliant"].includes(m.cls)){
+    if(["blunder","miss","brilliant","great"].includes(m.cls)){
+      any=true;
       const meta=CLS_META[m.cls];
       const chip=document.createElement("div");
       chip.className="chip";
       chip.innerHTML=`<span style="color:${meta.color}">${meta.tag}</span> ${Math.floor(i/2)+1}${m.color==="w"?".":"…"} ${m.san}`;
-      chip.onclick=()=>{ seek(i+1); $("boardBox").scrollIntoView({behavior:"smooth", block:"center"}); };
+      chip.onclick=()=>{ seek(i+1, true); $("boardBox").scrollIntoView({behavior:"smooth", block:"center"}); };
       mom.appendChild(chip);
     }
   });
+  document.querySelector(".agLabel").style.display = any ? "" : "none";
+  if(!any) mom.innerHTML='<span class="dim small">No blunders or brilliancies — a clean game.</span>';
 }
 function openReview(a, myColor){
   A=a; SUM=summarize(a);
   orient = myColor || (LS.get("cr_user","").toLowerCase()===(a.headers.Black||"").toLowerCase() ? "b" : "w");
   ply=0;
+  $("cSound").textContent = Sound.muted ? "🔇" : "🔊";
   buildBoard(); renderMoves(); renderGraph(); renderSummary(); renderPosition();
   show("review");
   window.scrollTo(0,0);
@@ -758,7 +973,7 @@ async function startAnalysis(pgn, myColor){
   $("aErr").classList.add("hidden");
   try{ new Chess().loadPgn(pgn); }
   catch(e){ const el=$("aErr"); el.textContent="Couldn't read that PGN: "+(e.message||e); el.classList.remove("hidden"); return; }
-  const depth=+($("depth").value); LS.set("cr_depth", depth);
+  const depth=+($("depth").value) || 13; LS.set("cr_depth", depth);
   show("progress");
   try{
     await engineReady;
@@ -803,8 +1018,8 @@ $("btnAnalyze").onclick=()=>{
 $("btnResume").onclick=()=>{ const last=LS.get("cr_last",null); if(last&&last.a) openReview(last.a, last.myColor); };
 $("btnBack").onclick=()=>show("setup");
 $("cFirst").onclick=()=>seek(0);
-$("cPrev").onclick=()=>seek(ply-1);
-$("cNext").onclick=()=>seek(ply+1);
+$("cPrev").onclick=()=>seek(ply-1, true);
+$("cNext").onclick=()=>seek(ply+1, true);
 $("cLast").onclick=()=>seek(1e9);
 $("cFlip").onclick=()=>{ orient=orient==="w"?"b":"w"; buildBoard(); renderPosition(); };
 $("cZoom").onclick=()=>{
@@ -813,10 +1028,15 @@ $("cZoom").onclick=()=>{
   $("cZoom").textContent = z ? "✕" : "⛶";
   $("cZoom").title = z ? "Exit zoom" : "Zoom board";
 };
+$("cSound").onclick=()=>{
+  Sound.muted=!Sound.muted; LS.set("cr_mute", Sound.muted);
+  $("cSound").textContent = Sound.muted ? "🔇" : "🔊";
+  if(!Sound.muted) Sound.play("move");
+};
 document.addEventListener("keydown",e=>{
   if($("vReview").classList.contains("hidden")) return;
-  if(e.key==="ArrowLeft") seek(ply-1);
-  else if(e.key==="ArrowRight") seek(ply+1);
+  if(e.key==="ArrowLeft") seek(ply-1, true);
+  else if(e.key==="ArrowRight") seek(ply+1, true);
   else if(e.key==="Home") seek(0);
   else if(e.key==="End") seek(1e9);
 });

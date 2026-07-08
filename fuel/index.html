@@ -420,7 +420,7 @@ function fresh(){
   return {version:1,
     profile:{sex:"F",age:26,ht:65,wt:135,act:1.45,goal:"recomp"},
     t:{auto:true,kcal:1750,p:120,c:200,f:55,fb:25,water:8},
-    foods:[], meals:[], log:{}, plan:{}, recent:[]};
+    fdcKey:"", foods:[], meals:[], log:{}, plan:{}, recent:[]};
 }
 function load(){
   try{
@@ -658,14 +658,16 @@ function saveEntry(i){
 
 /* ============ ADD FOOD sheet ============ */
 var addSlot="b", addFilter="recent", addQ="", addCat=null, planTarget=null; // planTarget = {d, slot} when picking for the plan
-function openAdd(slot){ addSlot=slot; planTarget=null; addFilter=S.recent.length?"recent":"all"; addQ=""; drawAdd(); }
-function openPlanPick(d,slot){ planTarget={d:d,slot:slot}; addFilter="meals"; addQ=""; drawAdd(); }
+function openAdd(slot){ addSlot=slot; planTarget=null; addFilter=S.recent.length?"recent":"all"; addQ=""; offHtml=""; offRows=[]; drawAdd(); }
+function openPlanPick(d,slot){ planTarget={d:d,slot:slot}; addFilter="meals"; addQ=""; offHtml=""; offRows=[]; drawAdd(); }
 function drawAdd(){
   addCat=null;
   var h='<div class="grab"></div><h3>'+(planTarget?"Add to plan · "+slotName(planTarget.slot):"Add food · "+slotName(addSlot))+'</h3>'
-    +'<input type="search" id="q" placeholder="Search foods…" value="'+esc(addQ)+'" oninput="addQ=this.value;drawList()" autocomplete="off">'
+    +'<input type="search" id="q" placeholder="'+(addFilter==="web"?"Product name or barcode number…":"Search foods…")+'" value="'+esc(addQ)+'" '
+    +'oninput="addQ=this.value;if(addFilter!==\'web\')drawList()" '
+    +'onkeydown="if(event.key===\'Enter\'){if(addFilter===\'web\')webSearch();this.blur()}" autocomplete="off">'
     +'<div class="segs">'
-    +seg("recent","Recent")+seg("all","All foods")+seg("mine","My foods")+seg("meals","My meals")+seg("quick","Quick add")
+    +seg("recent","Recent")+seg("all","All foods")+seg("web","Online 🌐")+seg("mine","My foods")+seg("meals","My meals")+seg("quick","Quick add")
     +'</div><div id="list"></div>';
   openSheet(h);
   drawList();
@@ -685,6 +687,15 @@ function drawList(){
       +'<label class="fld"><span class="lab">Fat g (opt.)</span><input id="qkF" type="number" inputmode="decimal"></label>'
       +'<label class="fld"><span class="lab">Fiber g (opt.)</span><input id="qkFb" type="number" inputmode="decimal"></label></div>'
       +'<button class="btn primary" onclick="quickAdd()">Add to '+slotName(planTarget?planTarget.slot:addSlot)+'</button>';
+    el.innerHTML=h; return;
+  }
+  if(addFilter==="web"){
+    h='<div class="xs" style="margin:4px 0 10px">Exact label data for packaged &amp; branded foods (USDA FoodData Central + Open Food Facts — free). '
+      +'Type a product name — e.g. <b>Kroger frozen lasagna</b> — or the <b>barcode number</b> printed on the package, then search.</div>'
+      +'<button class="btn primary" onclick="webSearch()">🌐 Search online</button>'
+      +'<div id="offRes" style="margin-top:10px">'+offHtml+'</div>'
+      +'<div class="xs" style="margin-top:10px">Groceries are covered well; exact restaurant menu items are hit-or-miss (generic versions like '
+      +'&quot;submarine sandwich, cold cuts&quot; usually exist). If it\'s not found, grab the numbers from the chain\'s online nutrition page and use Quick add.</div>';
     el.innerHTML=h; return;
   }
   var rows=[];
@@ -740,6 +751,122 @@ function drawList(){
   });
   if(truncated) h+='<div class="empty">More matches — keep typing to narrow down.</div>';
   el.innerHTML=h;
+}
+/* ---- online lookup ----
+   Text search: USDA FoodData Central (CORS-open; DEMO_KEY works, personal key
+   optional in Settings). Barcode: Open Food Facts product API (reliable+CORS);
+   OFF's text-search endpoints throttle/503 and drop CORS, so FDC leads and
+   OFF search.pl is only a fallback. */
+var offRows=[], offHtml="";
+function fdcKey(){ return (S.fdcKey||"").trim()||"DEMO_KEY"; }
+function webBusy(msg){ var el=document.getElementById("offRes"); if(el) el.innerHTML='<div class="empty">'+msg+'</div>'; }
+function webShow(rows,src){
+  offRows=rows.slice(0,20);
+  var h="";
+  if(!offRows.length){
+    h='<div class="empty">Nothing found. Try fewer words (brand + food), or use Quick add with the label numbers.</div>';
+  }else{
+    offRows.forEach(function(r,i){
+      h+='<div class="frow" onclick="webPick('+i+')"><div class="em">🌐</div>'
+        +'<div class="nm"><div class="n1">'+esc(r.n)+'</div><div class="n2">'+esc(r.s)
+        +' · P'+r.p+' C'+r.c+' F'+r.f+(r.fb?' Fb'+r.fb:'')+'</div></div>'
+        +'<div class="k">'+r.k+'<span class="xs">kcal</span></div></div>';
+    });
+    h+='<div class="xs" style="margin-top:8px">Source: '+src+'. Tap to log — it\'s also saved to My foods so next time it\'s there offline.</div>';
+  }
+  offHtml=h; var el=document.getElementById("offRes"); if(el) el.innerHTML=h;
+}
+function webErr(rateLimited){
+  offHtml="";
+  var el=document.getElementById("offRes");
+  if(el) el.innerHTML='<div class="empty">'+(rateLimited
+    ?'The free shared lookup key is busy right now. Add your own free USDA key in Settings → Online lookup (takes 1 minute), or try again in a bit.'
+    :'Couldn\'t reach the food databases — check your connection, or use Quick add.')+'</div>';
+}
+function webSearch(){
+  var q=(addQ||"").trim(); if(!q){ document.getElementById("q").focus(); return; }
+  webBusy("Searching…");
+  if(/^\d{8,14}$/.test(q)) offBarcode(q);
+  else fdcText(q);
+}
+function fdcText(q,isFallbackTarget){
+  /* NB: FDC 400s if the comma in dataType is percent-encoded — build it literally */
+  var url="https://api.nal.usda.gov/fdc/v1/foods/search?api_key="+encodeURIComponent(fdcKey())
+    +"&pageSize=25&dataType=Branded,Survey%20(FNDDS)"
+    +"&query="+encodeURIComponent(q);
+  fetch(url).then(function(r){
+    if(r.status===429||r.status===403) throw {rate:true};
+    if(!r.ok) throw 0;
+    return r.json();
+  }).then(function(d){
+    var rows=(d.foods||[]).map(mapFdc).filter(function(x){return !!x;});
+    if(rows.length||isFallbackTarget) webShow(rows,"USDA FoodData Central");
+    else offText(q,true);
+  }).catch(function(e){
+    if(isFallbackTarget) webErr(e&&e.rate);
+    else offText(q,true,e&&e.rate);
+  });
+}
+function offText(q,isFallbackTarget,wasRate){
+  var url="https://world.openfoodfacts.org/cgi/search.pl?action=process&search_simple=1&json=1&page_size=20&sort_by=unique_scans_n"
+    +"&fields=product_name,brands,serving_size,nutriments&search_terms="+encodeURIComponent(q);
+  fetch(url).then(function(r){ if(!r.ok) throw 0; return r.json(); }).then(function(d){
+    var rows=(d.products||[]).map(mapOff).filter(function(x){return !!x;});
+    if(rows.length||isFallbackTarget) webShow(rows,"Open Food Facts");
+    else fdcText(q,true);
+  }).catch(function(){
+    if(isFallbackTarget) webErr(wasRate); else fdcText(q,true);
+  });
+}
+function offBarcode(code){
+  fetch("https://world.openfoodfacts.org/api/v2/product/"+code+".json?fields=product_name,brands,serving_size,nutriments")
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      var row=d.product?mapOff(d.product):null;
+      if(row) webShow([row],"Open Food Facts (barcode)");
+      else fdcText(code,true); /* FDC matches UPC digits too */
+    }).catch(function(){ fdcText(code,true); });
+}
+function titleCase(s){
+  if(s===s.toUpperCase()) s=s.toLowerCase();
+  return s.replace(/(^|[\s\-(,/])([a-z])/g,function(m,a,b){return a+b.toUpperCase();});
+}
+function mapFdc(f){
+  var nu={};
+  (f.foodNutrients||[]).forEach(function(n){ if(n.nutrientId!=null) nu[n.nutrientId]=n.value; });
+  var k100=nu[1008]; if(k100==null) return null;               /* per 100 g */
+  var name=titleCase((f.description||"").trim()); if(!name) return null;
+  var brand=titleCase(((f.brandName||f.brandOwner||"").split(",")[0]||"").trim());
+  if(brand&&name.toLowerCase().indexOf(brand.toLowerCase())<0) name=brand+" "+name;
+  var g=(f.servingSizeUnit==="GRM"||f.servingSizeUnit==="MLT"||f.servingSizeUnit==="g"||f.servingSizeUnit==="ml")?(f.servingSize||0):0;
+  var mult=g?g/100:1;
+  var s=g?(((f.householdServingFullText||"").trim()?f.householdServingFullText.trim()+" ":"1 serving ")+"("+r0(g)+" g)"):"100 g";
+  return {n:name,s:s,k:r0(k100*mult),p:r1((nu[1003]||0)*mult),c:r1((nu[1005]||0)*mult),
+          f:r1((nu[1004]||0)*mult),fb:r1((nu[1079]||0)*mult),g:g||100};
+}
+function mapOff(pr){
+  if(!pr) return null;
+  var nu=pr.nutriments||{};
+  var name=(pr.product_name||"").trim(); if(!name) return null;
+  var brand=(pr.brands||"").split(",")[0].trim();
+  var kS=nu["energy-kcal_serving"];
+  var k100=nu["energy-kcal_100g"]!=null?nu["energy-kcal_100g"]:(nu.energy_100g?nu.energy_100g/4.184:null);
+  var useServ=(kS!=null&&pr.serving_size);
+  var k=useServ?kS:k100;
+  if(k==null) return null;
+  function val(key){ var v=useServ?nu[key+"_serving"]:nu[key+"_100g"]; return r1(v||0); }
+  var s=useServ?String(pr.serving_size).trim():"100 g";
+  if(brand&&name.toLowerCase().indexOf(brand.toLowerCase())<0) name=brand+" "+name;
+  return {n:name,s:s,k:r0(k),p:val("proteins"),c:val("carbohydrates"),f:val("fat"),fb:val("fiber"),
+          g:servGrams(s)||(useServ?0:100)};
+}
+function webPick(i){
+  var r=offRows[i]; if(!r) return;
+  /* reuse an identical saved copy, else save as a custom food for offline reuse */
+  var ex=S.foods.find(function(x){return x.n===r.n&&x.s===r.s;});
+  var cf=ex||{id:uid(),n:r.n,s:r.s,k:r.k,p:r.p,c:r.c,f:r.f,fb:r.fb,g:r.g};
+  if(!ex){ S.foods.push(cf); save(); }
+  pick("c",cf.id); /* routes to qty sheet, or straight into the plan when planning */
 }
 function pick(t,id){
   if(t==="b") id=+id;
@@ -976,7 +1103,7 @@ function renderFoods(){
   });
   h+='<button class="btn" onclick="editFood(null)">+ New custom food</button>';
   h+='<h2 class="section">Built-in database</h2>'
-    +'<div class="card tight"><div class="small muted">'+DB.length+' common foods with USDA-style per-serving values (incl. fiber) are built in — search, or browse by category under "All foods" when adding on the Today tab. Values are typical averages; use custom foods when you want label-exact numbers.</div></div>';
+    +'<div class="card tight"><div class="small muted">'+DB.length+' common foods with USDA-style per-serving values (incl. fiber) are built in — search, or browse by category under "All foods" when adding on the Today tab. For exact branded items (a Kroger frozen meal, a specific yogurt), use the <b>Online 🌐</b> tab there: search by name or barcode number and it saves here automatically. Values are typical averages; use custom foods when you want label-exact numbers.</div></div>';
   return h;
 }
 function editFood(id){
@@ -1236,6 +1363,13 @@ function renderSettings(){
     +'1) Log everything for 2–3 weeks — accuracy beats perfection; Quick add is fine for messy meals. 2) Weigh 2–4×/week, same time of day, and watch the <b>trend</b>, not the number. 3) If the weekly average isn’t moving after ~3 weeks, drop calories ~100 or add a little activity. 4) Build your usual meals in the Foods tab so logging takes seconds — friction is what kills tracking.</div></details>'
     +'<details class="g"><summary>Food values &amp; accuracy</summary><div class="bd">'
     +'Built-in foods use USDA-style averages per common serving — good enough for trends. For packaged foods you eat often, make a custom food from the label. Restaurant meals are usually <b>20–30% more</b> than they look; when unsure, round up.</div></details>';
+  /* online lookup */
+  h+='<h2 class="section">Online lookup</h2><div class="card tight">'
+    +'<label class="fld" style="margin-bottom:6px"><span class="lab">USDA FoodData Central API key (optional)</span>'
+    +'<input id="fdcK" value="'+esc(S.fdcKey||"")+'" placeholder="Blank = shared demo key" '
+    +'onchange="S.fdcKey=this.value.trim();save()" autocomplete="off"></label>'
+    +'<div class="xs">The Online 🌐 food search works out of the box on a shared demo key, but it can get busy. '
+    +'A personal key is free and instant: <a href="https://fdc.nal.usda.gov/api-key-signup" target="_blank" rel="noopener" style="color:var(--accent)">fdc.nal.usda.gov/api-key-signup</a> — paste it here once. It stays on this phone.</div></div>';
   /* data */
   h+='<h2 class="section">Data</h2><div class="card tight">'
     +'<div class="btn-row"><button class="btn" onclick="exportData()">Export backup</button>'

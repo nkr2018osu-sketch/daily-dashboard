@@ -420,7 +420,7 @@ function fresh(){
   return {version:1,
     profile:{sex:"F",age:26,ht:65,wt:135,act:1.45,goal:"recomp"},
     t:{auto:true,kcal:1750,p:120,c:200,f:55,fb:25,water:8},
-    fdcKey:"", foods:[], meals:[], log:{}, plan:{}, recent:[]};
+    fdcKey:"", lastBackup:"", foods:[], meals:[], log:{}, plan:{}, recent:[]};
 }
 function load(){
   try{
@@ -589,10 +589,16 @@ function renderToday(){
       var e=x.e;
       h+='<div class="entry" onclick="editEntry('+x.i+')"><div class="nm">'
         +'<div class="n1">'+esc(e.n)+'</div>'
-        +'<div class="n2">'+(e.q!==1?e.q+" × ":"")+esc(e.s)+' · P'+r0(e.p*e.q)+' C'+r0(e.c*e.q)+' F'+r0(e.f*e.q)+'</div>'
+        +'<div class="n2">'+(e.q!==1?e.q+" × ":"")+esc(e.s)+' · P'+r0(e.p*e.q)+' C'+r0(e.c*e.q)+' F'+r0(e.f*e.q)
+        +((e.fb||0)*e.q>=1?' Fb'+r0(e.fb*e.q):'')
+        +(alcKcal(e)>20?' · ~'+r0(alcKcal(e)*e.q)+' kcal alcohol':'')+'</div>'
         +'</div><div class="k">'+r0(e.k*e.q)+'</div></div>';
     });
-    h+='<div class="addline"><button class="btn sm ghost" style="color:var(--accent)" onclick="openAdd(\''+sl[0]+'\')">+ Add food</button></div></div>';
+    var yd=addDays(cur,-1);
+    var yHas=!ents.length&&S.log[yd]&&S.log[yd].e.some(function(e){return e.slot===sl[0];});
+    h+='<div class="addline row" style="gap:6px"><button class="btn sm ghost" style="color:var(--accent)" onclick="openAdd(\''+sl[0]+'\')">+ Add food</button>'
+      +(yHas?'<button class="btn sm ghost" style="color:var(--muted)" onclick="copySlot(\''+sl[0]+'\')">⧉ Yesterday&#39;s</button>':'')
+      +'</div></div>';
   });
   /* copy yesterday */
   if(!L.e.length){
@@ -615,6 +621,10 @@ function renderToday(){
     +'<button class="btn sm" onclick="logWeight()">Save</button></div></div></div>';
   return h;
 }
+function alcKcal(e){ /* kcal a drink carries beyond its listed macros */
+  if(!/wine|beer|seltzer|margarita|vodka|cocktail|sake|cider|whiskey|rum|gin|mimosa|sangria|mule|spritz/i.test(e.n)) return 0;
+  return Math.max(0,Math.round(e.k-(4*(e.p||0)+4*(e.c||0)+9*(e.f||0))));
+}
 function macBar(nm,cls,v,t,goodOver){
   var pc=Math.min(100,t?v/t*100:0), over=v>t*1.05&&!goodOver;
   return '<div class="mac '+cls+(over?" over":"")+'"><div class="row1"><span class="nm">'+nm+'</span>'
@@ -629,6 +639,14 @@ function logWeight(){
   if(!v){ delete L.wt; } else { L.wt=v; if(cur===today()){ S.profile.wt=v; } }
   save(); render();
 }
+function copySlot(slot){ /* copy just this meal from yesterday */
+  var y=addDays(cur,-1), src=S.log[y]; if(!src) return;
+  var L=day(cur);
+  src.e.forEach(function(e){
+    if(e.slot===slot) L.e.push({slot:e.slot,n:e.n,s:e.s,q:e.q,k:e.k,p:e.p,c:e.c,f:e.f,fb:e.fb||0,g:e.g||0});
+  });
+  save(); render();
+}
 function copyDay(from){
   var src=S.log[from]; if(!src) return;
   var L=day(cur);
@@ -640,6 +658,7 @@ function editEntry(i){
   var h='<div class="grab"></div><h3>'+esc(e.n)+'</h3>'
     +'<div class="macline"><span><b>'+r0(e.k)+'</b> kcal</span><span>P <b>'+r1(e.p)+'</b></span>'
     +'<span>C <b>'+r1(e.c)+'</b></span><span>F <b>'+r1(e.f)+'</b></span><span>Fb <b>'+r1(e.fb||0)+'</b></span><span class="muted">per '+esc(e.s)+'</span></div>'
+    +(alcKcal(e)>20?'<div class="xs" style="margin:-6px 0 10px">≈'+alcKcal(e)+' kcal per serving is alcohol — it counts toward calories but never shows in the macro bars.</div>':'')
     +qtyRow(e.q,e.g||0)
     +'<label class="fld"><span class="lab">Meal</span><select id="qSlot">'
     +SLOTS.map(function(s){return '<option value="'+s[0]+'"'+(e.slot===s[0]?" selected":"")+'>'+s[1]+'</option>';}).join("")
@@ -860,13 +879,34 @@ function mapOff(pr){
   return {n:name,s:s,k:r0(k),p:val("proteins"),c:val("carbohydrates"),f:val("fat"),fb:val("fiber"),
           g:servGrams(s)||(useServ?0:100)};
 }
+function saveWebFood(r){ /* dedupe into My foods — called only when she commits */
+  var ex=S.foods.find(function(x){return x.n===r.n&&x.s===r.s;});
+  if(ex) return ex;
+  var cf={id:uid(),n:r.n,s:r.s,k:r.k,p:r.p,c:r.c,f:r.f,fb:r.fb,g:r.g};
+  S.foods.push(cf); return cf;
+}
 function webPick(i){
   var r=offRows[i]; if(!r) return;
-  /* reuse an identical saved copy, else save as a custom food for offline reuse */
-  var ex=S.foods.find(function(x){return x.n===r.n&&x.s===r.s;});
-  var cf=ex||{id:uid(),n:r.n,s:r.s,k:r.k,p:r.p,c:r.c,f:r.f,fb:r.fb,g:r.g};
-  if(!ex){ S.foods.push(cf); save(); }
-  pick("c",cf.id); /* routes to qty sheet, or straight into the plan when planning */
+  if(planTarget){ /* planning it = committing to it: save + add to plan */
+    var cf=saveWebFood(r);
+    var P=S.plan[planTarget.d]||(S.plan[planTarget.d]={});
+    (P[planTarget.slot]||(P[planTarget.slot]=[])).push({t:"c",id:cf.id});
+    save(); closeSheet(); render(); return;
+  }
+  /* qty sheet first — nothing is saved until she taps Add */
+  var h='<div class="grab"></div><h3>'+esc(r.n)+'</h3>'
+    +'<div class="macline"><span><b>'+r0(r.k)+'</b> kcal</span><span>P <b>'+r1(r.p)+'</b></span>'
+    +'<span>C <b>'+r1(r.c)+'</b></span><span>F <b>'+r1(r.f)+'</b></span><span>Fb <b>'+r1(r.fb||0)+'</b></span><span class="muted">per '+esc(r.s)+'</span></div>'
+    +qtyRow(1,r.g||0)
+    +'<button class="btn primary" onclick="confirmWebAdd('+i+')">Add to '+slotName(addSlot)+'</button>';
+  openSheet(h);
+}
+function confirmWebAdd(i){
+  var r=offRows[i]; if(!r) return;
+  var cf=saveWebFood(r);
+  var q=Math.max(0.1,parseFloat(document.getElementById("qty").value)||1);
+  day(cur).e.push({slot:addSlot,n:cf.n,s:cf.s,q:q,k:cf.k,p:cf.p,c:cf.c,f:cf.f,fb:cf.fb||0,g:cf.g||0});
+  pushRecent({t:"c",id:cf.id}); save(); closeSheet(); render();
 }
 function pick(t,id){
   if(t==="b") id=+id;
@@ -946,11 +986,9 @@ function quickAdd(){
   var f=parseFloat(document.getElementById("qkF").value)||0;
   var fb=parseFloat(document.getElementById("qkFb").value)||0;
   if(planTarget){
-    /* store as custom food so the plan can reference it */
-    var cf={id:uid(),n:n,s:"1 serving",k:k,p:p,c:c,f:f,fb:fb};
-    S.foods.push(cf);
+    /* inline snapshot ref — one-offs shouldn't clutter My foods */
     var P=S.plan[planTarget.d]||(S.plan[planTarget.d]={});
-    (P[planTarget.slot]||(P[planTarget.slot]=[])).push({t:"c",id:cf.id});
+    (P[planTarget.slot]||(P[planTarget.slot]=[])).push({t:"x",it:{n:n,s:"1 serving",k:k,p:p,c:c,f:f,fb:fb}});
   }else{
     day(cur).e.push({slot:addSlot,n:n,s:"1 serving",q:1,k:k,p:p,c:c,f:f,fb:fb});
   }
@@ -962,6 +1000,10 @@ function weekStart(off){
   var t=parseISO(today()); t.setDate(t.getDate()-t.getDay()+off*7); return iso(t); /* Sunday start */
 }
 function resolvePlanRef(ref){ /* meals resolve to ONE serving of the recipe */
+  if(ref.t==="x"&&ref.it){ var it=ref.it; /* inline quick-add snapshot */
+    return {n:it.n,k:it.k,em:"✏️",
+      items:[{n:it.n,s:it.s||"1 serving",q:1,k:it.k,p:it.p||0,c:it.c||0,f:it.f||0,fb:it.fb||0,g:0}]};
+  }
   var f=foodById(ref); if(!f) return null;
   if(ref.t==="m"){
     var sv=mealServings(f);
@@ -1065,7 +1107,10 @@ function groceryList(ws){
   }
   var keys=Object.keys(agg).sort();
   if(!keys.length){ openSheet('<div class="grab"></div><h3>🛒 Grocery list</h3><div class="empty">Nothing planned this week yet.</div>'); return; }
-  var txt=keys.map(function(k){ var a=agg[k]; return "• "+a.n+" — "+r1(a.q)+" × "+a.s; }).join("\n");
+  var txt=keys.map(function(k){ var a=agg[k];
+    var buy=Math.ceil(a.q*2)/2; /* round UP to a shoppable half-serving */
+    return "• "+a.n+" — "+r1(buy)+" × "+a.s+(buy>a.q+0.01?" (need "+r1(a.q)+")":"");
+  }).join("\n");
   openSheet('<div class="grab"></div><h3>🛒 Grocery list</h3>'
     +'<div class="xs" style="margin-bottom:8px">Everything planned this week, combined. Copy it into your shared Notes list.</div>'
     +'<textarea class="gro" id="groTxt" readonly>'+esc(txt)+'</textarea>'
@@ -1081,7 +1126,30 @@ function copyGro(){
 }
 
 /* ============ FOODS (my foods + meal builder) ============ */
-var draftMeal=null;
+var draftMeal=null, foodsQ="";
+function cfListHtml(){ /* alphabetical, filterable */
+  var q=foodsQ.trim().toLowerCase();
+  var arr=S.foods.slice().sort(function(a,b){return a.n.localeCompare(b.n);});
+  if(q) arr=arr.filter(function(f){return f.n.toLowerCase().indexOf(q)>-1;});
+  if(!arr.length)
+    return '<div class="card tight empty">'+(S.foods.length?'No matches.'
+      :'Add anything the built-in list is missing — a brand you buy, a recipe per serving, a restaurant order. Online 🌐 picks land here too.')+'</div>';
+  var h="";
+  arr.forEach(function(f){
+    h+='<div class="card tight"><div class="row between"><div style="min-width:0"><b>'+esc(f.n)+'</b>'
+      +'<div class="xs">'+esc(f.s)+' · '+r0(f.k)+' kcal · P'+r1(f.p)+' C'+r1(f.c)+' F'+r1(f.f)+'</div></div>'
+      +'<div class="row" style="gap:6px;flex:0 0 auto"><button class="btn xsm" onclick="editFood(\''+f.id+'\')">Edit</button>'
+      +'<button class="btn xsm" style="color:var(--danger)" onclick="quickDelFood(\''+f.id+'\')">✕</button></div></div></div>';
+  });
+  return h;
+}
+function filterFoods(){ var el=document.getElementById("cfList"); if(el) el.innerHTML=cfListHtml(); }
+function quickDelFood(id){
+  var f=S.foods.find(function(x){return x.id===id;}); if(!f) return;
+  if(!confirm('Delete "'+f.n+'" from My foods? (Logged history keeps its numbers.)')) return;
+  S.foods=S.foods.filter(function(x){return x.id!==id;});
+  save(); render();
+}
 function renderFoods(){
   var h='<h2 class="section">My meals</h2>';
   if(!S.meals.length) h+='<div class="card tight empty">Save combos you eat often (e.g. “Greek yogurt bowl”) and log or plan them in one tap.</div>';
@@ -1094,13 +1162,10 @@ function renderFoods(){
       +'<div class="row" style="gap:6px;flex:0 0 auto"><button class="btn xsm" onclick="editMeal(\''+m.id+'\')">Edit</button></div></div></div>';
   });
   h+='<button class="btn" onclick="newMeal()">+ New meal</button>';
-  h+='<h2 class="section">My custom foods</h2>';
-  if(!S.foods.length) h+='<div class="card tight empty">Add anything the built-in list is missing — a brand you buy, a recipe per serving, a restaurant order.</div>';
-  S.foods.forEach(function(f){
-    h+='<div class="card tight"><div class="row between"><div style="min-width:0"><b>'+esc(f.n)+'</b>'
-      +'<div class="xs">'+esc(f.s)+' · '+r0(f.k)+' kcal · P'+r1(f.p)+' C'+r1(f.c)+' F'+r1(f.f)+'</div></div>'
-      +'<button class="btn xsm" onclick="editFood(\''+f.id+'\')">Edit</button></div></div>';
-  });
+  h+='<h2 class="section">My custom foods'+(S.foods.length?' ('+S.foods.length+')':'')+'</h2>';
+  if(S.foods.length>6)
+    h+='<input type="search" placeholder="Filter my foods…" value="'+esc(foodsQ)+'" oninput="foodsQ=this.value;filterFoods()" style="margin-bottom:10px" autocomplete="off">';
+  h+='<div id="cfList">'+cfListHtml()+'</div>';
   h+='<button class="btn" onclick="editFood(null)">+ New custom food</button>';
   h+='<h2 class="section">Built-in database</h2>'
     +'<div class="card tight"><div class="small muted">'+DB.length+' common foods with USDA-style per-serving values (incl. fiber) are built in — search, or browse by category under "All foods" when adding on the Today tab. For exact branded items (a Kroger frozen meal, a specific yogurt), use the <b>Online 🌐</b> tab there: search by name or barcode number and it saves here automatically. Values are typical averages; use custom foods when you want label-exact numbers.</div></div>';
@@ -1225,6 +1290,59 @@ function delMeal(){
 }
 
 /* ============ TRENDS ============ */
+function emaSeries(pts){ /* smoothed trend over sparse weigh-ins: [{d,v}] → [{d,v,e}] */
+  var out=[], ema=null;
+  pts.forEach(function(p){ ema=(ema==null)?p.v:ema+0.3*(p.v-ema); out.push({d:p.d,v:p.v,e:ema}); });
+  return out;
+}
+function trendSlope(pts){ /* lb per week, least squares on the smoothed trend */
+  if(pts.length<4) return null;
+  var t0=parseISO(pts[0].d).getTime();
+  var xs=pts.map(function(p){ return (parseISO(p.d).getTime()-t0)/86400000; });
+  if(xs[xs.length-1]-xs[0]<10) return null; /* need 10+ days of spread */
+  var ys=pts.map(function(p){ return p.e; });
+  var n=xs.length,sx=0,sy=0,sxy=0,sxx=0;
+  for(var i=0;i<n;i++){ sx+=xs[i]; sy+=ys[i]; sxy+=xs[i]*ys[i]; sxx+=xs[i]*xs[i]; }
+  var den=n*sxx-sx*sx; if(!den) return null;
+  return (n*sxy-sx*sy)/den*7;
+}
+function weeklyCheckin(){
+  var T=tgt(), p=S.profile, c=calcTargets(p), t=today();
+  var k=0,n=0;
+  for(var i=0;i<14;i++){ var d=addDays(t,-i), L=S.log[d]; if(L&&L.e.length){ k+=totals(d).k; n++; } }
+  var avg=n?r0(k/n):0;
+  var slope=trendSlope(emaSeries(weightSeries(28)));
+  var h='<div class="card"><h3>📋 Weekly check-in</h3>';
+  if(n<8||slope==null){
+    h+='<div class="small muted">This card starts coaching once there\'s ~2 weeks of data: food logged most days ('+n+'/14 so far) and 4+ weigh-ins spread over 10+ days.</div></div>';
+    return h;
+  }
+  var expected=r1((T.kcal-c.tdee)*7/3500); /* + gaining / − losing, from your plan */
+  var sl=r1(slope);
+  h+='<div class="small muted">Intake: <b style="color:var(--text)">'+avg+'</b> kcal avg vs '+T.kcal+' target ('+n+'/14 days logged)<br>'
+    +'Weight trend: <b style="color:var(--text)">'+(sl>0?'+':'')+sl+' lb/wk</b> · plan implies '+(expected>0?'+':'')+expected+'</div>';
+  var v,tone;
+  if(p.goal==="maintain"){
+    if(Math.abs(sl)<=0.25){ v="On track — weight is holding steady."; tone="good"; }
+    else if(sl>0){ v="Creeping up "+sl+" lb/wk. Trim ~100 kcal or add some easy walking for a couple of weeks."; tone="warn"; }
+    else { v="Drifting down "+r1(-sl)+" lb/wk — add ~100 kcal if losing isn't the plan."; tone="warn"; }
+  }else if(p.goal==="gain"){
+    if(sl<0.1){ v="Not gaining yet. Add ~150 kcal and re-check in 2 weeks."; tone="warn"; }
+    else if(sl<=0.75){ v="On track — a steady lean-gaining pace."; tone="good"; }
+    else { v="Gaining "+sl+" lb/wk — past ~0.75 the extra is mostly fat. Trim ~100–150 kcal."; tone="warn"; }
+  }else{ /* cut / recomp */
+    if(sl<=-1.2){ v="Losing fast ("+r1(-sl)+" lb/wk). Quicker than ~1% of body weight costs muscle — add ~100–150 kcal back."; tone="warn"; }
+    else if(sl<=-0.15){ v="On track — down "+r1(-sl)+" lb/wk against an expected ~"+r1(-expected)+". Keep doing exactly this."; tone="good"; }
+    else if(avg>T.kcal+75){ v="The trend is flat, but intake is averaging "+(avg-T.kcal)+" kcal over target — the target isn't the problem. Tighten portions and logging first (restaurant meals usually run 20–30% over their looks)."; tone="warn"; }
+    else{
+      var sug=Math.max(1200,Math.round((T.kcal-100)/10)*10);
+      v="Intake is on target but the scale has stalled. That's normal adaptation, not failure — try "+sug+" kcal"+(S.t.auto?" (switch targets to Manual in Settings)":"")+" for the next 2–3 weeks, then re-check here.";
+      tone="warn";
+    }
+  }
+  h+='<div style="margin-top:10px;padding:10px 12px;border-radius:10px;background:var(--bg2);border-left:3px solid var(--'+(tone==="good"?"good":"warn")+');font-size:13.5px">'+v+'</div></div>';
+  return h;
+}
 function renderTrends(){
   var T=tgt(), t=today();
   /* 7-day stats */
@@ -1233,7 +1351,8 @@ function renderTrends(){
     var d=addDays(t,-i), L=S.log[d];
     if(L&&L.e.length){ var tot=totals(d); k7+=tot.k; p7+=tot.p; n7++; }
   }
-  var h='<div class="kpis">'
+  var h=weeklyCheckin()
+    +'<div class="kpis">'
     +'<div class="kpi"><div class="v">'+(n7?r0(k7/n7):"–")+'</div><div class="k">avg kcal / 7d</div></div>'
     +'<div class="kpi"><div class="v">'+(n7?r0(p7/n7)+"g":"–")+'</div><div class="k">avg protein / 7d</div></div>'
     +'<div class="kpi"><div class="v">'+n7+'/7</div><div class="k">days logged</div></div></div>';
@@ -1241,13 +1360,13 @@ function renderTrends(){
   h+='<div class="card"><h3>Calories — last 14 days</h3><div class="chart">'+kcalChart(14,T.kcal)+'</div>'
     +'<div class="xs" style="margin-top:6px">Dashed line = your '+T.kcal+' kcal target. Consistency over weeks matters more than any single day.</div></div>';
   /* weight chart */
-  var wpts=weightSeries(90);
+  var wpts=emaSeries(weightSeries(90));
   h+='<div class="card"><h3>Weight</h3>';
   if(wpts.length>=2){
-    var first=wpts[0].v, last=wpts[wpts.length-1].v, diff=r1(last-first);
-    h+='<div class="small muted" style="margin-bottom:4px">'+last+' lb now · '+(diff>0?"+":"")+diff+' lb over '+wpts.length+' logs</div>'
+    var firstE=wpts[0].e, lastE=wpts[wpts.length-1].e, diff=r1(lastE-firstE);
+    h+='<div class="small muted" style="margin-bottom:4px">Trend: <b style="color:var(--text)">'+r1(lastE)+' lb</b> · '+(diff>0?"+":"")+diff+' lb across '+wpts.length+' weigh-ins</div>'
       +'<div class="chart">'+weightChart(wpts)+'</div>'
-      +'<div class="xs" style="margin-top:6px">Day-to-day swings are water, not fat — watch the weekly trend.</div>';
+      +'<div class="xs" style="margin-top:6px">Dots are scale readings; the line is the smoothed trend. Day-to-day swings are water — believe the line, not the dots.</div>';
   }else{
     h+='<div class="empty">Log weight on the Today tab (any days you like) and the trend appears here.</div>';
   }
@@ -1287,20 +1406,24 @@ function weightSeries(days){
   }
   return pts;
 }
-function weightChart(pts){
-  var W=340,H=130,pad=8;
-  var vs=pts.map(function(p){return p.v;});
+function weightChart(pts){ /* pts from emaSeries; x is scaled by real dates */
+  var W=340,H=130,pad=10;
+  var t0=parseISO(pts[0].d).getTime(), t1=parseISO(pts[pts.length-1].d).getTime();
+  var span=Math.max(1,t1-t0);
+  var vs=[];
+  pts.forEach(function(p){ vs.push(p.v); vs.push(p.e); });
   var mn=Math.min.apply(null,vs)-1, mx=Math.max.apply(null,vs)+1;
-  var X=function(i){ return pad+(pts.length===1?0:(i/(pts.length-1))*(W-pad*2)); };
+  var X=function(p){ return pad+((parseISO(p.d).getTime()-t0)/span)*(W-pad*2); };
   var Y=function(v){ return H-16-((v-mn)/(mx-mn))*(H-30); };
-  var path=pts.map(function(p,i){ return (i?"L":"M")+X(i).toFixed(1)+" "+Y(p.v).toFixed(1); }).join(" ");
+  var path=pts.map(function(p,i){ return (i?"L":"M")+X(p).toFixed(1)+" "+Y(p.e).toFixed(1); }).join(" ");
   var s='<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg">'
-    +'<path d="'+path+'" fill="none" stroke="url(#wg1)" stroke-width="2.5" stroke-linecap="round"/>'
     +'<defs><linearGradient id="wg1" x1="0" y1="0" x2="1" y2="0">'
     +'<stop offset="0" stop-color="#fb7185"/><stop offset="1" stop-color="#fbbf24"/></linearGradient></defs>';
-  pts.forEach(function(p,i){ s+='<circle cx="'+X(i)+'" cy="'+Y(p.v)+'" r="3" fill="var(--bg)" stroke="var(--accent)" stroke-width="2"/>'; });
-  s+='<text x="'+pad+'" y="10" font-size="9" fill="var(--muted2)">'+mx.toFixed(0)+'</text>'
-    +'<text x="'+pad+'" y="'+(H-4)+'" font-size="9" fill="var(--muted2)">'+mn.toFixed(0)+'</text></svg>';
+  pts.forEach(function(p){ s+='<circle cx="'+X(p).toFixed(1)+'" cy="'+Y(p.v).toFixed(1)+'" r="2.6" fill="var(--muted2)" opacity="0.55"/>'; });
+  s+='<path d="'+path+'" fill="none" stroke="url(#wg1)" stroke-width="2.5" stroke-linecap="round"/>'
+    +'<text x="'+pad+'" y="10" font-size="9" fill="var(--muted2)">'+mx.toFixed(0)+'</text>'
+    +'<text x="'+pad+'" y="'+(H-4)+'" font-size="9" fill="var(--muted2)">'+mn.toFixed(0)+' · '+fmtShort(pts[0].d)+'</text>'
+    +'<text x="'+(W-pad)+'" y="'+(H-4)+'" font-size="9" fill="var(--muted2)" text-anchor="end">'+fmtShort(pts[pts.length-1].d)+'</text></svg>';
   return s;
 }
 
@@ -1375,9 +1498,16 @@ function renderSettings(){
     +'<div class="btn-row"><button class="btn" onclick="exportData()">Export backup</button>'
     +'<button class="btn" onclick="importData()">Import</button></div>'
     +'<button class="btn danger" style="margin-top:10px" onclick="resetAll()">Reset everything</button>'
-    +'<div class="xs" style="margin-top:9px">Everything lives on this phone (localStorage) — nothing is uploaded anywhere. Export a backup now and then.</div></div>';
+    +'<div class="xs" style="margin-top:9px">Everything lives on this phone (localStorage) — nothing is uploaded anywhere. '+backupLine()+'</div></div>';
   h+='<div class="xs" style="text-align:center;margin:18px 0 6px">Fuel · part of Daily Dashboard · <a href="../index.html" style="color:var(--accent)">← back to dashboard</a></div>';
   return h;
+}
+function backupLine(){
+  var hasData=Object.keys(S.log).length>0||S.foods.length||S.meals.length;
+  if(!S.lastBackup) return hasData?'<b style="color:var(--warn)">No backup yet — export one.</b>':'Export a backup once you have some data.';
+  var days=Math.round((parseISO(today())-parseISO(S.lastBackup))/86400000);
+  var txt=days<=0?'today':days+' day'+(days===1?'':'s')+' ago';
+  return 'Last backup: <b style="color:var(--'+(days>30?'warn':'good')+')">'+txt+'</b>'+(days>30?' — worth a fresh one.':'');
 }
 function actOpt(v,l,curv){ return '<option value="'+v+'"'+(Math.abs(curv-v)<0.01?" selected":"")+'>'+l+'</option>'; }
 function goalOpt(v,l,curv){ return '<option value="'+v+'"'+(curv===v?" selected":"")+'>'+l+'</option>'; }
@@ -1400,6 +1530,7 @@ function setT(){
   save(); render();
 }
 function exportData(){
+  S.lastBackup=today(); save();
   var blob=new Blob([JSON.stringify(S,null,1)],{type:"application/json"});
   var a=document.createElement("a");
   a.href=URL.createObjectURL(blob);

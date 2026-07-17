@@ -1,56 +1,11 @@
 {
-  "syncedAt": "2026-06-16",
+  "syncedAt": "2026-07-16",
   "events": [
     {
-      "title": "Juneteenth",
-      "start": "2026-06-19",
-      "allDay": true
-    },
-    {
-      "title": "Greece",
-      "start": "2026-06-19",
-      "end": "2026-06-28",
-      "allDay": true,
-      "trip": true,
-      "emoji": "✈️"
-    },
-    {
-      "title": "Father's Day",
-      "start": "2026-06-21",
-      "allDay": true
-    },
-    {
-      "title": "Independence Day (substitute)",
-      "start": "2026-07-03",
-      "allDay": true
-    },
-    {
-      "title": "Service at Woodhouse Spa — Dublin",
-      "start": "2026-07-03",
-      "startTime": "13:00",
-      "endTime": "14:00",
-      "location": "19 N High St, Dublin",
-      "allDay": false
-    },
-    {
-      "title": "Service at Woodhouse Spa — Dublin",
-      "start": "2026-07-03",
-      "startTime": "14:15",
-      "endTime": "15:15",
-      "location": "19 N High St, Dublin",
-      "allDay": false
-    },
-    {
-      "title": "Independence Day",
-      "start": "2026-07-04",
-      "allDay": true,
-      "emoji": "🎆"
-    },
-    {
-      "title": "Tartan",
-      "start": "2026-07-12",
-      "startTime": "20:00",
-      "endTime": "21:00",
+      "title": "Bronzing Bar Grandview",
+      "start": "2026-07-16",
+      "startTime": "17:20",
+      "endTime": "18:20",
       "allDay": false
     },
     {
@@ -97,10 +52,28 @@
       "emoji": "🏖️"
     },
     {
+      "title": "PENZONE Salon + Spa Dublin Appointment",
+      "start": "2026-08-17",
+      "startTime": "17:30",
+      "endTime": "19:30",
+      "location": "PENZONE Salon + Spa Dublin",
+      "allDay": false,
+      "emoji": "💇"
+    },
+    {
       "title": "Joel Bachelor Party",
       "start": "2026-08-21",
       "end": "2026-08-23",
       "allDay": true,
+      "trip": true
+    },
+    {
+      "title": "Wyatt Bachelor Party",
+      "start": "2026-08-28",
+      "end": "2026-08-30",
+      "startTime": "10:00",
+      "endTime": "11:00",
+      "allDay": false,
       "trip": true
     },
     {
@@ -123,6 +96,36 @@
       "title": "Columbus Day",
       "start": "2026-10-12",
       "allDay": true
+    },
+    {
+      "title": "Halloween",
+      "start": "2026-10-31",
+      "allDay": true,
+      "emoji": "🎃"
+    },
+    {
+      "title": "Daylight Saving Time ends",
+      "start": "2026-11-01",
+      "allDay": true,
+      "emoji": "🕐"
+    },
+    {
+      "title": "Election Day",
+      "start": "2026-11-03",
+      "allDay": true,
+      "emoji": "🗳️"
+    },
+    {
+      "title": "Wyatt Wedding",
+      "start": "2026-11-06",
+      "allDay": true,
+      "emoji": "💒"
+    },
+    {
+      "title": "Veterans Day",
+      "start": "2026-11-11",
+      "allDay": true,
+      "emoji": "🎖️"
     }
   ]
 }

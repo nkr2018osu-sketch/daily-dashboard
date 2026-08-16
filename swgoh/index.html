@@ -166,8 +166,8 @@ const SRC_PRESET = {
   hard:   {energy:16, attempts:5, rate:33, per:1, flat:0, refresh:0},
   cantina:{energy:12, attempts:5, rate:33, per:1, flat:0, refresh:0},
   fleet:  {energy:20, attempts:5, rate:33, per:1, flat:0, refresh:0},
-  shop:   {energy:0,  attempts:0, rate:0,  per:0, flat:5, refresh:0},
-  other:  {energy:0,  attempts:0, rate:0,  per:0, flat:1, refresh:0}
+  shop:   {energy:0,  attempts:0, rate:0,  per:0, flat:5, refresh:0, crystals:0},
+  other:  {energy:0,  attempts:0, rate:0,  per:0, flat:1, refresh:0, crystals:0}
 };
 // Refreshing a node resets its attempts. First reset 25 crystals, then it doubles.
 const NODE_REFRESH_LADDER = [25, 50, 100, 200, 400];
@@ -201,6 +201,10 @@ const GAC_WEEKLY_RANK = {1:750, 2:500, 3:500, 4:500, 5:250, 6:250, 7:250, 8:100}
 const KEY = "swgohFarm";
 const DEFAULT_CFG = {
   refresh: {normal:0, cantina:0, fleet:0},
+
+  // What you already have banked. Every other calculator assumes zero, which
+  // overstates timelines for anyone with a stockpile.
+  have: {kyro:0, frag:0, inc:0, flaw:0},
 
   // --- kyrotech: the only gear crunch. Monthly income by source. ---
   kyroSources: {dailies:90, guildAB:160, tb:80, tw:65, conquest:40, other:0},
@@ -255,6 +259,7 @@ function load(){
   d.tokens  = d.tokens  || [];
   const c = Object.assign({}, DEFAULT_CFG, d.cfg || {});
   c.refresh     = Object.assign({}, DEFAULT_CFG.refresh, c.refresh || {});
+  c.have        = Object.assign({}, DEFAULT_CFG.have, c.have || {});
   c.kyroSources = Object.assign({}, DEFAULT_CFG.kyroSources, c.kyroSources || {});
   c.kyroPerGear = Object.assign({}, DEFAULT_CFG.kyroPerGear, c.kyroPerGear || {});
   c.signalNodes = (c.signalNodes && c.signalNodes.length) ? c.signalNodes
@@ -349,10 +354,14 @@ function srcRefreshCrystals(s){
   const n = Math.max(0, Math.min(NODE_REFRESH_LADDER.length, num(s.refresh,0)|0));
   return NODE_REFRESH_LADDER.slice(0, n).reduce((a,b)=>a+b, 0);
 }
-// Node refreshes only cost you while that farm is still running.
+// Crystals a source costs per day: node refreshes, or shard shipments bought with crystals.
+function srcCrystals(s){
+  return srcRefreshCrystals(s) + (SRC_POOL[s.type] === null ? num(s.crystals, 0) : 0);
+}
+// Only counts while that farm is still running.
 function nodeRefreshSpend(list){
   return (list || S.targets).reduce((a,t) => a + (shardsNeeded(t) > 0
-    ? t.sources.reduce((b,s)=>b+srcRefreshCrystals(s), 0) : 0), 0);
+    ? t.sources.reduce((b,s)=>b+srcCrystals(s), 0) : 0), 0);
 }
 function shardEnergy(t, pool){
   return t.sources.reduce((a,s) => a + (SRC_POOL[s.type] === pool ? srcEnergyPerDay(s) : 0), 0);
@@ -436,7 +445,17 @@ function simulate(list){
   const kDay = kyroPerDay();
   const st = list.map(t => ({t, shard:shardsNeeded(t), kyro:kyroNeeded(t), sig:signalNeeded(t),
     shardDone:null, kyroDone:null, sigDone:null, done:null}));
-  const spent = () => {};
+
+  // Spend what's already banked before day one, longest farm first.
+  let bankK = num(S.cfg.have.kyro, 0);
+  const bankS = {frag:num(S.cfg.have.frag,0), inc:num(S.cfg.have.inc,0), flaw:num(S.cfg.have.flaw,0)};
+  st.slice().sort((a,b) => rank(b) - rank(a)).forEach(s => {
+    if(s.kyro > 0 && bankK > 0){ const u = Math.min(s.kyro, bankK); s.kyro -= u; bankK -= u; }
+    SIG_KEYS.forEach(k => {
+      if(s.sig[k] > 0 && bankS[k] > 0){ const u = Math.min(s.sig[k], bankS[k]); s.sig[k] -= u; bankS[k] -= u; }
+    });
+  });
+
   st.forEach(s => {
     if(s.shard <= 0) s.shardDone = 0;
     if(s.kyro  <= 0) s.kyroDone  = 0;
@@ -516,6 +535,28 @@ function simulate(list){
   }
 }
 
+/* Shard drops are random, so a date built from average drop rates is a coin
+   flip — you land past it half the time. Daily shards are a sum of Bernoulli
+   trials, so over D days: mean D·mu, sd sqrt(D)·sigma. Solving
+   D·mu - z·sqrt(D)·sigma = need for D gives the date you beat z-often. */
+const Z90 = 1.2816;
+function shardDaysUnlucky(t, z){
+  const need = shardsNeeded(t);
+  if(need <= 0) return 0;
+  let mu = 0, varD = 0;
+  t.sources.forEach(s => {
+    if(SRC_POOL[s.type] === null){ mu += num(s.flat, 0); return; }   // stores are deterministic
+    const n = srcAttempts(s), p = num(s.rate,0)/100, per = num(s.per,1);
+    mu += n * p * per;
+    varD += n * p * (1-p) * per * per;
+  });
+  if(mu <= 0) return Infinity;
+  if(varD <= 0) return need / mu;
+  const sd = Math.sqrt(varD), zz = z === undefined ? Z90 : z;
+  const y = (zz*sd + Math.sqrt(zz*zz*sd*sd + 4*mu*need)) / (2*mu);
+  return y * y;
+}
+
 function soloFinish(t){
   const k = JSON.stringify([t.id,t.star,t.shards,t.targetStar,t.gear,t.targetGear,t.relic,t.targetRelic,t.kyroOverride,t.sources]);
   if(soloCache.has(k)) return soloCache.get(k);
@@ -569,6 +610,72 @@ function capped(d){ return isFinite(d) ? d : CAP; }
 
 // The untouched-roster run is identical for every token, so cache it per render.
 function baseline(){ return baseSim || (baseSim = simulate(S.targets)); }
+
+/* ============================================================
+   DEADLINE PLANNER
+   The inverse question: an event lands on a date — what does
+   hitting it cost? Greedily buys whichever refresh removes the
+   most days per crystal until the deadline is met or the
+   refresh ladders run out.
+   ============================================================ */
+
+function planForDeadline(list, days){
+  const origPool = JSON.parse(JSON.stringify(S.cfg.refresh));
+  const origNode = list.map(t => t.sources.map(s => num(s.refresh, 0)));
+  const plan = {normal:0, cantina:0, fleet:0};
+  const nodePlan = [];
+  let best = simulate(list).makespan;
+  const start = best;
+  let steps = 0;
+
+  try{
+    while(best > days && steps < 45){
+      let pick = null;
+      const weigh = (gain, cost, apply) => {
+        if(gain <= 0) return;
+        const value = gain / cost;
+        if(!pick || value > pick.value) pick = {value, apply, cost};
+      };
+
+      // Buying energy only helps if the farms are energy-starved, not attempt-capped.
+      for(const p of Object.keys(POOLS)){
+        const n = S.cfg.refresh[p] | 0;
+        if(n >= POOLS[p].ladder.length) continue;
+        S.cfg.refresh[p] = n + 1;
+        const got = simulate(list).makespan;
+        S.cfg.refresh[p] = n;
+        weigh(best - got, POOLS[p].ladder[n], () => { S.cfg.refresh[p] = n + 1; plan[p]++; best = got; });
+      }
+
+      // Node refreshes buy more attempts — the real lever on a capped shard farm.
+      list.forEach((t, ti) => {
+        if(shardsNeeded(t) <= 0) return;
+        t.sources.forEach((s, si) => {
+          if(SRC_POOL[s.type] === null) return;
+          const n = num(s.refresh, 0) | 0;
+          if(n >= NODE_REFRESH_LADDER.length) return;
+          s.refresh = n + 1;
+          const got = simulate(list).makespan;
+          s.refresh = n;
+          weigh(best - got, NODE_REFRESH_LADDER[n], () => {
+            s.refresh = n + 1; best = got;
+            nodePlan.push({name:t.name, node:SRC_NAMES[s.type], to:n+1, cost:NODE_REFRESH_LADDER[n]});
+          });
+        });
+      });
+
+      if(!pick) break;                                 // nothing buyable helps any more
+      pick.apply(); steps++;
+    }
+    const spendDay = Object.keys(POOLS).reduce((a,p)=>a+poolCrystals(p), 0) + nodeRefreshSpend(list);
+    return {ok: best <= days, days: best, startDays: start, plan, nodePlan,
+      crystalsPerDay: spendDay, total: Math.round(spendDay * Math.min(best, days)),
+      income: crystalIncome(), attemptCapped: !Object.keys(plan).some(k=>plan[k]>0) && nodePlan.length === 0};
+  } finally {
+    S.cfg.refresh = origPool;                          // never leave the config changed
+    list.forEach((t,ti) => t.sources.forEach((s,si) => s.refresh = origNode[ti][si]));
+  }
+}
 
 function accountEval(id, tierKey){
   const before = S.targets, after = S.targets.map(t => t.id===id ? applyToken(t,tierKey) : t);
@@ -773,11 +880,57 @@ function vSquads(){
         Cantina ${Math.round(dem.cantina)}/${poolBudget("cantina")} · Fleet ${Math.round(dem.fleet)}/${poolBudget("fleet")}
         ${sim.energyShort ? '<span class="warn"> — over budget</span>' : '<span class="good"> — within budget</span>'}<br>
         Shared: ${sigLine(sim.signalPerDay,1)} + ${kyroPerDay().toFixed(1)} kyrotech per day, across ${mem.length} members</p>
+      ${deadlineBlock(q, mem, sim)}
       <div class="row" style="margin-top:10px">
         <button class="btn ghost small" onclick="editSquad('${q.id}')">Edit</button>
         <button class="btn ghost small" onclick="go('lst')">Lightspeed options</button></div></div>`;
   }).join("");
   return html;
+}
+
+// "The event is on this date" — what does hitting it take, and can you afford it?
+function deadlineBlock(q, mem, sim){
+  if(!q.deadline) return `<div class="row" style="margin-top:8px">
+    <span class="tiny grow">No deadline set — add one to see what hitting it would cost.</span>
+    <input type="date" style="width:auto" onchange="setDeadline('${q.id}',this.value)"></div>`;
+
+  const days = Math.ceil((new Date(q.deadline + "T00:00:00") - new Date()) / 864e5);
+  if(days <= 0) return `<div class="est" style="border-color:var(--bad)">
+    <p class="tiny bad">Deadline ${esc(q.deadline)} has passed.
+      <button class="btn ghost small" onclick="setDeadline('${q.id}','')">Clear</button></p></div>`;
+
+  if(sim.makespan <= days) return `<div class="est" style="border-color:var(--good)">
+    <p class="tiny good"><b>On track for ${new Date(q.deadline+"T00:00:00").toLocaleDateString(undefined,{day:"numeric",month:"short",year:"numeric"})}</b>
+      — done ${fmtDays(sim.makespan)}, ${days - Math.ceil(sim.makespan)} days to spare. No extra spending needed.</p>
+    <p class="tiny"><button class="btn ghost small" onclick="setDeadline('${q.id}','')">Clear deadline</button></p></div>`;
+
+  const p = planForDeadline(mem, days);
+  const buys = [];
+  Object.keys(POOLS).forEach(k => { if(p.plan[k] > 0) buys.push(`${p.plan[k]} ${POOLS[k].name.toLowerCase()} energy refresh${p.plan[k]>1?"es":""}`); });
+  const nodeCount = {};
+  p.nodePlan.forEach(n => { const key = n.name + " — " + n.node; nodeCount[key] = (nodeCount[key]||0)+1; });
+  Object.keys(nodeCount).forEach(k => buys.push(`${nodeCount[k]} node refresh${nodeCount[k]>1?"es":""} on ${k}`));
+  const affordable = p.crystalsPerDay <= p.income;
+
+  return `<div class="est" style="border-color:${p.ok ? "var(--gold)" : "var(--bad)"}">
+    <p class="tiny"><b>${p.ok ? "⚠ Behind, but reachable" : "✕ Can't make it"}</b> —
+      needs ${fmtDays(sim.makespan)}, deadline is in ${days}d.</p>
+    ${p.ok ? `<p class="tiny">Buying each day:</p>
+      <ul class="tiny" style="margin:4px 0 6px;padding-left:18px">${buys.map(b=>`<li>${esc(b)}</li>`).join("")}</ul>
+      <p class="tiny">gets it to <b>${fmtDays(p.days)}</b> — <b class="warn">${p.crystalsPerDay} crystals/day</b>,
+        about <b>${p.total.toLocaleString()} crystals</b> in total.</p>
+      <p class="tiny ${affordable ? "good" : "bad"}">${affordable
+        ? `Within your ${Math.round(p.income)}/day income.`
+        : `That's ${Math.round(p.crystalsPerDay - p.income)}/day beyond your ${Math.round(p.income)} income —
+           roughly ${Math.round((p.crystalsPerDay-p.income)*Math.min(p.days,days)).toLocaleString()} out of your stockpile.`}</p>`
+    : `<p class="tiny bad">Even buying every refresh available it only reaches ${fmtDays(p.days)}.
+        ${p.attemptCapped ? "Nothing purchasable moves it — the farms are capped on attempts, not energy." : ""}
+        A Lightspeed token or a shard pack is the only way in by then.</p>`}
+    <p class="tiny"><button class="btn ghost small" onclick="setDeadline('${q.id}','')">Clear deadline</button></p></div>`;
+}
+function setDeadline(id, v){
+  const q = S.squads.find(x => x.id === id); if(!q) return;
+  q.deadline = v || ""; save(); render();
 }
 
 /* ---------- Lightspeed ---------- */
@@ -1159,6 +1312,17 @@ function vSetup(){
     <div class="row" style="margin-top:10px"><span class="grow"><b>Total spend</b></span>
       <span class="pill w">${crystalSpend()}/day</span></div></div>
 
+  <div class="card"><h3>What you already have</h3>
+    <p class="muted">Stock on hand is spent before day one, longest farm first. Most calculators
+    assume you start from nothing, which overstates every date.</p>
+    <div class="g4">
+      <div><label class="f">Kyrotech</label><input type="number" min="0" value="${S.cfg.have.kyro}"
+        onchange="S.cfg.have.kyro=num(this.value,0);save();render()"></div>
+      ${SIG_KEYS.map(k => `<div><label class="f" style="color:${SIG[k].col}">${SIG[k].short}</label>
+        <input type="number" min="0" value="${S.cfg.have[k]}"
+          onchange="S.cfg.have['${k}']=num(this.value,0);save();render()"></div>`).join("")}
+    </div></div>
+
   <div class="card"><h3>Kyrotech — the gear crunch</h3>
     <p class="muted">Gear is modelled purely as kyrotech salvage. It's one shared stockpile, so gearing
     several characters at once splits it between them.</p>
@@ -1312,7 +1476,10 @@ function drawTargetSheet(){
       <span class="tiny">${fmtDate(d)}</span></div>
       <div class="tiny" style="margin-top:5px">Shards ${fmtDays(tr.shards)} · Kyrotech ${fmtDays(tr.gear)} ·
         Signal data ${fmtDays(tr.relic)}</div>
-      <div class="tiny">${shardsNeeded(t)} shards at ${shardsPerDay(t).toFixed(2)}/day · alone with the full budget</div></div>
+      <div class="tiny">${shardsNeeded(t)} shards at ${shardsPerDay(t).toFixed(2)}/day · alone with the full budget</div>
+      ${shardsNeeded(t) > 0 && isFinite(shardDaysUnlucky(t)) ? `<div class="tiny warn" style="margin-top:4px">
+        Drops are random — that shard date is a coin flip. Unlucky runs (1 in 10) take
+        ${fmtDays(shardDaysUnlucky(t))}, ${Math.ceil(shardDaysUnlucky(t) - tr.shards)} days longer.</div>` : ""}</div>
 
     <div class="row" style="margin-top:12px">
       <button class="btn grow" id="e-save" onclick="saveTarget()">${exists?"Save changes":"Add target"}</button>
@@ -1325,8 +1492,12 @@ function srcEditor(s, i){
     <div class="row"><select class="grow" onchange="srcType(${i},this.value)">
       ${Object.keys(SRC_NAMES).map(k=>`<option value="${k}" ${s.type===k?"selected":""}>${SRC_NAMES[k]}</option>`).join("")}
     </select><button class="btn ghost small" onclick="delSrc(${i})">✕</button></div>
-    ${flat ? `<label class="f">Shards per day</label>
-      <input type="number" step="0.1" min="0" value="${s.flat}" onchange="srcSet(${i},'flat',this.value)">`
+    ${flat ? `<div class="g2"><div><label class="f">Shards per day</label>
+        <input type="number" step="0.1" min="0" value="${s.flat}" onchange="srcSet(${i},'flat',this.value)"></div>
+      <div><label class="f">Crystals per day</label>
+        <input type="number" step="1" min="0" value="${num(s.crystals,0)}" onchange="srcSet(${i},'crystals',this.value)"></div></div>
+      <p class="tiny">${num(s.crystals,0) ? num(s.crystals,0)+" crystals/day while this farm runs — counted in your budget."
+        : "Leave crystals at 0 for currency-only stores."}</p>`
     : `<div class="g4" style="margin-top:8px">
         <div><label class="f">Energy</label><input type="number" min="0" value="${s.energy}" onchange="srcSet(${i},'energy',this.value)"></div>
         <div><label class="f">Tries/day</label><input type="number" min="0" value="${s.attempts}" onchange="srcSet(${i},'attempts',this.value)"></div>
@@ -1375,15 +1546,18 @@ function delTarget(id){
 }
 
 function editSquad(id){
-  draft = id ? JSON.parse(JSON.stringify(S.squads.find(x=>x.id===id))) : {id:uid(), name:"", note:"", memberIds:[]};
+  draft = id ? JSON.parse(JSON.stringify(S.squads.find(x=>x.id===id)))
+             : {id:uid(), name:"", note:"", deadline:"", memberIds:[]};
   const q = draft;
   document.getElementById("sheet").innerHTML = `
     <button class="back" onclick="closeModal()">← close</button>
     <label class="f">Squad / event name</label>
     <input type="text" id="e-sqname" value="${esc(q.name)}" placeholder="e.g. GL Jabba requirements"
       autocomplete="off" oninput="draft.name=this.value">
-    <label class="f">Note</label>
-    <input type="text" value="${esc(q.note||"")}" placeholder="optional" oninput="draft.note=this.value">
+    <div class="g2"><div><label class="f">Note</label>
+      <input type="text" value="${esc(q.note||"")}" placeholder="optional" oninput="draft.note=this.value"></div>
+      <div><label class="f">Event deadline</label>
+      <input type="date" value="${esc(q.deadline||"")}" onchange="draft.deadline=this.value"></div></div>
     <label class="f">Members</label>
     ${S.targets.length ? S.targets.map(t=>`<label style="display:flex;gap:9px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)">
       <input type="checkbox" style="width:auto" ${q.memberIds.includes(t.id)?"checked":""} onchange="toggleMember('${t.id}',this.checked)">

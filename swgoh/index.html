@@ -163,12 +163,14 @@ const SRC_POOL = {hard:"normal", cantina:"cantina", fleet:"fleet", shop:null, ot
 const SRC_NAMES = {hard:"Hard node (LS/DS)", cantina:"Cantina node", fleet:"Fleet node",
   shop:"Shard shop / store", other:"Other (flat per day)"};
 const SRC_PRESET = {
-  hard:   {energy:16, attempts:5, rate:33, per:1, flat:0},
-  cantina:{energy:12, attempts:5, rate:33, per:1, flat:0},
-  fleet:  {energy:20, attempts:5, rate:33, per:1, flat:0},
-  shop:   {energy:0,  attempts:0, rate:0,  per:0, flat:5},
-  other:  {energy:0,  attempts:0, rate:0,  per:0, flat:1}
+  hard:   {energy:16, attempts:5, rate:33, per:1, flat:0, refresh:0},
+  cantina:{energy:12, attempts:5, rate:33, per:1, flat:0, refresh:0},
+  fleet:  {energy:20, attempts:5, rate:33, per:1, flat:0, refresh:0},
+  shop:   {energy:0,  attempts:0, rate:0,  per:0, flat:5, refresh:0},
+  other:  {energy:0,  attempts:0, rate:0,  per:0, flat:1, refresh:0}
 };
+// Refreshing a node resets its attempts. First reset 25 crystals, then it doubles.
+const NODE_REFRESH_LADDER = [25, 50, 100, 200, 400];
 // One "standard farm" of each energy type, for opportunity-cost comparisons.
 const FARM_COST = {normal:5*16, cantina:5*12, fleet:5*20};
 const FARM_SHARDS = 5*0.33;
@@ -223,19 +225,27 @@ const DEFAULT_CFG = {
     fleetRank: 20,
     dailyActivities: true,
     gac: {on:true, league:"chromium", division:3, wins:3, losses:2, weeklyRank:4},
+    // Named after the sources swgohrote.com/budget breaks out; amounts are
+    // yours to fill in since none of them are published as fixed figures.
     other: [
       {name:"Daily login reward", amount:0, days:1},
       {name:"Galactic War", amount:0, days:1},
-      {name:"Conquest (per run)", amount:0, days:14},
       {name:"Territory Battles", amount:0, days:7},
-      {name:"Assault Battles", amount:0, days:7}
+      {name:"Assault Battles", amount:0, days:7},
+      {name:"Peridea Patrol", amount:0, days:7},
+      {name:"Duel of the Fates", amount:0, days:7},
+      {name:"Conquest (per run)", amount:0, days:14},
+      {name:"GAC season end", amount:0, days:30}
     ]
   }
 };
 
-let S = load();
+let S;
 let view = "targets";
 let flashId = null;
+let baseSim = null;
+const soloCache = new Map();
+S = load();
 
 function load(){
   let d = {};
@@ -260,7 +270,7 @@ function load(){
   d.targets.forEach(normalizeTarget);
   return d;
 }
-function save(){ localStorage.setItem(KEY, JSON.stringify(S)); }
+function save(){ localStorage.setItem(KEY, JSON.stringify(S)); baseSim = null; soloCache.clear(); }
 
 function normalizeTarget(t){
   t.id = t.id || uid();
@@ -271,7 +281,11 @@ function normalizeTarget(t){
   t.relic = num(t.relic, 0); t.targetRelic = num(t.targetRelic, 0);
   // Per-character kyrotech from swgoh.gg. Blank falls back to the per-gear-level estimate.
   t.kyroOverride = (t.kyroOverride === "" || t.kyroOverride == null) ? "" : num(t.kyroOverride, "");
-  t.sources = (t.sources || []).map(s => Object.assign({type:"hard"}, SRC_PRESET.hard, s));
+  t.sources = (t.sources || []).map(s => {
+    const m = Object.assign({type:"hard"}, SRC_PRESET[s.type] || SRC_PRESET.hard, s);
+    m.refresh = num(m.refresh, 0);
+    return m;
+  });
   return t;
 }
 function uid(){ return Math.random().toString(36).slice(2,9); }
@@ -290,7 +304,9 @@ function poolCrystals(p){
   const P = POOLS[p], n = Math.max(0, Math.min(P.ladder.length, S.cfg.refresh[p]|0));
   return P.ladder.slice(0, n).reduce((a,b)=>a+b, 0);
 }
-function crystalSpend(){ return Object.keys(POOLS).reduce((a,p)=>a+poolCrystals(p), 0); }
+function crystalSpend(){
+  return Object.keys(POOLS).reduce((a,p)=>a+poolCrystals(p), 0) + nodeRefreshSpend();
+}
 
 function gacCrystals(){
   const g = S.cfg.crystals.gac;
@@ -321,12 +337,23 @@ function requiredStar(t){
 function shardsNeeded(t){
   return Math.max(0, (CUM[requiredStar(t)] || 0) - (CUM[t.star] || 0) - t.shards);
 }
+// Each refresh resets the node, granting another full set of attempts.
+function srcAttempts(s){ return num(s.attempts,0) * (1 + Math.max(0, num(s.refresh,0))); }
 function srcShardsPerDay(s){
   if(SRC_POOL[s.type] === null) return num(s.flat, 0);
-  return num(s.attempts,0) * (num(s.rate,0)/100) * num(s.per,1);
+  return srcAttempts(s) * (num(s.rate,0)/100) * num(s.per,1);
 }
 function shardsPerDay(t){ return t.sources.reduce((a,s)=>a+srcShardsPerDay(s), 0); }
-function srcEnergyPerDay(s){ return SRC_POOL[s.type] ? num(s.attempts,0)*num(s.energy,0) : 0; }
+function srcEnergyPerDay(s){ return SRC_POOL[s.type] ? srcAttempts(s)*num(s.energy,0) : 0; }
+function srcRefreshCrystals(s){
+  const n = Math.max(0, Math.min(NODE_REFRESH_LADDER.length, num(s.refresh,0)|0));
+  return NODE_REFRESH_LADDER.slice(0, n).reduce((a,b)=>a+b, 0);
+}
+// Node refreshes only cost you while that farm is still running.
+function nodeRefreshSpend(list){
+  return (list || S.targets).reduce((a,t) => a + (shardsNeeded(t) > 0
+    ? t.sources.reduce((b,s)=>b+srcRefreshCrystals(s), 0) : 0), 0);
+}
 function shardEnergy(t, pool){
   return t.sources.reduce((a,s) => a + (SRC_POOL[s.type] === pool ? srcEnergyPerDay(s) : 0), 0);
 }
@@ -432,7 +459,7 @@ function simulate(list){
       for(const src of s.t.sources){
         const pool = SRC_POOL[src.type];
         if(!pool){ gained += num(src.flat, 0); continue; }
-        const cost = num(src.energy,0), att = num(src.attempts,0);
+        const cost = num(src.energy,0), att = srcAttempts(src);
         let n = att;
         if(cost > 0) n = Math.min(att, Math.floor(avail[pool]/cost));
         if(n < att) short = true;
@@ -489,7 +516,6 @@ function simulate(list){
   }
 }
 
-const soloCache = new Map();
 function soloFinish(t){
   const k = JSON.stringify([t.id,t.star,t.shards,t.targetStar,t.gear,t.targetGear,t.relic,t.targetRelic,t.kyroOverride,t.sources]);
   if(soloCache.has(k)) return soloCache.get(k);
@@ -532,6 +558,45 @@ function tokenEffect(t, tierKey){
     overStar:  Math.max(0, tier.star  - requiredStar(t)),
     overRelic: Math.max(0, tier.relic - t.targetRelic),
     dead: t.star >= tier.star && t.gear >= tier.gear && (tier.relic === 0 || t.relic >= tier.relic)};
+}
+
+/* A token's real value is account-wide, not personal. Finishing a cantina shard
+   farm hands its energy back to signal-data farming, which speeds up every relic
+   you own — so a token is worth far more on a cantina farmer than a solo
+   comparison suggests. This evaluates the whole roster before and after. */
+const CAP = SIM_MAX;
+function capped(d){ return isFinite(d) ? d : CAP; }
+
+// The untouched-roster run is identical for every token, so cache it per render.
+function baseline(){ return baseSim || (baseSim = simulate(S.targets)); }
+
+function accountEval(id, tierKey){
+  const before = S.targets, after = S.targets.map(t => t.id===id ? applyToken(t,tierKey) : t);
+  const b = baseline(), a = simulate(after);
+  const sumB = before.reduce((x,t)=>x+capped(b.byId[t.id]), 0);
+  const sumA = after.reduce((x,t)=>x+capped(a.byId[t.id]), 0);
+
+  const t0 = before.find(t => t.id === id), t1 = applyToken(t0, tierKey);
+  // Energy handed back: only counts if the token actually ends the shard farm.
+  const freed = {};
+  Object.keys(POOLS).forEach(p => {
+    const was = shardsNeeded(t0) > 0 ? shardEnergy(t0, p) : 0;
+    const now = shardsNeeded(t1) > 0 ? shardEnergy(t1, p) : 0;
+    freed[p] = Math.max(0, was - now);
+  });
+  const signalGain = signalIncome(freed.cantina, aggregateNeed());
+  const crystalsFreed = shardsNeeded(t1) <= 0 && shardsNeeded(t0) > 0
+    ? t0.sources.reduce((x,s)=>x+srcRefreshCrystals(s), 0) : 0;
+
+  return {
+    ownBefore: b.byId[id], ownAfter: a.byId[id],
+    ownSaved: capped(b.byId[id]) - capped(a.byId[id]),
+    acctSaved: sumB - sumA,
+    makespanBefore: b.makespan, makespanAfter: a.makespan,
+    othersSaved: (sumB - sumA) - (capped(b.byId[id]) - capped(a.byId[id])),
+    freed, signalGain, crystalsFreed,
+    signalBefore: b.signalPerDay, signalAfter: a.signalPerDay
+  };
 }
 
 // What's still left to farm once the token has landed, and what that farm costs you.
@@ -598,7 +663,7 @@ function go(v){
   render();
 }
 function render(){
-  soloCache.clear();
+  soloCache.clear(); baseSim = null;
   document.getElementById("main").innerHTML =
     ({targets:vTargets, squads:vSquads, lst:vLst, crystals:vCrystals, setup:vSetup})[view]();
   if(flashId){
@@ -748,15 +813,15 @@ function vLst(){
   const tiers = owned.length ? TIER_KEYS.filter(k => owned.includes(k)) : TIER_KEYS;
 
   html += `<div class="card"><h3>Best character for each tier</h3>
-    <p class="tiny">Days saved on that character's own finish date. Tap any row to see exactly what's
-    left to farm afterwards and what that farm costs you.</p>`;
+    <p class="tiny">Ranked by <b>total days saved across your whole roster</b>, not just the one character.
+    Ending a cantina shard farm hands that energy back to signal data, so it speeds up every relic you
+    own — which usually matters more than the character itself. Tap any row for the full picture.</p>`;
   tiers.forEach(k => {
     const tier = LST_TIERS[k];
     const ranked = elig.map(t => {
-      const base = soloFinish(t), r = residual(t, k);
-      return {t, base, after:r.days, r, eff:tokenEffect(t,k),
-        saved: (isFinite(base) && isFinite(r.days)) ? base - r.days : (isFinite(r.days) ? Infinity : 0)};
-    }).sort((a,b) => (b.saved===Infinity?1e9:b.saved) - (a.saved===Infinity?1e9:a.saved));
+      const ev = accountEval(t.id, k), r = residual(t, k);
+      return {t, ev, r, eff:tokenEffect(t,k)};
+    }).sort((a,b) => b.ev.acctSaved - a.ev.acctSaved);
 
     html += `<hr class="sep"><div class="row"><b style="color:${tier.col}" class="grow">${tier.name}</b>
       <span class="tiny">${tier.star}★ / G${tier.gear}${tier.relic ? " / R"+tier.relic : ""}</span></div>`;
@@ -765,18 +830,23 @@ function vLst(){
       if(x.eff.dead) notes.push('<span class="bad">already at or past this tier</span>');
       if(x.eff.overStar) notes.push(`<span class="warn">${x.eff.overStar}★ past your goal</span>`);
       if(x.eff.overRelic) notes.push(`<span class="warn">R${x.eff.overRelic} past your goal</span>`);
+      if(x.ev.freed.cantina > 0) notes.push(`<span class="good">frees ${Math.round(x.ev.freed.cantina)} cantina energy →
+        +${sigLine(x.ev.signalGain,1)}/day for every relic</span>`);
+      else if(x.ev.freed.normal > 0) notes.push(`<span class="good">frees ${Math.round(x.ev.freed.normal)} normal energy</span>`);
+      if(x.ev.othersSaved >= 1) notes.push(`<span class="good">${Math.round(x.ev.othersSaved)}d of that lands on other characters</span>`);
       const left = [];
       if(x.r.shards > 0) left.push(`${x.r.shards} shards`);
       if(x.r.kyro > 0) left.push(`${Math.round(x.r.kyro)} kyro`);
       if(x.r.sigTotal > 0) left.push(`${Math.round(x.r.sigTotal)} signal`);
-      const savedTxt = x.saved===Infinity ? "unblocks it" : (x.saved<=0 ? "no gain" : fmtDays(x.saved)+" saved");
+      const s = x.ev.acctSaved;
+      const savedTxt = s <= 0 ? "no gain" : fmtDays(s) + " total";
       return `<div class="row lstrow" style="${i?"border-top:1px solid var(--line)":""}"
           onclick="lstDetail('${x.t.id}','${k}')">
         <span class="grow"><span style="font-weight:600">${esc(x.t.name)}</span> <span class="tiny">›</span>
-          <div class="tiny">${fmtDays(x.base)} → ${fmtDays(x.after)}${
+          <div class="tiny">itself ${fmtDays(x.ev.ownBefore)} → ${fmtDays(x.ev.ownAfter)}${
             left.length ? " · still needs " + left.join(", ") : " · <span class='good'>nothing left</span>"}</div>
           ${notes.length ? '<div class="tiny">'+notes.join(" · ")+"</div>" : ""}</span>
-        <span class="pill ${x.saved>0?"g":"b"}">${savedTxt}</span></div>`;
+        <span class="pill ${s>0?"g":"b"}">${savedTxt}</span></div>`;
     }).join("");
   });
   html += `</div>`;
@@ -824,7 +894,9 @@ function vLst(){
 function lstDetail(id, tierKey){
   const t = S.targets.find(x => x.id === id); if(!t) return;
   const tier = LST_TIERS[tierKey], r = residual(t, tierKey), base = soloFinish(t);
+  const ev = accountEval(id, tierKey);
   const a = r.after;
+  const freedAny = Object.keys(POOLS).some(p => ev.freed[p] > 0);
   const oppRows = [];
   if(r.cost.cantina > 0) oppRows.push(`<div class="srcrow"><b class="warn">${r.cost.cantina} cantina energy/day</b>
     <p class="tiny" style="margin:5px 0 0">That energy can't farm signal data, costing you
@@ -875,6 +947,33 @@ function lstDetail(id, tierKey){
       <p class="tiny">Energy still tied up chasing the remainder, and what it's not doing instead.</p>
       ${oppRows.join("")}` : (r.shards > 0 ? "" :
       `<hr class="sep"><p class="tiny good">No energy tied up — nothing left to farm on nodes.</p>`)}
+
+    <hr class="sep"><b>Knock-on effect across your roster</b>
+    <p class="tiny">A token doesn't only help the character it's spent on.</p>
+    ${freedAny ? `<div class="srcrow">
+      <b class="good">Frees ${Object.keys(POOLS).filter(p=>ev.freed[p]>0)
+        .map(p=>`${Math.round(ev.freed[p])} ${POOLS[p].name.toLowerCase()}`).join(" + ")} energy/day</b>
+      ${ev.freed.cantina > 0 ? `<p class="tiny" style="margin:5px 0 0">That cantina energy goes straight
+        back to signal data: <b class="good">+${sigLine(ev.signalGain,1)} per day</b>, speeding up every
+        relic on your account. Income rises from ${sigLine(ev.signalBefore,1)} to ${sigLine(ev.signalAfter,1)}.</p>` : ""}
+      ${ev.freed.normal > 0 ? `<p class="tiny" style="margin:5px 0 0">That normal energy is
+        ${(ev.freed.normal/FARM_COST.normal).toFixed(1)} hard-node farms freed up for someone else.</p>` : ""}
+      ${ev.crystalsFreed > 0 ? `<p class="tiny" style="margin:5px 0 0">Also stops
+        ${ev.crystalsFreed} crystals/day of node refreshes.</p>` : ""}
+    </div>` : `<p class="tiny">No energy freed — this character's shard farm keeps running afterwards.</p>`}
+    <table class="ref">
+      <tr><th>Measure</th><th class="n">Before</th><th class="n">After</th><th class="n">Saved</th></tr>
+      <tr><td>This character</td><td class="n">${fmtDays(ev.ownBefore)}</td>
+        <td class="n">${fmtDays(ev.ownAfter)}</td><td class="n">${ev.ownSaved>0?fmtDays(ev.ownSaved):"—"}</td></tr>
+      <tr><td>Everyone else</td><td class="n">—</td><td class="n">—</td>
+        <td class="n ${ev.othersSaved>0?"good":""}">${ev.othersSaved>=1?fmtDays(ev.othersSaved):"—"}</td></tr>
+      <tr><td>Last character done</td><td class="n">${fmtDays(ev.makespanBefore)}</td>
+        <td class="n">${fmtDays(ev.makespanAfter)}</td>
+        <td class="n">${ev.makespanBefore-ev.makespanAfter>0?fmtDays(ev.makespanBefore-ev.makespanAfter):"—"}</td></tr>
+      <tr><td><b>Whole roster</b></td><td class="n">—</td><td class="n">—</td>
+        <td class="n"><b class="${ev.acctSaved>0?"good":""}">${ev.acctSaved>0?fmtDays(ev.acctSaved):"none"}</b></td></tr>
+    </table>
+    <p class="tiny">"Whole roster" adds up the days saved on every character — the number the ranking uses.</p>
 
     <button class="btn ghost" style="width:100%;margin-top:14px" onclick="closeModal()">Close</button>`;
   openModal();
@@ -998,8 +1097,13 @@ function vCrystals(){
       return `<div class="row" style="padding:6px 0;border-bottom:1px solid var(--line)">
         <span class="grow">${POOLS[p].name} energy <span class="tiny">· ${n} refresh${n===1?"":"es"} = ${n*POOLS[p].per} energy</span></span>
         <span class="tiny ${poolCrystals(p)?"warn":""}">${poolCrystals(p)}/day</span></div>`; }).join("")}
+    ${S.targets.filter(t => shardsNeeded(t) > 0 && t.sources.some(s=>srcRefreshCrystals(s)>0)).map(t =>
+      `<div class="row" style="padding:6px 0;border-bottom:1px solid var(--line)">
+        <span class="grow">Node refreshes <span class="tiny">· ${esc(t.name)}</span></span>
+        <span class="tiny warn">${t.sources.reduce((a,s)=>a+srcRefreshCrystals(s),0)}/day</span></div>`).join("")}
     <p class="tiny" style="margin-top:9px">Cantina refreshes buy shard progress <i>and</i> signal data,
-      since leftover cantina energy goes to signal farming.</p>
+      since leftover cantina energy goes to signal farming. Node refreshes stop costing you the day
+      that farm finishes.</p>
     <button class="btn ghost small" style="margin-top:8px" onclick="go('setup')">Change refreshes</button></div>`;
 }
 
@@ -1122,7 +1226,8 @@ function refCard(open){
         return `<tr><td>${x.name}</td>${x.daily.map(v=>`<td class="n">${v}</td>`).join("")}
           <td class="n">${x.win}</td><td class="n">${x.loss}</td></tr>`; }).join("")}</table>
     <p class="tiny">Fleet Arena pays 400/375/350/325/300 for ranks 1–5, 200 for 6–10, 100 for 11–20,
-      50 for 21–50, nothing below 50. Squad Arena no longer pays crystals. Daily activities box = ${DAILY_ACTIVITY_CRYSTALS}.</p>
+      50 for 21–50, nothing below 50. Squad Arena no longer pays crystals. Daily activities box = ${DAILY_ACTIVITY_CRYSTALS}.
+      Node refreshes cost ${NODE_REFRESH_LADDER.join(", ")} crystals and each grants another full set of attempts.</p>
 
     <b class="tiny">Relic star gates</b>
     <p class="tiny">Relic 1–2 need 4★, Relic 3 needs 5★, Relic 4 needs 6★, Relic 5+ needs 7★.
@@ -1131,8 +1236,9 @@ function refCard(open){
     <b class="tiny">Sources</b>
     <p class="tiny">swgoh.wiki (Energy, Cantina Energy, Ship Energy, Character Shards, Relic Amplifier,
       Fleet Arena, Daily Activities, Grand Arena Championships, Cantina Battles 8-F / 8-G),
-      swtorstrategies.com (Lightspeed Tokens, relics-at-4-stars), EA forums (kyrotech monthly income),
-      swgohcopyright1983 (drop rates). Verified August 2026 — the game changes, so re-check anything odd.</p>
+      swtorstrategies.com (Lightspeed Tokens, relics-at-4-stars), EA forums (kyrotech monthly income,
+      node refresh costs), swgohcopyright1983 (drop rates), swgohrote.com/budget (crystal budget
+      structure). Verified August 2026 — the game changes, so re-check anything odd.</p>
   </details></div>`;
 }
 
@@ -1226,7 +1332,13 @@ function srcEditor(s, i){
         <div><label class="f">Tries/day</label><input type="number" min="0" value="${s.attempts}" onchange="srcSet(${i},'attempts',this.value)"></div>
         <div><label class="f">Drop %</label><input type="number" min="0" max="100" value="${s.rate}" onchange="srcSet(${i},'rate',this.value)"></div>
         <div><label class="f">Per drop</label><input type="number" min="0" step="1" value="${s.per}" onchange="srcSet(${i},'per',this.value)"></div></div>
-      <p class="tiny">${srcShardsPerDay(s).toFixed(2)} shards/day · ${srcEnergyPerDay(s)} ${POOLS[SRC_POOL[s.type]].name.toLowerCase()} energy/day
+      <label class="f">Node refreshes per day</label>
+      <select onchange="srcSet(${i},'refresh',this.value)">
+        ${[0,1,2,3].map(n => `<option value="${n}" ${num(s.refresh,0)===n?"selected":""}>${
+          n===0 ? "None" : n + " × " + num(s.attempts,0) + " more tries · " +
+          NODE_REFRESH_LADDER.slice(0,n).reduce((a,b)=>a+b,0) + " crystals/day"}</option>`).join("")}</select>
+      <p class="tiny">${srcShardsPerDay(s).toFixed(2)} shards/day from ${srcAttempts(s)} tries · ${srcEnergyPerDay(s)} ${POOLS[SRC_POOL[s.type]].name.toLowerCase()} energy/day
+        ${srcRefreshCrystals(s) ? ` · <span class="warn">${srcRefreshCrystals(s)} crystals/day</span>` : ""}
         ${s.type==="cantina" ? ` · <span class="warn">costs ${sigLine(signalIncome(srcEnergyPerDay(s), aggregateNeed()),1)}</span>` : ""}</p>`}
   </div>`;
 }

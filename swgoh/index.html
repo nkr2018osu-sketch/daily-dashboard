@@ -12,6 +12,7 @@
     --bg:#16181d; --card:#1f2229; --card2:#262a33; --line:#32363f;
     --ink:#e8e6e1; --dim:#9aa0ab; --faint:#6b717c;
     --accent:#4ea8de; --accent2:#7ec8f0; --gold:#e0b455; --bad:#d9776f; --good:#58b89a;
+    --frag:#58b89a; --inc:#4ea8de; --flaw:#b98cd6;
     --r:14px;
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
@@ -22,10 +23,10 @@
   header h1{font-size:22px; margin:0; letter-spacing:.3px;}
   header .sub{color:var(--faint); font-size:12px; flex:1;}
   header a.home{color:var(--faint); font-size:13px; text-decoration:none;}
-  nav{display:flex; gap:6px; padding:10px 12px; position:sticky; top:0; background:var(--bg);
+  nav{display:flex; gap:4px; padding:10px 10px; position:sticky; top:0; background:var(--bg);
     z-index:20; border-bottom:1px solid var(--line);}
-  nav button{flex:1; padding:10px 4px; border:0; border-radius:10px; background:transparent;
-    color:var(--dim); font-size:14px; font-weight:600;}
+  nav button{flex:1; padding:10px 2px; border:0; border-radius:10px; background:transparent;
+    color:var(--dim); font-size:13.5px; font-weight:600;}
   nav button.on{background:var(--card2); color:var(--accent2);}
   main{padding:14px 12px; max-width:620px; margin:0 auto;}
   .card{background:var(--card); border:1px solid var(--line); border-radius:var(--r);
@@ -35,7 +36,9 @@
   .tiny{color:var(--faint); font-size:12px;}
   .warn{color:var(--gold);} .bad{color:var(--bad);} .good{color:var(--good);}
   button.btn{border:0; border-radius:11px; padding:12px 16px; font-size:15px; font-weight:700;
-    background:var(--accent); color:#08202e;}
+    background:var(--accent); color:#08202e; transition:background .18s, transform .12s;}
+  button.btn:active{transform:scale(.97);}
+  button.btn.saved{background:var(--good); color:#0d201a;}
   button.ghost{background:var(--card2); color:var(--ink); border:1px solid var(--line);}
   button.small{padding:7px 12px; font-size:13px; border-radius:9px;}
   button.danger{background:transparent; border:1px solid #6a4441; color:var(--bad);}
@@ -59,6 +62,8 @@
     border:1px solid var(--line); border-radius:var(--r); margin-bottom:9px; cursor:pointer;}
   .tg .nm{font-weight:700; font-size:15.5px;}
   .tg .st{color:var(--dim); font-size:12.5px; margin-top:2px;}
+  @keyframes flash{0%{background:#2c4a3d;border-color:var(--good)}100%{background:var(--card);border-color:var(--line)}}
+  .tg.flash{animation:flash 1.6s ease-out;}
   .pill{display:inline-flex; align-items:center; justify-content:center; padding:6px 9px;
     border-radius:9px; background:var(--card2); border:1px solid #2f4a5c; color:var(--accent2);
     font-weight:800; font-size:13.5px; flex-shrink:0; white-space:nowrap;}
@@ -77,10 +82,11 @@
   table.ref th{color:var(--faint); font-weight:600; text-transform:uppercase; font-size:10.5px; letter-spacing:.4px;}
   table.ref td.n{text-align:right; font-variant-numeric:tabular-nums;}
   .srcrow{background:var(--card2); border:1px solid var(--line); border-radius:11px; padding:10px; margin-bottom:8px;}
-  .toast{position:fixed; left:50%; transform:translateX(-50%); bottom:30px; background:var(--accent);
-    color:#08202e; font-weight:700; padding:10px 18px; border-radius:99px; z-index:90; font-size:14px;
-    opacity:0; transition:opacity .25s; pointer-events:none; max-width:90vw; text-align:center;}
-  .toast.on{opacity:1;}
+  .lstrow{padding:9px 2px; cursor:pointer;}
+  .toast{position:fixed; left:50%; transform:translateX(-50%); bottom:30px; background:var(--good);
+    color:#0d201a; font-weight:700; padding:11px 20px; border-radius:99px; z-index:90; font-size:14.5px;
+    opacity:0; transition:opacity .2s, transform .2s; pointer-events:none; max-width:90vw; text-align:center;}
+  .toast.on{opacity:1; transform:translateX(-50%) translateY(-6px);}
   .modal{position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:80; display:none;
     align-items:flex-end; justify-content:center;}
   .modal.on{display:flex;}
@@ -91,6 +97,7 @@
   details summary{cursor:pointer; color:var(--accent2); font-size:13.5px; font-weight:600; padding:4px 0;}
   hr.sep{border:0; border-top:1px solid var(--line); margin:14px 0;}
   .est{border-left:2px solid var(--gold); padding-left:9px; margin:8px 0;}
+  .sd{display:inline-block; width:9px; height:9px; border-radius:2px; margin-right:4px;}
 </style>
 </head>
 <body>
@@ -115,19 +122,24 @@
 "use strict";
 
 /* ============================================================
-   GAME DATA — see the Reference card in Setup for sources.
-   Constants here are published game facts. Anything that
-   varies by account lives in cfg so you can tune it.
+   GAME DATA — sources in the Reference card under Setup.
+   Constants are published game facts. Account-specific and
+   community-estimated values live in cfg so you can tune them.
    ============================================================ */
 
 const STAR_COST = {1:10, 2:15, 3:25, 4:30, 5:65, 6:85, 7:100};
 const CUM = {0:0, 1:10, 2:25, 3:50, 4:80, 5:145, 6:230, 7:330};
-
-// Minimum star required to reach each relic level (2025 "relics at 4 stars" change).
 const RELIC_STAR_REQ = {1:4, 2:4, 3:5, 4:6, 5:7, 6:7, 7:7, 8:7, 9:7};
 const RELIC_CREDITS = {1:10e3, 2:25e3, 3:50e3, 4:75e3, 5:100e3, 6:250e3, 7:500e3, 8:1e6, 9:1.5e6};
 
-// Lightspeed Token tiers. Each grants a FLOOR, not an increment.
+// Signal data comes in three grades, farmed from different cantina nodes.
+const SIG = {
+  frag:{name:"Fragmented", short:"Frag", col:"var(--frag)"},
+  inc: {name:"Incomplete", short:"Inc",  col:"var(--inc)"},
+  flaw:{name:"Flawed",     short:"Flaw", col:"var(--flaw)"}
+};
+const SIG_KEYS = ["frag","inc","flaw"];
+
 const LST_TIERS = {
   carbonite:{name:"Carbonite", order:1, star:3, gear:10, relic:0, ability:3, col:"#b08d57"},
   bronzium: {name:"Bronzium",  order:2, star:4, gear:12, relic:0, ability:4, col:"#cd7f32"},
@@ -157,14 +169,28 @@ const SRC_PRESET = {
   shop:   {energy:0,  attempts:0, rate:0,  per:0, flat:5},
   other:  {energy:0,  attempts:0, rate:0,  per:0, flat:1}
 };
+// One "standard farm" of each energy type, for opportunity-cost comparisons.
+const FARM_COST = {normal:5*16, cantina:5*12, fleet:5*20};
+const FARM_SHARDS = 5*0.33;
 
-// Fleet Arena daily crystal payout. Squad Arena no longer awards crystals.
+/* ---- crystals ---- */
 const FLEET_PAYOUT = [
-  {max:1, c:400}, {max:2, c:375}, {max:3, c:350}, {max:4, c:325}, {max:5, c:300},
-  {max:10, c:200}, {max:20, c:100}, {max:50, c:50}, {max:Infinity, c:0}
+  {max:1,c:400},{max:2,c:375},{max:3,c:350},{max:4,c:325},{max:5,c:300},
+  {max:10,c:200},{max:20,c:100},{max:50,c:50},{max:Infinity,c:0}
 ];
-function fleetPayout(rank){ return (FLEET_PAYOUT.find(b => rank <= b.max) || {c:0}).c; }
+function fleetPayout(r){ return (FLEET_PAYOUT.find(b => r <= b.max) || {c:0}).c; }
 const DAILY_ACTIVITY_CRYSTALS = 65;
+
+// Grand Arena: daily crystals by league and division.
+const GAC_LEAGUES = {
+  kyber:    {name:"Kyber",     daily:[260,240,220,200,180], win:900, loss:200},
+  aurodium: {name:"Aurodium",  daily:[170,160,150,140,130], win:550, loss:150},
+  chromium: {name:"Chromium",  daily:[125,120,115,110,105], win:350, loss:80},
+  bronzium: {name:"Bronzium",  daily:[100,95,90,85,80],     win:200, loss:50},
+  carbonite:{name:"Carbonite", daily:[75,70,65,60,55],      win:110, loss:30}
+};
+// Crystals for finishing a weekly event at each rank.
+const GAC_WEEKLY_RANK = {1:750, 2:500, 3:500, 4:500, 5:250, 6:250, 7:250, 8:100};
 
 /* ============================================================
    STATE
@@ -173,28 +199,43 @@ const DAILY_ACTIVITY_CRYSTALS = 65;
 const KEY = "swgohFarm";
 const DEFAULT_CFG = {
   refresh: {normal:0, cantina:0, fleet:0},
-  // --- gear: kyrotech is the only crunch that matters ---
-  kyroPerGear: {10:20, 11:30, 12:100, 13:150},   // salvage to clear each gear level (estimates)
-  kyroPerDay: 15,                                 // salvage earned per day
-  // --- relics: signal data is the only bottleneck ---
-  signalPerRelic: {1:45, 2:60, 3:75, 4:90, 5:105, 6:120, 7:135, 8:150, 9:165}, // estimates
-  signalPer120: 45,                               // signal data per 120 cantina energy spent farming it
-  // --- crystal income ---
+
+  // --- kyrotech: the only gear crunch. Monthly income by source. ---
+  kyroSources: {dailies:90, guildAB:160, tb:80, tw:65, conquest:40, other:0},
+  kyroPerGear: {10:20, 11:30, 12:100, 13:150},   // fallback when no per-character figure
+
+  // --- signal data: three grades, farmed from separate cantina nodes ---
+  // yield is per 120 cantina energy spent on that node (120 = one refresh).
+  signalNodes: [
+    {id:"n1", label:"Fragmented node", energy:20, yield:{frag:6, inc:0, flaw:0}},
+    {id:"n2", label:"Cantina 8-F", energy:20, yield:{frag:0, inc:6, flaw:0}},
+    {id:"n3", label:"Cantina 8-G", energy:20, yield:{frag:0, inc:0, flaw:6}}
+  ],
+  signalPerRelic: {
+    1:{frag:15, inc:0,  flaw:0},  2:{frag:25, inc:0,  flaw:0},
+    3:{frag:35, inc:15, flaw:0},  4:{frag:45, inc:25, flaw:0},
+    5:{frag:55, inc:35, flaw:15}, 6:{frag:55, inc:45, flaw:25},
+    7:{frag:55, inc:55, flaw:35}, 8:{frag:55, inc:55, flaw:45},
+    9:{frag:55, inc:55, flaw:55}
+  },
+
   crystals: {
     fleetRank: 20,
     dailyActivities: true,
+    gac: {on:true, league:"chromium", division:3, wins:3, losses:2, weeklyRank:4},
     other: [
       {name:"Daily login reward", amount:0, days:1},
       {name:"Galactic War", amount:0, days:1},
-      {name:"Grand Arena (per round)", amount:0, days:7},
       {name:"Conquest (per run)", amount:0, days:14},
-      {name:"Territory Battles", amount:0, days:7}
+      {name:"Territory Battles", amount:0, days:7},
+      {name:"Assault Battles", amount:0, days:7}
     ]
   }
 };
 
 let S = load();
 let view = "targets";
+let flashId = null;
 
 function load(){
   let d = {};
@@ -203,10 +244,17 @@ function load(){
   d.squads  = d.squads  || [];
   d.tokens  = d.tokens  || [];
   const c = Object.assign({}, DEFAULT_CFG, d.cfg || {});
-  c.refresh        = Object.assign({}, DEFAULT_CFG.refresh, c.refresh || {});
-  c.kyroPerGear    = Object.assign({}, DEFAULT_CFG.kyroPerGear, c.kyroPerGear || {});
-  c.signalPerRelic = Object.assign({}, DEFAULT_CFG.signalPerRelic, c.signalPerRelic || {});
-  c.crystals       = Object.assign({}, DEFAULT_CFG.crystals, c.crystals || {});
+  c.refresh     = Object.assign({}, DEFAULT_CFG.refresh, c.refresh || {});
+  c.kyroSources = Object.assign({}, DEFAULT_CFG.kyroSources, c.kyroSources || {});
+  c.kyroPerGear = Object.assign({}, DEFAULT_CFG.kyroPerGear, c.kyroPerGear || {});
+  c.signalNodes = (c.signalNodes && c.signalNodes.length) ? c.signalNodes
+    : JSON.parse(JSON.stringify(DEFAULT_CFG.signalNodes));
+  c.signalNodes.forEach(n => { n.yield = Object.assign({frag:0,inc:0,flaw:0}, n.yield||{}); });
+  const spr = {};
+  for(let r = 1; r <= 9; r++) spr[r] = Object.assign({}, DEFAULT_CFG.signalPerRelic[r], (c.signalPerRelic||{})[r] || {});
+  c.signalPerRelic = spr;
+  c.crystals = Object.assign({}, DEFAULT_CFG.crystals, c.crystals || {});
+  c.crystals.gac = Object.assign({}, DEFAULT_CFG.crystals.gac, c.crystals.gac || {});
   c.crystals.other = c.crystals.other || DEFAULT_CFG.crystals.other.slice();
   d.cfg = c;
   d.targets.forEach(normalizeTarget);
@@ -221,32 +269,46 @@ function normalizeTarget(t){
   t.star = num(t.star, 0); t.shards = num(t.shards, 0); t.targetStar = num(t.targetStar, 7);
   t.gear = num(t.gear, 1); t.targetGear = num(t.targetGear, 13);
   t.relic = num(t.relic, 0); t.targetRelic = num(t.targetRelic, 0);
+  // Per-character kyrotech from swgoh.gg. Blank falls back to the per-gear-level estimate.
+  t.kyroOverride = (t.kyroOverride === "" || t.kyroOverride == null) ? "" : num(t.kyroOverride, "");
   t.sources = (t.sources || []).map(s => Object.assign({type:"hard"}, SRC_PRESET.hard, s));
   return t;
 }
 function uid(){ return Math.random().toString(36).slice(2,9); }
 function num(v, d){ const n = parseFloat(v); return isFinite(n) ? n : d; }
+function round(n, p){ const m = Math.pow(10, p||0); return Math.round(n*m)/m; }
 
 /* ============================================================
    ECONOMY
    ============================================================ */
 
-function poolBudget(pool){
-  const p = POOLS[pool], n = Math.max(0, Math.min(p.ladder.length, S.cfg.refresh[pool]|0));
-  return p.regen + p.bonus + n * p.per;
+function poolBudget(p){
+  const P = POOLS[p], n = Math.max(0, Math.min(P.ladder.length, S.cfg.refresh[p]|0));
+  return P.regen + P.bonus + n * P.per;
 }
-function poolCrystals(pool){
-  const p = POOLS[pool], n = Math.max(0, Math.min(p.ladder.length, S.cfg.refresh[pool]|0));
-  return p.ladder.slice(0, n).reduce((a,b)=>a+b, 0);
+function poolCrystals(p){
+  const P = POOLS[p], n = Math.max(0, Math.min(P.ladder.length, S.cfg.refresh[p]|0));
+  return P.ladder.slice(0, n).reduce((a,b)=>a+b, 0);
 }
 function crystalSpend(){ return Object.keys(POOLS).reduce((a,p)=>a+poolCrystals(p), 0); }
 
+function gacCrystals(){
+  const g = S.cfg.crystals.gac;
+  if(!g.on) return {daily:0, rounds:0, weekly:0, total:0};
+  const L = GAC_LEAGUES[g.league] || GAC_LEAGUES.chromium;
+  const div = Math.max(1, Math.min(5, g.division|0));
+  const daily = L.daily[div-1];
+  const rounds = (num(g.wins,0) * L.win + num(g.losses,0) * L.loss) / 7;
+  const weekly = (GAC_WEEKLY_RANK[Math.max(1, Math.min(8, g.weeklyRank|0))] || 0) / 7;
+  return {daily, rounds, weekly, total: daily + rounds + weekly};
+}
 function crystalIncome(){
   const c = S.cfg.crystals;
-  let total = fleetPayout(Math.max(1, c.fleetRank|0));
-  if(c.dailyActivities) total += DAILY_ACTIVITY_CRYSTALS;
-  (c.other||[]).forEach(o => { const d = Math.max(1, num(o.days,1)); total += num(o.amount,0)/d; });
-  return total;
+  let t = fleetPayout(Math.max(1, c.fleetRank|0));
+  if(c.dailyActivities) t += DAILY_ACTIVITY_CRYSTALS;
+  t += gacCrystals().total;
+  (c.other||[]).forEach(o => t += num(o.amount,0) / Math.max(1, num(o.days,1)));
+  return t;
 }
 function crystalNet(){ return crystalIncome() - crystalSpend(); }
 
@@ -264,12 +326,9 @@ function srcShardsPerDay(s){
   return num(s.attempts,0) * (num(s.rate,0)/100) * num(s.per,1);
 }
 function shardsPerDay(t){ return t.sources.reduce((a,s)=>a+srcShardsPerDay(s), 0); }
-function srcEnergyPerDay(s){
-  return SRC_POOL[s.type] ? num(s.attempts,0) * num(s.energy,0) : 0;
-}
-// Cantina energy this target burns on shards — the energy NOT going to signal data.
-function cantinaShardEnergy(t){
-  return t.sources.reduce((a,s) => a + (s.type === "cantina" ? srcEnergyPerDay(s) : 0), 0);
+function srcEnergyPerDay(s){ return SRC_POOL[s.type] ? num(s.attempts,0)*num(s.energy,0) : 0; }
+function shardEnergy(t, pool){
+  return t.sources.reduce((a,s) => a + (SRC_POOL[s.type] === pool ? srcEnergyPerDay(s) : 0), 0);
 }
 function energyDemand(list){
   const d = {normal:0, cantina:0, fleet:0};
@@ -279,95 +338,133 @@ function energyDemand(list){
   return d;
 }
 
-/* ---- gear: kyrotech only ---- */
+/* ---- kyrotech ---- */
+function kyroPerDay(){
+  const k = S.cfg.kyroSources;
+  return Object.keys(k).reduce((a,x)=>a+num(k[x],0), 0) / 30.44;
+}
 function effTargetGear(t){ return t.targetRelic > 0 ? 13 : t.targetGear; }
 function kyroNeeded(t){
+  if(t.kyroOverride !== "" && isFinite(t.kyroOverride)) return Math.max(0, t.kyroOverride);
   let k = 0;
   for(let g = t.gear + 1; g <= effTargetGear(t); g++) k += num(S.cfg.kyroPerGear[g], 0);
   return k;
 }
 
-/* ---- relics: signal data only ---- */
+/* ---- signal data ---- */
 function signalNeeded(t){
-  let s = 0;
-  for(let r = t.relic + 1; r <= t.targetRelic; r++) s += num(S.cfg.signalPerRelic[r], 0);
-  return s;
+  const n = {frag:0, inc:0, flaw:0};
+  for(let r = t.relic + 1; r <= t.targetRelic; r++){
+    const lv = S.cfg.signalPerRelic[r] || {};
+    SIG_KEYS.forEach(k => n[k] += num(lv[k], 0));
+  }
+  return n;
 }
 function relicCredits(t){
   let c = 0;
   for(let r = t.relic + 1; r <= t.targetRelic; r++) c += RELIC_CREDITS[r] || 0;
   return c;
 }
-// Signal data income = whatever cantina energy is left after shard farming.
-function signalIncome(cantinaLeft){
-  return Math.max(0, cantinaLeft) / 120 * num(S.cfg.signalPer120, 0);
+// Outstanding signal need across every target — the weighting spare cantina
+// energy would actually be spent against, so opportunity costs use it too.
+function aggregateNeed(list){
+  const n = {frag:0, inc:0, flaw:0};
+  (list || S.targets).forEach(t => { const s = signalNeeded(t); SIG_KEYS.forEach(k => n[k] += s[k]); });
+  return SIG_KEYS.some(k => n[k] > 0) ? n : null;
+}
+// Spread cantina energy across the signal nodes, weighted by which grades are
+// still short. If only Flawed is missing, the energy goes to the Flawed node.
+function signalIncome(energy, need){
+  const out = {frag:0, inc:0, flaw:0, alloc:[]};
+  if(energy <= 0) return out;
+  const nodes = S.cfg.signalNodes || [];
+  if(!nodes.length) return out;
+  const w = nodes.map(n => {
+    if(!need) return SIG_KEYS.reduce((a,k)=>a+num(n.yield[k],0), 0);
+    return SIG_KEYS.reduce((a,k)=>a + Math.max(0, num(need[k],0)) * num(n.yield[k],0), 0);
+  });
+  let tot = w.reduce((a,b)=>a+b, 0);
+  // Nothing specifically wanted — fall back to an even split.
+  const even = tot <= 0;
+  nodes.forEach((n,i) => {
+    const e = even ? energy/nodes.length : energy * w[i]/tot;
+    out.alloc.push({label:n.label, energy:e});
+    SIG_KEYS.forEach(k => out[k] += e/120 * num(n.yield[k], 0));
+  });
+  return out;
 }
 
 /* ============================================================
    SIMULATOR
-   Three shared pools (normal / cantina / fleet energy) plus two
-   shared stockpiles (kyrotech, signal data). Signal data income
-   is whatever cantina energy the shard farms didn't eat, which is
-   why a cantina shard farm slows down every relic you own.
+   Three energy pools, one kyrotech stockpile and three signal-data
+   stockpiles, all shared. Signal income is whatever cantina energy
+   the shard farms left behind, so a cantina shard farm slows every
+   relic on the account.
    ============================================================ */
 
 const SIM_MAX = 3650;
 
 function simulate(list){
   const budget = {normal:poolBudget("normal"), cantina:poolBudget("cantina"), fleet:poolBudget("fleet")};
-  const kyroDay = num(S.cfg.kyroPerDay, 0);
+  const kDay = kyroPerDay();
   const st = list.map(t => ({t, shard:shardsNeeded(t), kyro:kyroNeeded(t), sig:signalNeeded(t),
     shardDone:null, kyroDone:null, sigDone:null, done:null}));
+  const spent = () => {};
   st.forEach(s => {
     if(s.shard <= 0) s.shardDone = 0;
     if(s.kyro  <= 0) s.kyroDone  = 0;
-    if(s.sig   <= 0) s.sigDone   = 0;
-    if(s.shard <= 0 && s.kyro <= 0 && s.sig <= 0) s.done = 0;
+    if(sigLeft(s) <= 0) s.sigDone = 0;
+    if(s.shard <= 0 && s.kyro <= 0 && sigLeft(s) <= 0) s.done = 0;
   });
 
-  let day = 0, short = false, sigTotal = 0, sigDays = 0;
+  let day = 0, short = false;
+  const sigSum = {frag:0, inc:0, flaw:0}; let sigDays = 0;
 
   while(st.some(s => s.done === null) && day < SIM_MAX){
     day++;
     const avail = Object.assign({}, budget);
-    const active = st.filter(s => s.done === null)
-      .sort((a,b) => rank(b) - rank(a));
+    const active = st.filter(s => s.done === null).sort((a,b) => rank(b) - rank(a));
 
-    // 1. shard farming spends energy
+    // 1. shard farms take their energy first
     for(const s of active){
       if(s.shard <= 0) continue;
       let gained = 0;
       for(const src of s.t.sources){
         const pool = SRC_POOL[src.type];
         if(!pool){ gained += num(src.flat, 0); continue; }
-        const cost = num(src.energy, 0), att = num(src.attempts, 0);
+        const cost = num(src.energy,0), att = num(src.attempts,0);
         let n = att;
-        if(cost > 0) n = Math.min(att, Math.floor(avail[pool] / cost));
+        if(cost > 0) n = Math.min(att, Math.floor(avail[pool]/cost));
         if(n < att) short = true;
-        if(n > 0){ avail[pool] -= n * cost; gained += n * (num(src.rate,0)/100) * num(src.per,1); }
+        if(n > 0){ avail[pool] -= n*cost; gained += n * (num(src.rate,0)/100) * num(src.per,1); }
       }
       s.shard -= gained;
       if(s.shard <= 0 && s.shardDone === null) s.shardDone = day;
     }
 
-    // 2. leftover cantina energy becomes signal data
-    const sigToday = signalIncome(avail.cantina);
-    sigTotal += sigToday; sigDays++;
+    // 2. leftover cantina energy becomes signal data, aimed at the scarcest grade
+    const need = {frag:0, inc:0, flaw:0};
+    active.forEach(s => SIG_KEYS.forEach(k => need[k] += Math.max(0, s.sig[k])));
+    const inc = signalIncome(avail.cantina, need);
+    SIG_KEYS.forEach(k => sigSum[k] += inc[k]); sigDays++;
 
-    // 3. share out kyrotech and signal data
-    let sigLeft = sigToday, kyroLeft = kyroDay;
+    // 3. share out kyrotech and each signal grade
+    const pool = {frag:inc.frag, inc:inc.inc, flaw:inc.flaw};
+    let kLeft = kDay;
     for(const s of active){
-      if(s.sig > 0 && sigLeft > 0){
-        const u = Math.min(s.sig, sigLeft); s.sig -= u; sigLeft -= u;
-        if(s.sig <= 0 && s.sigDone === null) s.sigDone = day;
-      }
-      if(s.kyro > 0 && kyroLeft > 0){
-        const u = Math.min(s.kyro, kyroLeft); s.kyro -= u; kyroLeft -= u;
+      SIG_KEYS.forEach(k => {
+        if(s.sig[k] > 0 && pool[k] > 0){
+          const u = Math.min(s.sig[k], pool[k]); s.sig[k] -= u; pool[k] -= u;
+        }
+      });
+      if(sigLeft(s) <= 0 && s.sigDone === null) s.sigDone = day;
+      if(s.kyro > 0 && kLeft > 0){
+        const u = Math.min(s.kyro, kLeft); s.kyro -= u; kLeft -= u;
         if(s.kyro <= 0 && s.kyroDone === null) s.kyroDone = day;
       }
     }
 
-    for(const s of active) if(s.shard <= 0 && s.kyro <= 0 && s.sig <= 0) s.done = day;
+    for(const s of active) if(s.shard <= 0 && s.kyro <= 0 && sigLeft(s) <= 0) s.done = day;
   }
 
   const byId = {}, tracks = {};
@@ -379,63 +476,83 @@ function simulate(list){
       relic:  s.sigDone   === null ? Infinity : s.sigDone
     };
   });
-  const makespan = st.reduce((a,s) => Math.max(a, byId[s.t.id]), 0);
-  return {byId, tracks, makespan, energyShort:short,
-    signalPerDay: sigDays ? sigTotal/sigDays : signalIncome(budget.cantina)};
+  const perDay = {};
+  SIG_KEYS.forEach(k => perDay[k] = sigDays ? sigSum[k]/sigDays : 0);
+  return {byId, tracks, makespan: st.reduce((a,s)=>Math.max(a, byId[s.t.id]), 0),
+    energyShort: short, signalPerDay: perDay};
 
-  // Whoever is furthest from done gets first call on energy.
+  function sigLeft(s){ return SIG_KEYS.reduce((a,k)=>a+Math.max(0, s.sig[k]), 0); }
   function rank(s){
     const r = shardsPerDay(s.t);
     return Math.max(r > 0 ? s.shard/r : (s.shard > 0 ? 1e6 : 0),
-                    kyroDay > 0 ? s.kyro/kyroDay : (s.kyro > 0 ? 1e6 : 0));
+                    kDay > 0 ? s.kyro/kDay : (s.kyro > 0 ? 1e6 : 0));
   }
 }
 
-// Days for one target farming alone with the full budget.
 const soloCache = new Map();
 function soloFinish(t){
-  const k = t.id + "|" + JSON.stringify([t.star,t.shards,t.targetStar,t.gear,t.targetGear,t.relic,t.targetRelic,t.sources]);
+  const k = JSON.stringify([t.id,t.star,t.shards,t.targetStar,t.gear,t.targetGear,t.relic,t.targetRelic,t.kyroOverride,t.sources]);
   if(soloCache.has(k)) return soloCache.get(k);
-  const v = simulate([t]).makespan;
-  soloCache.set(k, v);
-  return v;
+  const v = simulate([t]).makespan; soloCache.set(k, v); return v;
 }
-function soloTracks(t){ return simulate([t]).tracks[t.id]; }
 
 /* ============================================================
    LIGHTSPEED TOKENS
    ============================================================ */
 
 function applyToken(t, tierKey){
-  const tier = LST_TIERS[tierKey];
-  const c = JSON.parse(JSON.stringify(t));
+  const tier = LST_TIERS[tierKey], c = JSON.parse(JSON.stringify(t));
   if(tier.star > c.star){
-    // Consumes banked shards first, then tops up the remainder.
-    const need = (CUM[tier.star] || 0) - (CUM[c.star] || 0);
-    c.shards = Math.max(0, c.shards - need);
+    const need = (CUM[tier.star]||0) - (CUM[c.star]||0);
+    c.shards = Math.max(0, c.shards - need);   // consumes banked shards, keeps the surplus
     c.star = tier.star;
   }
-  c.gear = Math.max(c.gear, tier.gear);
+  if(tier.gear > c.gear){
+    // A per-character kyrotech figure is measured from the current gear level,
+    // so it no longer applies once the token jumps you forward.
+    if(c.kyroOverride !== "" && isFinite(c.kyroOverride)){
+      const before = kyroNeeded(t), viaTable = tableKyro(t.gear, effTargetGear(t));
+      const after = tableKyro(tier.gear, effTargetGear(t));
+      c.kyroOverride = viaTable > 0 ? Math.max(0, round(before * after/viaTable, 0)) : 0;
+    }
+    c.gear = tier.gear;
+  }
   if(tier.relic) c.relic = Math.max(c.relic, tier.relic);
   return c;
 }
+function tableKyro(from, to){
+  let k = 0; for(let g = from+1; g <= to; g++) k += num(S.cfg.kyroPerGear[g], 0); return k;
+}
 function tokenEffect(t, tierKey){
   const tier = LST_TIERS[tierKey];
-  return {
-    tier,
+  return {tier,
     gainStar:  Math.max(0, Math.min(tier.star,  requiredStar(t))  - t.star),
     gainGear:  Math.max(0, Math.min(tier.gear,  effTargetGear(t)) - t.gear),
     gainRelic: Math.max(0, Math.min(tier.relic, t.targetRelic)    - t.relic),
     overStar:  Math.max(0, tier.star  - requiredStar(t)),
     overRelic: Math.max(0, tier.relic - t.targetRelic),
-    dead: t.star >= tier.star && t.gear >= tier.gear && (tier.relic === 0 || t.relic >= tier.relic)
-  };
+    dead: t.star >= tier.star && t.gear >= tier.gear && (tier.relic === 0 || t.relic >= tier.relic)};
 }
+
+// What's still left to farm once the token has landed, and what that farm costs you.
+function residual(t, tierKey){
+  const after = applyToken(t, tierKey);
+  const shards = shardsNeeded(after), kyro = kyroNeeded(after), sig = signalNeeded(after);
+  const sigTotal = SIG_KEYS.reduce((a,k)=>a+sig[k], 0);
+  const cost = {cantina:0, normal:0, fleet:0};
+  if(shards > 0) Object.keys(cost).forEach(p => cost[p] = shardEnergy(after, p));
+  const lost = signalIncome(cost.cantina, aggregateNeed());
+  return {after, shards, kyro, sig, sigTotal, cost, lost,
+    days: simulate([after]).makespan,
+    shardsPerDay: shardsPerDay(after),
+    farmsTiedUp: {normal: cost.normal/FARM_COST.normal, fleet: cost.fleet/FARM_COST.fleet}};
+}
+
 function tokenExpiry(tok){
   if(!tok.acquired) return null;
   const got = new Date(tok.acquired + "T00:00:00");
-  const exp = new Date(got.getTime() + LST_EXPIRY_DAYS * 864e5);
-  return {exp, daysLeft: Math.ceil((exp - new Date()) / 864e5)};
+  const exp = new Date(got.getTime() + LST_EXPIRY_DAYS*864e5);
+  return {exp, daysLeft: Math.ceil((exp - new Date())/864e5)};
 }
 
 /* ============================================================
@@ -452,7 +569,7 @@ function fmtDays(d){
 }
 function fmtDate(d){
   if(!isFinite(d)) return "—";
-  return new Date(Date.now() + Math.ceil(d) * 864e5)
+  return new Date(Date.now() + Math.ceil(d)*864e5)
     .toLocaleDateString(undefined, {day:"numeric", month:"short", year:"numeric"});
 }
 function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
@@ -463,7 +580,11 @@ function stateLine(t){
 }
 function bottleneck(tr){
   const e = [["Shards",tr.shards],["Kyrotech",tr.gear],["Signal data",tr.relic]];
-  return e.reduce((a,x) => x[1] > a[1] ? x : a, e[0])[0];
+  return e.reduce((a,x)=> x[1] > a[1] ? x : a, e[0])[0];
+}
+function sigLine(o, dp){
+  return SIG_KEYS.filter(k => o[k] > 0.05).map(k =>
+    `<span class="sd" style="background:${SIG[k].col}"></span>${round(o[k], dp===undefined?0:dp)} ${SIG[k].short}`).join(" · ") || "—";
 }
 
 /* ============================================================
@@ -473,14 +594,18 @@ function bottleneck(tr){
 const VIEWS = ["targets","squads","lst","crystals","setup"];
 function go(v){
   view = v;
-  VIEWS.forEach(k => document.getElementById("nav-" + k).classList.toggle("on", k === v));
+  VIEWS.forEach(k => document.getElementById("nav-"+k).classList.toggle("on", k === v));
   render();
 }
 function render(){
   soloCache.clear();
   document.getElementById("main").innerHTML =
     ({targets:vTargets, squads:vSquads, lst:vLst, crystals:vCrystals, setup:vSetup})[view]();
-  window.scrollTo(0, 0);
+  if(flashId){
+    const el = document.getElementById("tg-" + flashId);
+    if(el){ el.classList.add("flash"); el.scrollIntoView({block:"center", behavior:"smooth"}); }
+    flashId = null;
+  } else window.scrollTo(0, 0);
 }
 
 /* ---------- Targets ---------- */
@@ -488,9 +613,9 @@ function vTargets(){
   const list = S.targets;
   if(!list.length){
     return `<div class="card"><h3>No targets yet</h3>
-      <p class="muted">Add a character you're farming — current stars, banked shards, gear and relic,
-      plus where the shards come from. Kyber works out the finish date across all three crunches:
-      shards, kyrotech and signal data.</p>
+      <p class="muted">Add a character you're farming — stars, banked shards, gear and relic, plus where
+      the shards come from. Kyber works out the finish date across all three crunches: shards, kyrotech
+      and each grade of signal data.</p>
       <button class="btn" onclick="editTarget()">+ Add a target</button></div>${refCard()}`;
   }
   const sim = simulate(list);
@@ -498,51 +623,46 @@ function vTargets(){
   const longest = rows.length ? sim.byId[rows[0].id] : 0;
   const dem = energyDemand(list);
   const cantinaLeft = poolBudget("cantina") - dem.cantina;
+  const lost = signalIncome(Math.max(0, dem.cantina), aggregateNeed(list));
 
   let html = `<div class="kpis">
     <div class="kpi"><div class="v">${list.length}</div><div class="k">Targets</div></div>
     <div class="kpi"><div class="v">${fmtDays(longest)}</div><div class="k">Slowest</div></div>
     <div class="kpi"><div class="v ${crystalNet()<0?"neg":"pos"}">${crystalNet()>=0?"+":""}${Math.round(crystalNet())}</div>
-      <div class="k">Crystals/day</div></div>
-  </div>`;
+      <div class="k">Crystals/day</div></div></div>`;
 
-  // the cantina tradeoff, front and centre
-  const sigPct = poolBudget("cantina") > 0 ? Math.max(0, Math.round(100 * dem.cantina / poolBudget("cantina"))) : 0;
+  const pct = poolBudget("cantina") > 0 ? Math.max(0, Math.min(100, Math.round(100*dem.cantina/poolBudget("cantina")))) : 0;
   html += `<div class="card"><h3>Cantina split</h3>
-    <div class="split">
-      <i style="width:${sigPct}%;background:var(--gold)"></i>
-      <i style="width:${100-sigPct}%;background:var(--accent)"></i></div>
+    <div class="split"><i style="width:${pct}%;background:var(--gold)"></i>
+      <i style="width:${100-pct}%;background:var(--accent)"></i></div>
     <p class="tiny"><span class="warn">■</span> ${Math.round(dem.cantina)} energy on shards ·
-      <span style="color:var(--accent)">■</span> ${Math.round(Math.max(0,cantinaLeft))} energy on signal data
-      → <b>${sim.signalPerDay.toFixed(0)} signal/day</b></p>
+      <span style="color:var(--accent)">■</span> ${Math.round(Math.max(0,cantinaLeft))} energy on signal data</p>
+    <p class="tiny" style="margin-top:6px">Earning ${sigLine(sim.signalPerDay, 1)} per day</p>
+    ${dem.cantina > 0 ? `<p class="tiny warn">Cantina shard farms are costing you
+      ${sigLine(lost, 1)} per day.</p>` : ""}
     ${cantinaLeft < 0 ? `<p class="tiny bad">Cantina shard farms exceed your cantina energy —
-      no signal data at all, and shard farms are running short.</p>`
-    : dem.cantina > 0 ? `<p class="tiny">Those cantina shard farms cost you
-      ${(signalIncome(dem.cantina)).toFixed(0)} signal data/day.</p>` : ""}
-  </div>`;
+      no signal data at all, and the shard farms are running short too.</p>` : ""}</div>`;
 
   if(sim.energyShort){
     html += `<div class="card" style="border-color:#5c4c2c"><h3 class="warn">⚠ Energy-limited</h3>
       <p class="muted">Your farms want more energy than you have, so some nodes go unfarmed on some days.
       The dates below already account for that — the longest farm gets energy first.</p>
       <p class="tiny">Demand vs budget/day — Normal ${Math.round(dem.normal)}/${poolBudget("normal")} ·
-      Cantina ${Math.round(dem.cantina)}/${poolBudget("cantina")} ·
-      Fleet ${Math.round(dem.fleet)}/${poolBudget("fleet")}</p>
+        Cantina ${Math.round(dem.cantina)}/${poolBudget("cantina")} · Fleet ${Math.round(dem.fleet)}/${poolBudget("fleet")}</p>
       <button class="btn ghost small" onclick="go('setup')">Adjust energy budget</button></div>`;
   }
 
   html += rows.map(t => {
     const d = sim.byId[t.id], tr = sim.tracks[t.id];
-    const pct = longest > 0 && isFinite(d) ? Math.round(100 * d / longest) : 100;
-    return `<div class="tg" onclick="editTarget('${t.id}')">
+    const w = longest > 0 && isFinite(d) ? Math.round(100*d/longest) : 100;
+    return `<div class="tg" id="tg-${t.id}" onclick="editTarget('${t.id}')">
       <div class="grow">
         <div class="nm">${esc(t.name)}${t.eligible ? "" : ' <span class="tiny bad">LST-ineligible</span>'}</div>
         <div class="st">${stateLine(t)}</div>
         <div class="tiny" style="margin-top:3px">Bottleneck: ${bottleneck(tr)} · ${fmtDate(d)}</div>
-        <div class="bar"><i style="width:${pct}%"></i></div>
+        <div class="bar"><i style="width:${w}%"></i></div>
       </div>
-      <div class="pill ${d<=0?"g":isFinite(d)?"":"b"}">${fmtDays(d)}</div>
-    </div>`;
+      <div class="pill ${d<=0?"g":isFinite(d)?"":"b"}">${fmtDays(d)}</div></div>`;
   }).join("");
 
   html += `<button class="btn" style="width:100%;margin-top:6px" onclick="editTarget()">+ Add a target</button>`;
@@ -553,7 +673,6 @@ function vTargets(){
 function vSquads(){
   if(!S.targets.length) return `<div class="card"><h3>Add targets first</h3>
     <p class="muted">Squads group targets into an event or team requirement.</p></div>`;
-
   let html = `<div class="card"><h3>Squads</h3>
     <p class="muted">A squad finishes when its slowest member does. Members compete for the same energy,
     kyrotech and signal data, so squad dates land later than farming each character alone.</p>
@@ -562,29 +681,24 @@ function vSquads(){
 
   html += S.squads.map(q => {
     const mem = q.memberIds.map(id => S.targets.find(t => t.id === id)).filter(Boolean);
-    if(!mem.length) return `<div class="card"><h3>${esc(q.name)}</h3>
-      <p class="muted">No members yet.</p>
+    if(!mem.length) return `<div class="card"><h3>${esc(q.name)}</h3><p class="muted">No members yet.</p>
       <button class="btn ghost small" onclick="editSquad('${q.id}')">Edit</button></div>`;
-
     const sim = simulate(mem);
     const worst = mem.reduce((a,t) => sim.byId[t.id] > sim.byId[a.id] ? t : a, mem[0]);
     const dem = energyDemand(mem);
-
     const bars = mem.slice().sort((a,b) => sim.byId[b.id] - sim.byId[a.id]).map(t => {
       const d = sim.byId[t.id], solo = soloFinish(t);
-      const pct = sim.makespan > 0 && isFinite(d) ? Math.round(100 * d / sim.makespan) : 100;
+      const w = sim.makespan > 0 && isFinite(d) ? Math.round(100*d/sim.makespan) : 100;
       const crit = t.id === worst.id;
       const drag = isFinite(d) && isFinite(solo) ? Math.ceil(d) - Math.ceil(solo) : 0;
       return `<div style="margin:9px 0">
         <div class="row"><span class="grow" style="font-size:14px;font-weight:600">${esc(t.name)}
           ${crit ? '<span class="chip" style="border-color:#5c4c2c;color:var(--gold)">critical path</span>' : ""}</span>
           <span class="tiny">${fmtDays(d)}</span></div>
-        <div class="bar"><i class="${crit?"crit":""}" style="width:${pct}%"></i></div>
-        <div class="tiny">${stateLine(t)} · ${bottleneck(sim.tracks[t.id])}${
-          drag >= 1 ? ` · +${drag}d from sharing` : ""}</div>
+        <div class="bar"><i class="${crit?"crit":""}" style="width:${w}%"></i></div>
+        <div class="tiny">${stateLine(t)} · ${bottleneck(sim.tracks[t.id])}${drag >= 1 ? ` · +${drag}d from sharing` : ""}</div>
       </div>`;
     }).join("");
-
     return `<div class="card">
       <div class="row"><h3 class="grow">${esc(q.name)}</h3>
         <span class="pill ${isFinite(sim.makespan)?"":"b"}">${fmtDays(sim.makespan)}</span></div>
@@ -593,12 +707,10 @@ function vSquads(){
       <p class="tiny" style="margin-top:10px">Energy/day — Normal ${Math.round(dem.normal)}/${poolBudget("normal")} ·
         Cantina ${Math.round(dem.cantina)}/${poolBudget("cantina")} · Fleet ${Math.round(dem.fleet)}/${poolBudget("fleet")}
         ${sim.energyShort ? '<span class="warn"> — over budget</span>' : '<span class="good"> — within budget</span>'}<br>
-        Signal data ${sim.signalPerDay.toFixed(0)}/day · kyrotech ${S.cfg.kyroPerDay}/day, shared across ${mem.length} members</p>
+        Shared: ${sigLine(sim.signalPerDay,1)} + ${kyroPerDay().toFixed(1)} kyrotech per day, across ${mem.length} members</p>
       <div class="row" style="margin-top:10px">
         <button class="btn ghost small" onclick="editSquad('${q.id}')">Edit</button>
-        <button class="btn ghost small" onclick="go('lst')">Lightspeed options</button>
-      </div>
-    </div>`;
+        <button class="btn ghost small" onclick="go('lst')">Lightspeed options</button></div></div>`;
   }).join("");
   return html;
 }
@@ -611,71 +723,69 @@ function vLst(){
     <table class="ref"><tr><th>Tier</th><th>Grants</th></tr>
     ${TIER_KEYS.map(k => { const t = LST_TIERS[k];
       return `<tr><td style="color:${t.col};font-weight:700">${t.name}</td>
-        <td>Lv85 · ${t.star}★ · Gear ${t.gear}${t.relic ? " · Relic " + t.relic : ""} · Ability ${t.ability}</td></tr>`;
+        <td>Lv85 · ${t.star}★ · Gear ${t.gear}${t.relic ? " · Relic "+t.relic : ""} · Ability ${t.ability}</td></tr>`;
     }).join("")}</table>
     <p class="tiny" style="margin-top:8px">Zetas and omicrons are never granted. Legacy Era characters only
     (excludes Galactic Legends, Conquest and Journey Guide units). Tokens expire ~6 months after you get them.</p></div>`;
 
   html += `<div class="card"><h3>Your tokens</h3>`;
-  if(!S.tokens.length){
-    html += `<p class="muted">None recorded. Add one to track its expiry — you can still compare tiers below.</p>`;
-  } else {
-    html += S.tokens.map(tok => {
-      const e = tokenExpiry(tok), tier = LST_TIERS[tok.tier];
-      let exp = '<span class="tiny">no date set</span>';
-      if(e) exp = e.daysLeft < 0 ? '<span class="tiny bad">expired</span>'
-        : `<span class="tiny ${e.daysLeft < 30 ? "warn" : ""}">${e.daysLeft}d left · ${e.exp.toLocaleDateString(undefined,{day:"numeric",month:"short"})}</span>`;
-      return `<div class="row" style="padding:8px 0;border-bottom:1px solid var(--line)">
-        <span class="grow"><b style="color:${tier.col}">${tier.name}</b>
-          ${tok.note ? '<span class="tiny"> · ' + esc(tok.note) + "</span>" : ""}<br>${exp}</span>
-        <button class="btn ghost small" onclick="delToken('${tok.id}')">✕</button></div>`;
-    }).join("");
-  }
+  if(!S.tokens.length) html += `<p class="muted">None recorded. Add one to track its expiry — you can still compare tiers below.</p>`;
+  else html += S.tokens.map(tok => {
+    const e = tokenExpiry(tok), tier = LST_TIERS[tok.tier];
+    let exp = '<span class="tiny">no date set</span>';
+    if(e) exp = e.daysLeft < 0 ? '<span class="tiny bad">expired</span>'
+      : `<span class="tiny ${e.daysLeft<30?"warn":""}">${e.daysLeft}d left · ${e.exp.toLocaleDateString(undefined,{day:"numeric",month:"short"})}</span>`;
+    return `<div class="row" style="padding:8px 0;border-bottom:1px solid var(--line)">
+      <span class="grow"><b style="color:${tier.col}">${tier.name}</b>${tok.note ? '<span class="tiny"> · '+esc(tok.note)+"</span>" : ""}<br>${exp}</span>
+      <button class="btn ghost small" onclick="delToken('${tok.id}')">✕</button></div>`;
+  }).join("");
   html += `<button class="btn ghost small" style="margin-top:10px" onclick="editToken()">+ Add token</button></div>`;
 
   const elig = S.targets.filter(t => t.eligible);
-  if(!elig.length) return html + `<div class="card"><p class="muted">No eligible targets to compare.
-    Add targets and leave "Lightspeed eligible" ticked on the Legacy Era ones.</p></div>`;
+  if(!elig.length) return html + `<div class="card"><p class="muted">No eligible targets to compare.</p></div>`;
 
   const owned = [...new Set(S.tokens.map(t => t.tier))];
-  const tiersToShow = owned.length ? TIER_KEYS.filter(k => owned.includes(k)) : TIER_KEYS;
+  const tiers = owned.length ? TIER_KEYS.filter(k => owned.includes(k)) : TIER_KEYS;
 
   html += `<div class="card"><h3>Best character for each tier</h3>
-    <p class="tiny">Days saved on that character's own finish date, farming solo.</p>`;
-  tiersToShow.forEach(k => {
+    <p class="tiny">Days saved on that character's own finish date. Tap any row to see exactly what's
+    left to farm afterwards and what that farm costs you.</p>`;
+  tiers.forEach(k => {
     const tier = LST_TIERS[k];
     const ranked = elig.map(t => {
-      const base = soloFinish(t), after = simulate([applyToken(t, k)]).makespan;
-      return {t, base, after, eff: tokenEffect(t, k),
-        saved: (isFinite(base) && isFinite(after)) ? base - after : (isFinite(after) ? Infinity : 0)};
-    }).sort((a,b) => (b.saved === Infinity ? 1e9 : b.saved) - (a.saved === Infinity ? 1e9 : a.saved));
+      const base = soloFinish(t), r = residual(t, k);
+      return {t, base, after:r.days, r, eff:tokenEffect(t,k),
+        saved: (isFinite(base) && isFinite(r.days)) ? base - r.days : (isFinite(r.days) ? Infinity : 0)};
+    }).sort((a,b) => (b.saved===Infinity?1e9:b.saved) - (a.saved===Infinity?1e9:a.saved));
 
     html += `<hr class="sep"><div class="row"><b style="color:${tier.col}" class="grow">${tier.name}</b>
-      <span class="tiny">${tier.star}★ / G${tier.gear}${tier.relic ? " / R" + tier.relic : ""}</span></div>`;
-    html += ranked.slice(0, 6).map((r, i) => {
+      <span class="tiny">${tier.star}★ / G${tier.gear}${tier.relic ? " / R"+tier.relic : ""}</span></div>`;
+    html += ranked.slice(0,6).map((x,i) => {
       const notes = [];
-      if(r.eff.dead) notes.push('<span class="bad">already at or past this tier</span>');
-      if(r.eff.overStar) notes.push(`<span class="warn">${r.eff.overStar}★ past your goal</span>`);
-      if(r.eff.overRelic) notes.push(`<span class="warn">R${r.eff.overRelic} past your goal</span>`);
-      const gains = [];
-      if(r.eff.gainStar) gains.push(`+${r.eff.gainStar}★`);
-      if(r.eff.gainGear) gains.push(`+${r.eff.gainGear} gear`);
-      if(r.eff.gainRelic) gains.push(`+${r.eff.gainRelic} relic`);
-      const savedTxt = r.saved === Infinity ? "unblocks it" : (r.saved <= 0 ? "no gain" : fmtDays(r.saved) + " saved");
-      return `<div class="row" style="padding:7px 0;${i?"border-top:1px solid var(--line)":""}">
-        <span class="grow"><span style="font-weight:600">${esc(r.t.name)}</span>
-          <div class="tiny">${fmtDays(r.base)} → ${fmtDays(r.after)}${gains.length ? " · " + gains.join(" ") : ""}</div>
-          ${notes.length ? '<div class="tiny">' + notes.join(" · ") + "</div>" : ""}</span>
-        <span class="pill ${r.saved > 0 ? "g" : "b"}">${savedTxt}</span></div>`;
+      if(x.eff.dead) notes.push('<span class="bad">already at or past this tier</span>');
+      if(x.eff.overStar) notes.push(`<span class="warn">${x.eff.overStar}★ past your goal</span>`);
+      if(x.eff.overRelic) notes.push(`<span class="warn">R${x.eff.overRelic} past your goal</span>`);
+      const left = [];
+      if(x.r.shards > 0) left.push(`${x.r.shards} shards`);
+      if(x.r.kyro > 0) left.push(`${Math.round(x.r.kyro)} kyro`);
+      if(x.r.sigTotal > 0) left.push(`${Math.round(x.r.sigTotal)} signal`);
+      const savedTxt = x.saved===Infinity ? "unblocks it" : (x.saved<=0 ? "no gain" : fmtDays(x.saved)+" saved");
+      return `<div class="row lstrow" style="${i?"border-top:1px solid var(--line)":""}"
+          onclick="lstDetail('${x.t.id}','${k}')">
+        <span class="grow"><span style="font-weight:600">${esc(x.t.name)}</span> <span class="tiny">›</span>
+          <div class="tiny">${fmtDays(x.base)} → ${fmtDays(x.after)}${
+            left.length ? " · still needs " + left.join(", ") : " · <span class='good'>nothing left</span>"}</div>
+          ${notes.length ? '<div class="tiny">'+notes.join(" · ")+"</div>" : ""}</span>
+        <span class="pill ${x.saved>0?"g":"b"}">${savedTxt}</span></div>`;
     }).join("");
   });
   html += `</div>`;
 
   if(S.squads.length){
     html += `<div class="card"><h3>Best squad to spend it on</h3>
-      <p class="tiny">Days cut off the whole squad's completion, accounting for shared energy,
-      kyrotech and signal data. A token on a non-critical member often saves nothing.</p>`;
-    tiersToShow.forEach(k => {
+      <p class="tiny">Days cut off the whole squad's completion, accounting for shared energy, kyrotech
+      and signal data. A token on a non-critical member often saves nothing.</p>`;
+    tiers.forEach(k => {
       const tier = LST_TIERS[k], opts = [];
       S.squads.forEach(q => {
         const mem = q.memberIds.map(id => S.targets.find(t => t.id === id)).filter(Boolean);
@@ -683,25 +793,26 @@ function vLst(){
         const base = simulate(mem).makespan;
         mem.forEach(t => {
           if(!t.eligible) return;
-          const swapped = mem.map(x => x.id === t.id ? applyToken(x, k) : x);
-          const sim2 = simulate(swapped), after = sim2.makespan;
-          const nextCrit = swapped.reduce((a,x) => sim2.byId[x.id] > sim2.byId[a.id] ? x : a, swapped[0]);
+          const swapped = mem.map(x => x.id === t.id ? applyToken(x,k) : x);
+          const s2 = simulate(swapped), after = s2.makespan;
+          const nc = swapped.reduce((a,x) => s2.byId[x.id] > s2.byId[a.id] ? x : a, swapped[0]);
           opts.push({q, t, base, after,
-            saved: (isFinite(base) && isFinite(after)) ? base - after : (isFinite(after) && !isFinite(base) ? Infinity : 0),
-            nextCrit: nextCrit.id === t.id ? null : nextCrit.name});
+            saved: (isFinite(base)&&isFinite(after)) ? base-after : (isFinite(after)&&!isFinite(base) ? Infinity : 0),
+            nextCrit: nc.id === t.id ? null : nc.name});
         });
       });
       if(!opts.length) return;
-      opts.sort((a,b) => (b.saved === Infinity ? 1e9 : b.saved) - (a.saved === Infinity ? 1e9 : a.saved));
+      opts.sort((a,b) => (b.saved===Infinity?1e9:b.saved) - (a.saved===Infinity?1e9:a.saved));
       html += `<hr class="sep"><div class="row"><b style="color:${tier.col}" class="grow">${tier.name}</b></div>`;
-      html += opts.slice(0, 5).map((o, i) => {
-        const savedTxt = o.saved === Infinity ? "unblocks" : (o.saved <= 0 ? "no gain" : fmtDays(o.saved));
-        return `<div class="row" style="padding:7px 0;${i?"border-top:1px solid var(--line)":""}">
+      html += opts.slice(0,5).map((o,i) => {
+        const txt = o.saved===Infinity ? "unblocks" : (o.saved<=0 ? "no gain" : fmtDays(o.saved));
+        return `<div class="row lstrow" style="${i?"border-top:1px solid var(--line)":""}"
+            onclick="lstDetail('${o.t.id}','${k}')">
           <span class="grow"><span style="font-weight:600">${esc(o.q.name)}</span>
-            <span class="tiny"> → ${esc(o.t.name)}</span>
+            <span class="tiny"> → ${esc(o.t.name)} ›</span>
             <div class="tiny">squad ${fmtDays(o.base)} → ${fmtDays(o.after)}${
               o.nextCrit ? ` · then <b>${esc(o.nextCrit)}</b> holds it up` : ""}</div></span>
-          <span class="pill ${o.saved > 0 ? "g" : "b"}">${savedTxt}</span></div>`;
+          <span class="pill ${o.saved>0?"g":"b"}">${txt}</span></div>`;
       }).join("");
     });
     html += `</div>`;
@@ -709,65 +820,175 @@ function vLst(){
   return html;
 }
 
+// What remains after the token, and what farming it costs you.
+function lstDetail(id, tierKey){
+  const t = S.targets.find(x => x.id === id); if(!t) return;
+  const tier = LST_TIERS[tierKey], r = residual(t, tierKey), base = soloFinish(t);
+  const a = r.after;
+  const oppRows = [];
+  if(r.cost.cantina > 0) oppRows.push(`<div class="srcrow"><b class="warn">${r.cost.cantina} cantina energy/day</b>
+    <p class="tiny" style="margin:5px 0 0">That energy can't farm signal data, costing you
+      <b>${sigLine(r.lost, 1)}</b> every day until the shards are done —
+      about ${Math.round(r.lost.frag + r.lost.inc + r.lost.flaw)} signal data/day slower on every relic you own.</p></div>`);
+  if(r.cost.normal > 0) oppRows.push(`<div class="srcrow"><b class="warn">${r.cost.normal} normal energy/day</b>
+    <p class="tiny" style="margin:5px 0 0">Ties up ${r.farmsTiedUp.normal.toFixed(1)} hard-node farms' worth of energy —
+      roughly ${(r.farmsTiedUp.normal*FARM_SHARDS).toFixed(2)} shards/day you could be earning on someone else.</p></div>`);
+  if(r.cost.fleet > 0) oppRows.push(`<div class="srcrow"><b class="warn">${r.cost.fleet} fleet energy/day</b>
+    <p class="tiny" style="margin:5px 0 0">Ties up ${r.farmsTiedUp.fleet.toFixed(1)} fleet-node farms' worth of energy.</p></div>`);
+
+  document.getElementById("sheet").innerHTML = `
+    <button class="back" onclick="closeModal()">← close</button>
+    <h3 style="margin:0 0 2px">${esc(t.name)}</h3>
+    <p class="tiny" style="margin:0 0 12px">after a <b style="color:${tier.col}">${tier.name}</b> token</p>
+
+    <div class="srcrow"><div class="row"><span class="grow"><b>${stateLine(t)}</b>
+      <div class="tiny">now</div></span>
+      <span class="pill">${fmtDays(base)}</span></div>
+      <hr class="sep" style="margin:10px 0">
+      <div class="row"><span class="grow"><b class="good">${a.star}★ G${a.gear}${a.relic?" R"+a.relic:""}
+        → ${requiredStar(a)}★ G${effTargetGear(a)}${a.targetRelic?" R"+a.targetRelic:""}</b>
+        <div class="tiny">after the token</div></span>
+        <span class="pill g">${fmtDays(r.days)}</span></div></div>
+
+    <hr class="sep"><b>What's still left to farm</b>
+    ${r.shards <= 0 && r.kyro <= 0 && r.sigTotal <= 0
+      ? `<p class="muted good" style="margin-top:8px">Nothing — the token finishes this character outright.</p>`
+      : `<table class="ref">
+        <tr><th>Resource</th><th class="n">Remaining</th><th class="n">Rate</th><th class="n">Time</th></tr>
+        ${r.shards > 0 ? `<tr><td>Shards to ${requiredStar(a)}★</td><td class="n">${r.shards}</td>
+          <td class="n">${r.shardsPerDay.toFixed(2)}/day</td>
+          <td class="n">${fmtDays(r.shardsPerDay>0 ? r.shards/r.shardsPerDay : Infinity)}</td></tr>` : ""}
+        ${r.kyro > 0 ? `<tr><td>Kyrotech</td><td class="n">${Math.round(r.kyro)}</td>
+          <td class="n">${kyroPerDay().toFixed(1)}/day</td>
+          <td class="n">${fmtDays(kyroPerDay()>0 ? r.kyro/kyroPerDay() : Infinity)}</td></tr>` : ""}
+        ${SIG_KEYS.filter(k => r.sig[k] > 0).map(k => {
+          const inc = simulate([a]).signalPerDay[k];
+          return `<tr><td><span class="sd" style="background:${SIG[k].col}"></span>${SIG[k].name} signal</td>
+            <td class="n">${Math.round(r.sig[k])}</td><td class="n">${inc.toFixed(1)}/day</td>
+            <td class="n">${fmtDays(inc>0 ? r.sig[k]/inc : Infinity)}</td></tr>`;
+        }).join("")}
+      </table>
+      ${r.shards > 0 && r.shardsPerDay <= 0 ? `<p class="tiny bad">No shard source set for this character —
+        add one in the target editor or it can never finish.</p>` : ""}`}
+
+    ${oppRows.length ? `<hr class="sep"><b>What that farm costs you</b>
+      <p class="tiny">Energy still tied up chasing the remainder, and what it's not doing instead.</p>
+      ${oppRows.join("")}` : (r.shards > 0 ? "" :
+      `<hr class="sep"><p class="tiny good">No energy tied up — nothing left to farm on nodes.</p>`)}
+
+    <button class="btn ghost" style="width:100%;margin-top:14px" onclick="closeModal()">Close</button>`;
+  openModal();
+}
+
 /* ---------- Crystals ---------- */
 function vCrystals(){
   const c = S.cfg.crystals, inc = crystalIncome(), spend = crystalSpend(), net = crystalNet();
-  const fleet = fleetPayout(Math.max(1, c.fleetRank|0));
+  const g = c.gac, gc = gacCrystals(), L = GAC_LEAGUES[g.league] || GAC_LEAGUES.chromium;
 
-  const others = (c.other||[]).map((o, i) => `<div class="row" style="margin-bottom:6px">
+  const others = (c.other||[]).map((o,i) => `<div class="row" style="margin-bottom:6px">
     <input type="text" class="grow" value="${esc(o.name)}" oninput="S.cfg.crystals.other[${i}].name=this.value;save()">
-    <input type="number" style="width:78px" value="${o.amount}"
+    <input type="number" style="width:76px" value="${o.amount}"
       onchange="S.cfg.crystals.other[${i}].amount=num(this.value,0);save();render()">
-    <select style="width:105px" onchange="S.cfg.crystals.other[${i}].days=+this.value;save();render()">
+    <select style="width:102px" onchange="S.cfg.crystals.other[${i}].days=+this.value;save();render()">
       ${[[1,"per day"],[7,"per week"],[14,"per 2 wks"],[30,"per month"]].map(([d,l]) =>
         `<option value="${d}" ${o.days===d?"selected":""}>${l}</option>`).join("")}</select>
-    <button class="btn ghost small" onclick="S.cfg.crystals.other.splice(${i},1);save();render()">✕</button>
-  </div>`).join("");
+    <button class="btn ghost small" onclick="S.cfg.crystals.other.splice(${i},1);save();render()">✕</button></div>`).join("");
 
-  // what could you afford?
-  const affordable = [];
-  Object.keys(POOLS).forEach(p => {
+  const afford = Object.keys(POOLS).map(p => {
     const P = POOLS[p]; let cum = 0, n = 0;
     for(let i = 0; i < P.ladder.length; i++){ if(cum + P.ladder[i] > inc) break; cum += P.ladder[i]; n++; }
-    affordable.push(`${P.name}: ${n} refresh${n===1?"":"es"} (${cum}/day)`);
-  });
+    return `${P.name}: ${n}`;
+  }).join(" · ");
+
+  const breakdown = [
+    ["Fleet Arena (rank " + c.fleetRank + ")", fleetPayout(Math.max(1,c.fleetRank|0))],
+    ["Grand Arena", gc.total],
+    ["Daily activities", c.dailyActivities ? DAILY_ACTIVITY_CRYSTALS : 0]
+  ].concat((c.other||[]).filter(o => num(o.amount,0) > 0)
+    .map(o => [o.name || "Other", num(o.amount,0)/Math.max(1,num(o.days,1))]));
 
   return `<div class="kpis">
     <div class="kpi"><div class="v pos">${Math.round(inc)}</div><div class="k">Income/day</div></div>
     <div class="kpi"><div class="v ${spend?"neg":""}">${spend}</div><div class="k">Refreshes/day</div></div>
-    <div class="kpi"><div class="v ${net<0?"neg":"pos"}">${net>=0?"+":""}${Math.round(net)}</div><div class="k">Net/day</div></div>
-  </div>
+    <div class="kpi"><div class="v ${net<0?"neg":"pos"}">${net>=0?"+":""}${Math.round(net)}</div><div class="k">Net/day</div></div></div>
 
   ${net < 0 ? `<div class="card" style="border-color:#6a4441"><h3 class="bad">Running a deficit</h3>
-    <p class="muted">You're spending ${Math.round(-net)} more crystals a day than you earn.
-    That's fine off a stockpile, but it isn't a steady state — it drains
-    ${Math.round(-net*30).toLocaleString()} a month.</p>
+    <p class="muted">Spending ${Math.round(-net)} more crystals a day than you earn — fine off a stockpile,
+    but it drains ${Math.round(-net*30).toLocaleString()} a month.</p>
     <button class="btn ghost small" onclick="go('setup')">Cut refreshes</button></div>`
   : `<div class="card"><h3 class="good">Sustainable</h3>
-    <p class="muted">Income covers your refreshes with ${Math.round(net)} crystals a day spare
-    — ${Math.round(net*30).toLocaleString()} a month.</p>
-    <p class="tiny">On income alone you could sustain — ${affordable.join(" · ")}</p></div>`}
+    <p class="muted">Income covers your refreshes with ${Math.round(net)} crystals a day spare —
+      ${Math.round(net*30).toLocaleString()} a month.</p>
+    <p class="tiny">Refreshes your income alone could sustain — ${afford}</p></div>`}
 
-  <div class="card"><h3>Income</h3>
+  <div class="card"><h3>Where it comes from</h3>
+    ${breakdown.filter(b => b[1] > 0).sort((a,b)=>b[1]-a[1]).map(b => {
+      const w = inc > 0 ? Math.round(100*b[1]/inc) : 0;
+      return `<div style="margin:8px 0"><div class="row"><span class="grow tiny">${esc(b[0])}</span>
+        <span class="tiny">${Math.round(b[1])}/day</span></div>
+        <div class="bar"><i style="width:${w}%"></i></div></div>`;
+    }).join("") || '<p class="muted">Nothing set yet.</p>'}
+  </div>
+
+  <div class="card"><h3>Grand Arena</h3>
+    <label style="display:flex;gap:8px;align-items:center;font-size:14px">
+      <input type="checkbox" style="width:auto" ${g.on?"checked":""}
+        onchange="S.cfg.crystals.gac.on=this.checked;save();render()"> I compete in GAC</label>
+    ${g.on ? `
+    <div class="g2" style="margin-top:10px">
+      <div><label class="f">League</label>
+        <select onchange="S.cfg.crystals.gac.league=this.value;save();render()">
+          ${Object.keys(GAC_LEAGUES).reverse().map(k =>
+            `<option value="${k}" ${g.league===k?"selected":""}>${GAC_LEAGUES[k].name}</option>`).join("")}</select></div>
+      <div><label class="f">Division</label>
+        <select onchange="S.cfg.crystals.gac.division=+this.value;save();render()">
+          ${[1,2,3,4,5].map(d => `<option value="${d}" ${g.division===d?"selected":""}>Division ${d}</option>`).join("")}</select></div>
+    </div>
+    <div class="g3" style="margin-top:6px">
+      <div><label class="f">Rounds won/wk</label><input type="number" min="0" value="${g.wins}"
+        onchange="S.cfg.crystals.gac.wins=num(this.value,0);save();render()"></div>
+      <div><label class="f">Rounds lost/wk</label><input type="number" min="0" value="${g.losses}"
+        onchange="S.cfg.crystals.gac.losses=num(this.value,0);save();render()"></div>
+      <div><label class="f">Weekly finish</label>
+        <select onchange="S.cfg.crystals.gac.weeklyRank=+this.value;save();render()">
+          ${[1,2,3,4,5,6,7,8].map(r => `<option value="${r}" ${g.weeklyRank===r?"selected":""}>Rank ${r}</option>`).join("")}</select></div>
+    </div>
+    <table class="ref" style="margin-top:10px">
+      <tr><th>Component</th><th class="n">Per day</th></tr>
+      <tr><td>${L.name} Div ${g.division} daily</td><td class="n">${gc.daily}</td></tr>
+      <tr><td>${g.wins}W / ${g.losses}L per week (${L.win} win, ${L.loss} loss)</td><td class="n">${gc.rounds.toFixed(1)}</td></tr>
+      <tr><td>Weekly finish rank ${g.weeklyRank}</td><td class="n">${gc.weekly.toFixed(1)}</td></tr>
+      <tr><td><b>Total</b></td><td class="n"><b>${gc.total.toFixed(1)}</b></td></tr></table>
+    <details style="margin-top:8px"><summary>Full league table</summary>
+      <table class="ref"><tr><th>League</th><th class="n">D1</th><th class="n">D2</th><th class="n">D3</th>
+        <th class="n">D4</th><th class="n">D5</th><th class="n">Win</th><th class="n">Loss</th></tr>
+        ${Object.keys(GAC_LEAGUES).reverse().map(k => { const x = GAC_LEAGUES[k];
+          return `<tr><td>${x.name}</td>${x.daily.map(v=>`<td class="n">${v}</td>`).join("")}
+            <td class="n">${x.win}</td><td class="n">${x.loss}</td></tr>`; }).join("")}</table>
+      <p class="tiny">Weekly finish pays 750 for rank 1, 500 for ranks 2–4, 250 for 5–7, 100 for rank 8.
+        Season-end rewards are separate and not counted here — add them below if you want them.</p></details>` : ""}
+  </div>
+
+  <div class="card"><h3>Fleet Arena &amp; dailies</h3>
     <label class="f">Fleet Arena rank</label>
     <input type="number" min="1" value="${c.fleetRank}"
       onchange="S.cfg.crystals.fleetRank=Math.max(1,this.value|0);save();render()">
-    <p class="tiny">Pays <b>${fleet}</b> crystals/day at rank ${c.fleetRank}.
-      ${fleet === 0 ? '<span class="warn">Nothing below rank 50 — climbing to 50 is worth 50/day, to 20 is worth 100/day.</span>' : ""}</p>
-    <table class="ref" style="margin-top:8px"><tr><th>Rank</th><th class="n">Crystals</th></tr>
+    <p class="tiny">Pays <b>${fleetPayout(Math.max(1,c.fleetRank|0))}</b> crystals/day at rank ${c.fleetRank}.
+      ${fleetPayout(Math.max(1,c.fleetRank|0)) === 0 ? '<span class="warn">Nothing below rank 50 — climbing to 50 is worth 50/day, to 20 is worth 100/day.</span>' : ""}</p>
+    <table class="ref" style="margin-top:6px"><tr><th>Rank</th><th class="n">Crystals</th></tr>
       ${[["1",400],["2",375],["3",350],["4",325],["5",300],["6–10",200],["11–20",100],["21–50",50],["51+",0]]
         .map(([r,v]) => `<tr><td>${r}</td><td class="n">${v}</td></tr>`).join("")}</table>
     <p class="tiny">Squad Arena no longer awards crystals.</p>
-
     <hr class="sep">
     <label style="display:flex;gap:8px;align-items:center;font-size:14px">
       <input type="checkbox" style="width:auto" ${c.dailyActivities?"checked":""}
         onchange="S.cfg.crystals.dailyActivities=this.checked;save();render()">
       Daily activities box — ${DAILY_ACTIVITY_CRYSTALS} crystals for all 7 quests</label>
+  </div>
 
-    <hr class="sep"><label class="f">Everything else</label>
-    <p class="tiny">Galactic War, login rewards, GAC, Conquest, Territory Battles, Bounties.
-      Fill in what you actually get — these vary far too much by account for a default to be honest.</p>
+  <div class="card"><h3>Everything else</h3>
+    <p class="tiny">Conquest, Territory Battles, Assault Battles, login, GAC season rewards.
+      These vary far too much by account for a default to be honest — fill in what you actually get.</p>
     ${others}
     <button class="btn ghost small" onclick="S.cfg.crystals.other.push({name:'',amount:0,days:1});save();render()">+ Add source</button>
   </div>
@@ -775,84 +996,110 @@ function vCrystals(){
   <div class="card"><h3>Where it goes</h3>
     ${Object.keys(POOLS).map(p => { const n = S.cfg.refresh[p]|0;
       return `<div class="row" style="padding:6px 0;border-bottom:1px solid var(--line)">
-        <span class="grow">${POOLS[p].name} energy <span class="tiny">· ${n} refresh${n===1?"":"es"}
-          = ${n*POOLS[p].per} energy</span></span>
-        <span class="tiny ${poolCrystals(p)?"warn":""}">${poolCrystals(p)}/day</span></div>`;
-    }).join("")}
-    <p class="tiny" style="margin-top:9px">Each refresh grants 120 energy. Cantina refreshes buy shard
-      progress <i>and</i> signal data, since leftover cantina energy goes to signal farming.</p>
-    <button class="btn ghost small" style="margin-top:8px" onclick="go('setup')">Change refreshes</button>
-  </div>`;
+        <span class="grow">${POOLS[p].name} energy <span class="tiny">· ${n} refresh${n===1?"":"es"} = ${n*POOLS[p].per} energy</span></span>
+        <span class="tiny ${poolCrystals(p)?"warn":""}">${poolCrystals(p)}/day</span></div>`; }).join("")}
+    <p class="tiny" style="margin-top:9px">Cantina refreshes buy shard progress <i>and</i> signal data,
+      since leftover cantina energy goes to signal farming.</p>
+    <button class="btn ghost small" style="margin-top:8px" onclick="go('setup')">Change refreshes</button></div>`;
 }
 
 /* ---------- Setup ---------- */
 function vSetup(){
   const pools = Object.keys(POOLS).map(p => {
-    const P = POOLS[p], n = S.cfg.refresh[p] | 0;
+    const P = POOLS[p], n = S.cfg.refresh[p]|0;
     return `<div class="srcrow">
       <div class="row"><b class="grow">${P.name} energy</b><span class="pill">${poolBudget(p)}/day</span></div>
-      <div class="tiny" style="margin:5px 0">${P.regen} regen + ${P.bonus} daily bonus${n ? " + " + (n*P.per) + " bought" : ""}
+      <div class="tiny" style="margin:5px 0">${P.regen} regen + ${P.bonus} daily bonus${n ? " + "+(n*P.per)+" bought" : ""}
         ${n ? ` · <span class="warn">${poolCrystals(p)} crystals/day</span>` : ""}</div>
       <label class="f">Crystal refreshes per day (max ${P.ladder.length})</label>
       <input type="number" min="0" max="${P.ladder.length}" value="${n}"
-        onchange="S.cfg.refresh['${p}']=Math.max(0,Math.min(${P.ladder.length},this.value|0));save();render()">
-    </div>`;
+        onchange="S.cfg.refresh['${p}']=Math.max(0,Math.min(${P.ladder.length},this.value|0));save();render()"></div>`;
   }).join("");
 
-  const kyro = [10,11,12,13].map(g => `<div><label class="f">G${g}</label>
+  const kSrc = [["dailies","Daily challenges"],["guildAB","Guild assault battles"],["tb","Territory Battles"],
+    ["tw","Territory Wars"],["conquest","Conquest"],["other","Anything else"]]
+    .map(([k,l]) => `<div><label class="f">${l}</label>
+      <input type="number" min="0" value="${S.cfg.kyroSources[k]}"
+        onchange="S.cfg.kyroSources['${k}']=num(this.value,0);save();render()"></div>`).join("");
+
+  const kGear = [10,11,12,13].map(g => `<div><label class="f">G${g}</label>
     <input type="number" min="0" value="${S.cfg.kyroPerGear[g]}"
       onchange="S.cfg.kyroPerGear['${g}']=num(this.value,0);save();render()"></div>`).join("");
 
-  const sig = [1,2,3,4,5,6,7,8,9].map(r => `<div><label class="f">R${r}</label>
-    <input type="number" min="0" value="${S.cfg.signalPerRelic[r]}"
-      onchange="S.cfg.signalPerRelic['${r}']=num(this.value,0);save();render()"></div>`).join("");
+  const nodes = (S.cfg.signalNodes||[]).map((n,i) => `<div class="srcrow">
+    <div class="row"><input type="text" class="grow" value="${esc(n.label)}"
+      oninput="S.cfg.signalNodes[${i}].label=this.value;save()">
+      <button class="btn ghost small" onclick="S.cfg.signalNodes.splice(${i},1);save();render()">✕</button></div>
+    <div class="g4" style="margin-top:8px">
+      <div><label class="f">Energy</label><input type="number" min="1" value="${n.energy}"
+        onchange="S.cfg.signalNodes[${i}].energy=num(this.value,20);save();render()"></div>
+      ${SIG_KEYS.map(k => `<div><label class="f" style="color:${SIG[k].col}">${SIG[k].short}</label>
+        <input type="number" min="0" step="0.5" value="${n.yield[k]}"
+          onchange="S.cfg.signalNodes[${i}].yield['${k}']=num(this.value,0);save();render()"></div>`).join("")}
+    </div>
+    <p class="tiny">Per 120 energy (one refresh) spent here.</p></div>`).join("");
+
+  const sigTable = `<table class="ref"><tr><th>Relic</th>
+    ${SIG_KEYS.map(k=>`<th class="n" style="color:${SIG[k].col}">${SIG[k].short}</th>`).join("")}</tr>
+    ${[1,2,3,4,5,6,7,8,9].map(r => `<tr><td>R${r}</td>${SIG_KEYS.map(k =>
+      `<td class="n"><input type="number" min="0" style="padding:5px;font-size:13px;text-align:right"
+        value="${S.cfg.signalPerRelic[r][k]}"
+        onchange="S.cfg.signalPerRelic[${r}]['${k}']=num(this.value,0);save();render()"></td>`).join("")}</tr>`).join("")}</table>`;
+
+  const simNow = simulate(S.targets);
 
   return `<div class="card"><h3>Energy budget</h3>
     <p class="muted">Free income is what the game gives everyone. Refreshes are what you choose to buy —
     the crystal ladder is built in, so raising the count shows the real daily price.</p>
     ${pools}
     <div class="row" style="margin-top:10px"><span class="grow"><b>Total spend</b></span>
-      <span class="pill w">${crystalSpend()}/day</span></div>
-  </div>
+      <span class="pill w">${crystalSpend()}/day</span></div></div>
 
   <div class="card"><h3>Kyrotech — the gear crunch</h3>
-    <p class="muted">Gear is modelled purely as kyrotech salvage, since nothing else genuinely gates a
-    character. Everything is one shared stockpile, so gearing several characters at once splits it.</p>
-    <div class="est"><p class="tiny">These per-gear-level costs are estimates. Check one character's
-      remaining kyrotech in-game and adjust until the dates match.</p></div>
-    <label class="f">Kyrotech salvage to clear each gear level</label>
-    <div class="g4">${kyro}</div>
-    <label class="f">Kyrotech earned per day (all sources)</label>
-    <input type="number" min="0" value="${S.cfg.kyroPerDay}"
-      onchange="S.cfg.kyroPerDay=num(this.value,0);save();render()">
-    <p class="tiny">Challenges, guild events store, assault battles, shipments.</p>
-  </div>
+    <p class="muted">Gear is modelled purely as kyrotech salvage. It's one shared stockpile, so gearing
+    several characters at once splits it between them.</p>
+    <label class="f">Kyrotech per month, by source</label>
+    <div class="g3">${kSrc}</div>
+    <div class="row" style="margin-top:10px"><span class="grow"><b>Income</b></span>
+      <span class="pill">${kyroPerDay().toFixed(1)}/day · ${Math.round(kyroPerDay()*30.44)}/mo</span></div>
+    <p class="tiny">Community figures put a no-spend account at roughly 400/month (~13/day) — 90 from
+      dailies, 160 from guild assault battles, ~80 Territory Battles, ~65 Territory Wars, 40 Conquest.
+      Add more if you buy with GET, GAC currency or crystals.</p>
+    <hr class="sep">
+    <div class="est"><p class="tiny">Per-character kyrotech is public on swgoh.gg, but the site blocks
+      automated access so it can't be bundled here. Enter the real figure per character in the target
+      editor ("kyrotech still needed") — otherwise these per-gear-level estimates are used.</p></div>
+    <label class="f">Fallback: kyrotech to clear each gear level</label>
+    <div class="g4">${kGear}</div></div>
 
   <div class="card"><h3>Signal data — the relic crunch</h3>
-    <p class="muted">Relics are modelled purely as signal data. Income is <b>whatever cantina energy your
-    shard farms don't eat</b> — which is why a cantina shard farm slows down every relic on your account.</p>
-    <div class="est"><p class="tiny">Both numbers below are estimates. The per-relic costs come off the
-      in-game upgrade screen; the yield you can measure by simming a signal node for a day.</p></div>
-    <label class="f">Signal data per relic level</label>
-    <div class="g3">${sig}</div>
-    <label class="f">Signal data per 120 cantina energy farmed</label>
-    <input type="number" min="0" value="${S.cfg.signalPer120}"
-      onchange="S.cfg.signalPer120=num(this.value,0);save();render()">
-    <p class="tiny">120 = one cantina refresh, so this is "signal data per refresh spent farming it".
-      At your current split that's <b>${simulate(S.targets).signalPerDay.toFixed(0)} signal data/day</b>.</p>
-  </div>
+    <p class="muted">Three grades, farmed from different cantina nodes. Income is <b>whatever cantina
+    energy your shard farms don't eat</b>, aimed at whichever grade you're shortest on — which is why a
+    cantina shard farm slows every relic on your account.</p>
+    <div class="est"><p class="tiny">Yields are estimates. Sim a node for a day and divide by the energy
+      spent to get your real figure. Confirmed: <b>8-F drops Incomplete</b>, <b>8-G drops Flawed</b>,
+      0–2 per run each. The wiki lists these at 16 energy; they're set to 20 here per your account.</p></div>
+    <label class="f">Signal data nodes</label>
+    ${nodes}
+    <button class="btn ghost small" onclick="S.cfg.signalNodes.push({id:uid(),label:'New node',energy:20,yield:{frag:0,inc:0,flaw:0}});save();render()">+ Add node</button>
+    <div class="row" style="margin-top:12px"><span class="grow"><b>Current income</b></span>
+      <span class="tiny">${sigLine(simNow.signalPerDay, 1)} per day</span></div>
+    <hr class="sep">
+    <label class="f">Signal data required per relic level</label>
+    <div class="est"><p class="tiny">Read these off the in-game upgrade screen and correct them —
+      the defaults follow the documented 15–55 per grade range but aren't exact.</p></div>
+    ${sigTable}</div>
 
   ${refCard(true)}
 
   <div class="card"><h3>Backup</h3>
     <div class="row"><button class="btn ghost small" onclick="exportData()">Export</button>
       <button class="btn ghost small" onclick="importData()">Import</button>
-      <button class="btn danger small" onclick="wipe()">Erase all</button></div>
-  </div>`;
+      <button class="btn danger small" onclick="wipe()">Erase all</button></div></div>`;
 }
 
 function refCard(open){
-  return `<div class="card"><details ${open ? "open" : ""}><summary>Reference — the numbers this is built on</summary>
+  return `<div class="card"><details ${open?"open":""}><summary>Reference — the numbers this is built on</summary>
     <p class="tiny" style="margin-top:8px">Published game values. Account-specific rates live in Setup.</p>
 
     <b class="tiny">Shards per star</b>
@@ -866,22 +1113,25 @@ function refCard(open){
       <tr><td>Normal</td><td class="n">240</td><td class="n">135</td><td class="n">144</td><td>50×3, 100×3, 200×3…</td></tr>
       <tr><td>Cantina</td><td class="n">120</td><td class="n">45</td><td class="n">144</td><td>100×3, 200×2, 400×2…</td></tr>
       <tr><td>Fleet</td><td class="n">240</td><td class="n">45</td><td class="n">144</td><td>50×3, 100×3, 200×3…</td></tr></table>
-    <p class="tiny">Every refresh grants 120 energy. Normal regenerates 1 per 6 min, cantina 1 per 12 min.
-      Bonus energy must be collected within 2 hours of noon / 6pm / 9pm.</p>
+    <p class="tiny">Every refresh grants 120 energy. Normal regenerates 1 per 6 min, cantina 1 per 12 min.</p>
 
-    <b class="tiny">Crystals</b>
+    <b class="tiny">Grand Arena daily crystals</b>
+    <table class="ref"><tr><th>League</th><th class="n">D1</th><th class="n">D2</th><th class="n">D3</th>
+      <th class="n">D4</th><th class="n">D5</th><th class="n">Win</th><th class="n">Loss</th></tr>
+      ${Object.keys(GAC_LEAGUES).reverse().map(k => { const x = GAC_LEAGUES[k];
+        return `<tr><td>${x.name}</td>${x.daily.map(v=>`<td class="n">${v}</td>`).join("")}
+          <td class="n">${x.win}</td><td class="n">${x.loss}</td></tr>`; }).join("")}</table>
     <p class="tiny">Fleet Arena pays 400/375/350/325/300 for ranks 1–5, 200 for 6–10, 100 for 11–20,
-      50 for 21–50, and nothing below 50. Squad Arena no longer pays crystals.
-      All 7 daily activities award a box worth ${DAILY_ACTIVITY_CRYSTALS} crystals.</p>
+      50 for 21–50, nothing below 50. Squad Arena no longer pays crystals. Daily activities box = ${DAILY_ACTIVITY_CRYSTALS}.</p>
 
     <b class="tiny">Relic star gates</b>
     <p class="tiny">Relic 1–2 need 4★, Relic 3 needs 5★, Relic 4 needs 6★, Relic 5+ needs 7★.
-      All relics need Gear 13. Credits per relic level: ${[1,2,3,4,5,6,7,8,9].map(r =>
-        (RELIC_CREDITS[r]/1000) + "k").join(" · ")}.</p>
+      All relics need Gear 13. Credits per level: ${[1,2,3,4,5,6,7,8,9].map(r=>(RELIC_CREDITS[r]/1000)+"k").join(" · ")}.</p>
 
     <b class="tiny">Sources</b>
     <p class="tiny">swgoh.wiki (Energy, Cantina Energy, Ship Energy, Character Shards, Relic Amplifier,
-      Fleet Arena, Daily Activities), swtorstrategies.com (Lightspeed Tokens, relics-at-4-stars),
+      Fleet Arena, Daily Activities, Grand Arena Championships, Cantina Battles 8-F / 8-G),
+      swtorstrategies.com (Lightspeed Tokens, relics-at-4-stars), EA forums (kyrotech monthly income),
       swgohcopyright1983 (drop rates). Verified August 2026 — the game changes, so re-check anything odd.</p>
   </details></div>`;
 }
@@ -895,15 +1145,14 @@ let draft = null;
 function editTarget(id){
   draft = id ? JSON.parse(JSON.stringify(S.targets.find(t => t.id === id)))
              : normalizeTarget({sources:[Object.assign({type:"hard"}, SRC_PRESET.hard)]});
-  drawTargetSheet();
-  openModal();
+  drawTargetSheet(); openModal();
   if(!id) setTimeout(() => { const el = document.getElementById("e-name"); if(el) el.focus(); }, 60);
 }
 
 function drawTargetSheet(){
   const t = draft, exists = S.targets.some(x => x.id === t.id);
   const sim = simulate([t]), d = sim.makespan, tr = sim.tracks[t.id];
-  const cantEnergy = cantinaShardEnergy(t);
+  const cant = shardEnergy(t, "cantina"), sig = signalNeeded(t);
 
   document.getElementById("sheet").innerHTML = `
     <button class="back" onclick="closeModal()">← close</button>
@@ -911,69 +1160,64 @@ function drawTargetSheet(){
     <input type="text" id="e-name" value="${esc(t.name)}" placeholder="e.g. Jolee Bindo"
       autocomplete="off" oninput="draft.name=this.value">
     <label style="display:flex;gap:8px;align-items:center;margin-top:10px;font-size:14px">
-      <input type="checkbox" style="width:auto" ${t.eligible ? "checked" : ""} onchange="dset('eligible',this.checked)">
+      <input type="checkbox" style="width:auto" ${t.eligible?"checked":""} onchange="dset('eligible',this.checked)">
       Lightspeed eligible <span class="tiny">(Legacy Era; not a GL / Conquest / Journey Guide unit)</span></label>
 
     <hr class="sep"><b>Stars</b>
     <div class="g3">
-      <div><label class="f">Current ★</label>
-        <select onchange="dset('star',+this.value)">${[0,1,2,3,4,5,6,7].map(n =>
-          `<option value="${n}" ${t.star===n?"selected":""}>${n===0?"Locked":n+"★"}</option>`).join("")}</select></div>
+      <div><label class="f">Current ★</label><select onchange="dset('star',+this.value)">
+        ${[0,1,2,3,4,5,6,7].map(n=>`<option value="${n}" ${t.star===n?"selected":""}>${n===0?"Locked":n+"★"}</option>`).join("")}</select></div>
       <div><label class="f">Banked shards</label>
         <input type="number" min="0" value="${t.shards}" onchange="dset('shards',num(this.value,0))"></div>
-      <div><label class="f">Target ★</label>
-        <select onchange="dset('targetStar',+this.value)">${[1,2,3,4,5,6,7].map(n =>
-          `<option value="${n}" ${t.targetStar===n?"selected":""}>${n}★</option>`).join("")}</select></div>
+      <div><label class="f">Target ★</label><select onchange="dset('targetStar',+this.value)">
+        ${[1,2,3,4,5,6,7].map(n=>`<option value="${n}" ${t.targetStar===n?"selected":""}>${n}★</option>`).join("")}</select></div>
     </div>
-    <p class="tiny">${t.star < 7 ? `${STAR_COST[t.star+1]} shards to reach ${t.star+1}★ · ${shardsNeeded(t)} to goal.` : "Maxed."}
-      ${requiredStar(t) > t.targetStar ? ` <span class="warn">Raised to ${requiredStar(t)}★ — relic ${t.targetRelic} requires it.</span>` : ""}</p>
+    <p class="tiny">${t.star<7 ? `${STAR_COST[t.star+1]} shards to reach ${t.star+1}★ · ${shardsNeeded(t)} to goal.` : "Maxed."}
+      ${requiredStar(t)>t.targetStar ? ` <span class="warn">Raised to ${requiredStar(t)}★ — relic ${t.targetRelic} requires it.</span>` : ""}</p>
 
     <hr class="sep"><b>Shard sources</b>
     <p class="tiny">Add every source you actually farm.</p>
-    ${t.sources.map((s, i) => srcEditor(s, i)).join("")}
+    ${t.sources.map((s,i)=>srcEditor(s,i)).join("")}
     <button class="btn ghost small" onclick="addSrc()">+ Add source</button>
-    ${cantEnergy > 0 ? `<div class="est" style="margin-top:10px"><p class="tiny warn">
-      This farm burns ${cantEnergy} cantina energy/day — about
-      ${signalIncome(cantEnergy).toFixed(0)} signal data/day you won't be earning,
-      slowing every relic on your account.</p></div>` : ""}
+    ${cant > 0 ? `<div class="est" style="margin-top:10px"><p class="tiny warn">
+      Burns ${cant} cantina energy/day — about ${sigLine(signalIncome(cant, aggregateNeed()),1)} you won't be
+      earning, slowing every relic on your account.</p></div>` : ""}
 
     <hr class="sep"><b>Gear &amp; relics</b>
     <div class="g4">
-      <div><label class="f">Gear now</label>
-        <select onchange="dset('gear',+this.value)">${Array.from({length:13},(_,i)=>i+1).map(n =>
-          `<option value="${n}" ${t.gear===n?"selected":""}>G${n}</option>`).join("")}</select></div>
-      <div><label class="f">Gear goal</label>
-        <select onchange="dset('targetGear',+this.value)">${Array.from({length:13},(_,i)=>i+1).map(n =>
-          `<option value="${n}" ${t.targetGear===n?"selected":""}>G${n}</option>`).join("")}</select></div>
-      <div><label class="f">Relic now</label>
-        <select onchange="dset('relic',+this.value)">${Array.from({length:10},(_,i)=>i).map(n =>
-          `<option value="${n}" ${t.relic===n?"selected":""}>${n?"R"+n:"—"}</option>`).join("")}</select></div>
-      <div><label class="f">Relic goal</label>
-        <select onchange="dset('targetRelic',+this.value)">${Array.from({length:10},(_,i)=>i).map(n =>
-          `<option value="${n}" ${t.targetRelic===n?"selected":""}>${n?"R"+n:"—"}</option>`).join("")}</select></div>
+      <div><label class="f">Gear now</label><select onchange="dset('gear',+this.value)">
+        ${Array.from({length:13},(_,i)=>i+1).map(n=>`<option value="${n}" ${t.gear===n?"selected":""}>G${n}</option>`).join("")}</select></div>
+      <div><label class="f">Gear goal</label><select onchange="dset('targetGear',+this.value)">
+        ${Array.from({length:13},(_,i)=>i+1).map(n=>`<option value="${n}" ${t.targetGear===n?"selected":""}>G${n}</option>`).join("")}</select></div>
+      <div><label class="f">Relic now</label><select onchange="dset('relic',+this.value)">
+        ${Array.from({length:10},(_,i)=>i).map(n=>`<option value="${n}" ${t.relic===n?"selected":""}>${n?"R"+n:"—"}</option>`).join("")}</select></div>
+      <div><label class="f">Relic goal</label><select onchange="dset('targetRelic',+this.value)">
+        ${Array.from({length:10},(_,i)=>i).map(n=>`<option value="${n}" ${t.targetRelic===n?"selected":""}>${n?"R"+n:"—"}</option>`).join("")}</select></div>
     </div>
-    <p class="tiny">Needs ${kyroNeeded(t)} kyrotech${t.targetRelic > 0
-      ? `, ${signalNeeded(t)} signal data and ${(relicCredits(t)/1e6).toFixed(2)}M credits` : ""}.
-      ${t.targetRelic > 0 ? "Relics force Gear 13." : ""}</p>
+    <label class="f">Kyrotech still needed <span style="text-transform:none">(from swgoh.gg — leave blank to estimate)</span></label>
+    <input type="number" min="0" value="${t.kyroOverride}" placeholder="estimate: ${tableKyro(t.gear, effTargetGear(t))}"
+      onchange="dset('kyroOverride', this.value===''?'':num(this.value,''))">
+    <p class="tiny">Using <b>${Math.round(kyroNeeded(t))}</b> kyrotech${
+      t.targetRelic>0 ? ` · signal data ${sigLine(sig)} · ${(relicCredits(t)/1e6).toFixed(2)}M credits` : ""}.
+      ${t.targetRelic>0 ? "Relics force Gear 13." : ""}</p>
 
     <hr class="sep">
     <div class="srcrow"><div class="row"><b class="grow">Finishes ${fmtDays(d)}</b>
       <span class="tiny">${fmtDate(d)}</span></div>
-      <div class="tiny" style="margin-top:5px">Shards ${fmtDays(tr.shards)} ·
-        Kyrotech ${fmtDays(tr.gear)} · Signal data ${fmtDays(tr.relic)}</div>
+      <div class="tiny" style="margin-top:5px">Shards ${fmtDays(tr.shards)} · Kyrotech ${fmtDays(tr.gear)} ·
+        Signal data ${fmtDays(tr.relic)}</div>
       <div class="tiny">${shardsNeeded(t)} shards at ${shardsPerDay(t).toFixed(2)}/day · alone with the full budget</div></div>
 
     <div class="row" style="margin-top:12px">
-      <button class="btn grow" onclick="saveTarget()">${exists ? "Save" : "Add target"}</button>
-      ${exists ? `<button class="btn danger small" onclick="delTarget('${t.id}')">Delete</button>` : ""}
-    </div>`;
+      <button class="btn grow" id="e-save" onclick="saveTarget()">${exists?"Save changes":"Add target"}</button>
+      ${exists ? `<button class="btn danger small" onclick="delTarget('${t.id}')">Delete</button>` : ""}</div>`;
 }
 
 function srcEditor(s, i){
   const flat = SRC_POOL[s.type] === null;
   return `<div class="srcrow">
     <div class="row"><select class="grow" onchange="srcType(${i},this.value)">
-      ${Object.keys(SRC_NAMES).map(k => `<option value="${k}" ${s.type===k?"selected":""}>${SRC_NAMES[k]}</option>`).join("")}
+      ${Object.keys(SRC_NAMES).map(k=>`<option value="${k}" ${s.type===k?"selected":""}>${SRC_NAMES[k]}</option>`).join("")}
     </select><button class="btn ghost small" onclick="delSrc(${i})">✕</button></div>
     ${flat ? `<label class="f">Shards per day</label>
       <input type="number" step="0.1" min="0" value="${s.flat}" onchange="srcSet(${i},'flat',this.value)">`
@@ -981,41 +1225,45 @@ function srcEditor(s, i){
         <div><label class="f">Energy</label><input type="number" min="0" value="${s.energy}" onchange="srcSet(${i},'energy',this.value)"></div>
         <div><label class="f">Tries/day</label><input type="number" min="0" value="${s.attempts}" onchange="srcSet(${i},'attempts',this.value)"></div>
         <div><label class="f">Drop %</label><input type="number" min="0" max="100" value="${s.rate}" onchange="srcSet(${i},'rate',this.value)"></div>
-        <div><label class="f">Per drop</label><input type="number" min="0" step="1" value="${s.per}" onchange="srcSet(${i},'per',this.value)"></div>
-      </div>
+        <div><label class="f">Per drop</label><input type="number" min="0" step="1" value="${s.per}" onchange="srcSet(${i},'per',this.value)"></div></div>
       <p class="tiny">${srcShardsPerDay(s).toFixed(2)} shards/day · ${srcEnergyPerDay(s)} ${POOLS[SRC_POOL[s.type]].name.toLowerCase()} energy/day
-        ${s.type === "cantina" ? ` · <span class="warn">−${signalIncome(srcEnergyPerDay(s)).toFixed(0)} signal/day</span>` : ""}</p>`}
+        ${s.type==="cantina" ? ` · <span class="warn">costs ${sigLine(signalIncome(srcEnergyPerDay(s), aggregateNeed()),1)}</span>` : ""}</p>`}
   </div>`;
 }
 
-// Redraws the sheet. Never call this from the name field's oninput — it would
-// rebuild the input mid-keystroke and drop focus.
-function dset(k, v){ draft[k] = v; drawTargetSheet(); }
-function srcSet(i, k, v){ draft.sources[i][k] = num(v, 0); drawTargetSheet(); }
-function srcType(i, v){ draft.sources[i] = Object.assign({type:v}, SRC_PRESET[v]); drawTargetSheet(); }
-function addSrc(){ draft.sources.push(Object.assign({type:"hard"}, SRC_PRESET.hard)); drawTargetSheet(); }
-function delSrc(i){ draft.sources.splice(i, 1); drawTargetSheet(); }
+// Redraws the sheet. Never call from the name field's oninput — it would rebuild
+// the input mid-keystroke and drop focus.
+function dset(k,v){ draft[k]=v; drawTargetSheet(); }
+function srcSet(i,k,v){ draft.sources[i][k]=num(v,0); drawTargetSheet(); }
+function srcType(i,v){ draft.sources[i]=Object.assign({type:v},SRC_PRESET[v]); drawTargetSheet(); }
+function addSrc(){ draft.sources.push(Object.assign({type:"hard"},SRC_PRESET.hard)); drawTargetSheet(); }
+function delSrc(i){ draft.sources.splice(i,1); drawTargetSheet(); }
 
 function saveTarget(){
   const el = document.getElementById("e-name");
-  if(el) draft.name = el.value;                 // catch text not yet committed
-  if(!draft.name.trim()){ toast("Give it a name"); if(el) el.focus(); return; }
+  if(el) draft.name = el.value;
+  if(!draft.name.trim()){ toast("Give it a name", true); if(el) el.focus(); return; }
   draft.name = draft.name.trim();
   normalizeTarget(draft);
   const i = S.targets.findIndex(t => t.id === draft.id);
-  if(i >= 0) S.targets[i] = draft; else S.targets.push(draft);
-  save(); closeModal(); render(); toast("Saved");
+  const isNew = i < 0;
+  if(isNew) S.targets.push(draft); else S.targets[i] = draft;
+  save();
+  const id = draft.id, nm = draft.name;
+  confirmSave("e-save", isNew ? "✓ Added" : "✓ Saved", () => {
+    flashId = id; closeModal(); render();
+    toast((isNew ? "Added " : "Saved ") + nm);
+  });
 }
 function delTarget(id){
   if(!confirm("Delete this target?")) return;
   S.targets = S.targets.filter(t => t.id !== id);
   S.squads.forEach(q => q.memberIds = q.memberIds.filter(m => m !== id));
-  save(); closeModal(); render();
+  save(); closeModal(); render(); toast("Deleted");
 }
 
 function editSquad(id){
-  draft = id ? JSON.parse(JSON.stringify(S.squads.find(x => x.id === id)))
-             : {id:uid(), name:"", note:"", memberIds:[]};
+  draft = id ? JSON.parse(JSON.stringify(S.squads.find(x=>x.id===id))) : {id:uid(), name:"", note:"", memberIds:[]};
   const q = draft;
   document.getElementById("sheet").innerHTML = `
     <button class="back" onclick="closeModal()">← close</button>
@@ -1025,35 +1273,38 @@ function editSquad(id){
     <label class="f">Note</label>
     <input type="text" value="${esc(q.note||"")}" placeholder="optional" oninput="draft.note=this.value">
     <label class="f">Members</label>
-    ${S.targets.length ? S.targets.map(t => `<label style="display:flex;gap:9px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)">
+    ${S.targets.length ? S.targets.map(t=>`<label style="display:flex;gap:9px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)">
       <input type="checkbox" style="width:auto" ${q.memberIds.includes(t.id)?"checked":""} onchange="toggleMember('${t.id}',this.checked)">
       <span class="grow" style="font-size:14.5px">${esc(t.name)}<br><span class="tiny">${stateLine(t)}</span></span>
-      <span class="tiny">${fmtDays(soloFinish(t))}</span></label>`).join("")
-      : '<p class="muted">No targets yet.</p>'}
+      <span class="tiny">${fmtDays(soloFinish(t))}</span></label>`).join("") : '<p class="muted">No targets yet.</p>'}
     <div class="row" style="margin-top:12px">
-      <button class="btn grow" onclick="saveSquad()">Save squad</button>
-      ${id ? `<button class="btn danger small" onclick="delSquad('${id}')">Delete</button>` : ""}
-    </div>`;
+      <button class="btn grow" id="e-sqsave" onclick="saveSquad()">${id?"Save changes":"Create squad"}</button>
+      ${id?`<button class="btn danger small" onclick="delSquad('${id}')">Delete</button>`:""}</div>`;
   openModal();
   if(!id) setTimeout(() => { const el = document.getElementById("e-sqname"); if(el) el.focus(); }, 60);
 }
-function toggleMember(id, on){
+function toggleMember(id,on){
   if(on){ if(!draft.memberIds.includes(id)) draft.memberIds.push(id); }
-  else draft.memberIds = draft.memberIds.filter(m => m !== id);
+  else draft.memberIds = draft.memberIds.filter(m=>m!==id);
 }
 function saveSquad(){
   const el = document.getElementById("e-sqname");
   if(el) draft.name = el.value;
-  if(!draft.name.trim()){ toast("Give it a name"); if(el) el.focus(); return; }
+  if(!draft.name.trim()){ toast("Give it a name", true); if(el) el.focus(); return; }
   draft.name = draft.name.trim();
-  const i = S.squads.findIndex(q => q.id === draft.id);
-  if(i >= 0) S.squads[i] = draft; else S.squads.push(draft);
-  save(); closeModal(); render(); toast("Saved");
+  const i = S.squads.findIndex(q=>q.id===draft.id);
+  const isNew = i < 0;
+  if(isNew) S.squads.push(draft); else S.squads[i] = draft;
+  save();
+  const nm = draft.name;
+  confirmSave("e-sqsave", isNew ? "✓ Created" : "✓ Saved", () => {
+    closeModal(); render(); toast((isNew?"Created ":"Saved ")+nm);
+  });
 }
 function delSquad(id){
   if(!confirm("Delete this squad?")) return;
-  S.squads = S.squads.filter(q => q.id !== id);
-  save(); closeModal(); render();
+  S.squads = S.squads.filter(q=>q.id!==id);
+  save(); closeModal(); render(); toast("Deleted");
 }
 
 function editToken(){
@@ -1061,32 +1312,47 @@ function editToken(){
   document.getElementById("sheet").innerHTML = `
     <button class="back" onclick="closeModal()">← close</button>
     <label class="f">Tier</label>
-    <select onchange="draft.tier=this.value">${TIER_KEYS.map(k =>
+    <select onchange="draft.tier=this.value">${TIER_KEYS.map(k=>
       `<option value="${k}" ${k==="kyber"?"selected":""}>${LST_TIERS[k].name} — ${LST_TIERS[k].star}★ / G${LST_TIERS[k].gear}${LST_TIERS[k].relic?" / R"+LST_TIERS[k].relic:""}</option>`).join("")}</select>
     <label class="f">Date acquired</label>
     <input type="date" value="${draft.acquired}" onchange="draft.acquired=this.value">
     <label class="f">Note (era / faction lock)</label>
     <input type="text" placeholder="e.g. Separatists only" autocomplete="off" oninput="draft.note=this.value">
-    <button class="btn" style="width:100%;margin-top:14px" onclick="saveToken()">Add token</button>`;
+    <button class="btn" id="e-toksave" style="width:100%;margin-top:14px" onclick="saveToken()">Add token</button>`;
   openModal();
 }
-function saveToken(){ S.tokens.push(draft); save(); closeModal(); render(); toast("Token added"); }
-function delToken(id){ S.tokens = S.tokens.filter(t => t.id !== id); save(); render(); }
+function saveToken(){
+  S.tokens.push(draft); save();
+  const nm = LST_TIERS[draft.tier].name;
+  confirmSave("e-toksave", "✓ Added", () => { closeModal(); render(); toast("Added "+nm+" token"); });
+}
+function delToken(id){ S.tokens = S.tokens.filter(t=>t.id!==id); save(); render(); toast("Removed"); }
 
 /* ============================================================
    PLUMBING
    ============================================================ */
 
+// Flash the button green, buzz if the device supports it, then continue.
+function confirmSave(btnId, label, then){
+  const b = document.getElementById(btnId);
+  if(navigator.vibrate) try{ navigator.vibrate(18); }catch(e){}
+  if(!b){ then(); return; }
+  b.textContent = label; b.classList.add("saved"); b.disabled = true;
+  setTimeout(then, 420);
+}
 function openModal(){ document.getElementById("modal").classList.add("on"); }
 function closeModal(){ document.getElementById("modal").classList.remove("on"); draft = null; }
 let toastT;
-function toast(msg){
+function toast(msg, bad){
   const el = document.getElementById("toast");
-  el.textContent = msg; el.classList.add("on");
-  clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove("on"), 1800);
+  el.textContent = msg;
+  el.style.background = bad ? "var(--bad)" : "var(--good)";
+  el.style.color = bad ? "#2a1210" : "#0d201a";
+  el.classList.add("on");
+  clearTimeout(toastT); toastT = setTimeout(()=>el.classList.remove("on"), 2000);
 }
 function exportData(){
-  const blob = new Blob([JSON.stringify(S, null, 2)], {type:"application/json"});
+  const blob = new Blob([JSON.stringify(S,null,2)], {type:"application/json"});
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
   a.download = "kyber-swgoh-" + new Date().toISOString().slice(0,10) + ".json";
@@ -1098,17 +1364,15 @@ function importData(){
   i.onchange = () => {
     const f = i.files[0]; if(!f) return;
     const r = new FileReader();
-    r.onload = () => {
-      try{ localStorage.setItem(KEY, r.result); S = load(); render(); toast("Imported"); }
-      catch(e){ toast("Bad file"); }
-    };
+    r.onload = () => { try{ localStorage.setItem(KEY, r.result); S = load(); render(); toast("Imported"); }
+      catch(e){ toast("Bad file", true); } };
     r.readAsText(f);
   };
   i.click();
 }
 function wipe(){
   if(!confirm("Erase every target, squad and token?")) return;
-  localStorage.removeItem(KEY); S = load(); render();
+  localStorage.removeItem(KEY); S = load(); render(); toast("Erased");
 }
 
 if("serviceWorker" in navigator && location.protocol==="https:") navigator.serviceWorker.register("../sw.js");

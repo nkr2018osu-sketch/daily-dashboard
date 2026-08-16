@@ -171,6 +171,14 @@ const SRC_PRESET = {
 };
 // Refreshing a node resets its attempts. First reset 25 crystals, then it doubles.
 const NODE_REFRESH_LADDER = [25, 50, 100, 200, 400];
+
+// Community-reported per-character kyrotech totals, for quick entry.
+const KYRO_PRESETS = [
+  {n:100, label:"older legendary"},
+  {n:300, label:"Resistance hero"},
+  {n:400, label:"typical marquee"},
+  {n:500, label:"Armorer / Saw"}
+];
 // One "standard farm" of each energy type, for opportunity-cost comparisons.
 const FARM_COST = {normal:5*16, cantina:5*12, fleet:5*20};
 const FARM_SHARDS = 5*0.33;
@@ -208,7 +216,9 @@ const DEFAULT_CFG = {
 
   // --- kyrotech: the only gear crunch. Monthly income by source. ---
   kyroSources: {dailies:90, guildAB:160, tb:80, tw:65, conquest:40, other:0},
-  kyroPerGear: {10:20, 11:30, 12:100, 13:150},   // fallback when no per-character figure
+  // Kyrotech is a G12/G13 item. Community totals: most marquees 400, older
+  // legendaries ~100. 100 salvage per finished piece, so 400 = 4 pieces.
+  kyroPerGear: {10:0, 11:0, 12:150, 13:250},     // fallback when no per-character figure
 
   // --- signal data: three grades, farmed from separate cantina nodes ---
   // yield is per 120 cantina energy spent on that node (120 = one refresh).
@@ -533,28 +543,6 @@ function simulate(list){
     return Math.max(r > 0 ? s.shard/r : (s.shard > 0 ? 1e6 : 0),
                     kDay > 0 ? s.kyro/kDay : (s.kyro > 0 ? 1e6 : 0));
   }
-}
-
-/* Shard drops are random, so a date built from average drop rates is a coin
-   flip — you land past it half the time. Daily shards are a sum of Bernoulli
-   trials, so over D days: mean D·mu, sd sqrt(D)·sigma. Solving
-   D·mu - z·sqrt(D)·sigma = need for D gives the date you beat z-often. */
-const Z90 = 1.2816;
-function shardDaysUnlucky(t, z){
-  const need = shardsNeeded(t);
-  if(need <= 0) return 0;
-  let mu = 0, varD = 0;
-  t.sources.forEach(s => {
-    if(SRC_POOL[s.type] === null){ mu += num(s.flat, 0); return; }   // stores are deterministic
-    const n = srcAttempts(s), p = num(s.rate,0)/100, per = num(s.per,1);
-    mu += n * p * per;
-    varD += n * p * (1-p) * per * per;
-  });
-  if(mu <= 0) return Infinity;
-  if(varD <= 0) return need / mu;
-  const sd = Math.sqrt(varD), zz = z === undefined ? Z90 : z;
-  const y = (zz*sd + Math.sqrt(zz*zz*sd*sd + 4*mu*need)) / (2*mu);
-  return y * y;
 }
 
 function soloFinish(t){
@@ -1333,6 +1321,10 @@ function vSetup(){
     <p class="tiny">Community figures put a no-spend account at roughly 400/month (~13/day) — 90 from
       dailies, 160 from guild assault battles, ~80 Territory Battles, ~65 Territory Wars, 40 Conquest.
       Add more if you buy with GET, GAC currency or crystals.</p>
+    <div class="est"><p class="tiny">Kyrotech is widely called <b>the</b> bottleneck for most accounts.
+      Reported per-character totals: most marquees <b>400</b>, older legendaries (Jedi Revan, GMY,
+      General Kenobi, Vader) around <b>100</b>, Resistance heroes 300, Armorer and Saw 500.
+      At ~13/day income, one 400-kyro character is about a month of your entire kyrotech economy.</p></div>
     <hr class="sep">
     <div class="est"><p class="tiny">Per-character kyrotech is public on swgoh.gg, but the site blocks
       automated access so it can't be bundled here. Enter the real figure per character in the target
@@ -1467,6 +1459,9 @@ function drawTargetSheet(){
     <label class="f">Kyrotech still needed <span style="text-transform:none">(from swgoh.gg — leave blank to estimate)</span></label>
     <input type="number" min="0" value="${t.kyroOverride}" placeholder="estimate: ${tableKyro(t.gear, effTargetGear(t))}"
       onchange="dset('kyroOverride', this.value===''?'':num(this.value,''))">
+    <div class="row wrap" style="margin-top:6px">${KYRO_PRESETS.map(k =>
+      `<button class="btn ghost small" onclick="dset('kyroOverride',${k.n})">${k.n} — ${k.label}</button>`).join("")}
+      <button class="btn ghost small" onclick="dset('kyroOverride','')">estimate</button></div>
     <p class="tiny">Using <b>${Math.round(kyroNeeded(t))}</b> kyrotech${
       t.targetRelic>0 ? ` · signal data ${sigLine(sig)} · ${(relicCredits(t)/1e6).toFixed(2)}M credits` : ""}.
       ${t.targetRelic>0 ? "Relics force Gear 13." : ""}</p>
@@ -1476,10 +1471,7 @@ function drawTargetSheet(){
       <span class="tiny">${fmtDate(d)}</span></div>
       <div class="tiny" style="margin-top:5px">Shards ${fmtDays(tr.shards)} · Kyrotech ${fmtDays(tr.gear)} ·
         Signal data ${fmtDays(tr.relic)}</div>
-      <div class="tiny">${shardsNeeded(t)} shards at ${shardsPerDay(t).toFixed(2)}/day · alone with the full budget</div>
-      ${shardsNeeded(t) > 0 && isFinite(shardDaysUnlucky(t)) ? `<div class="tiny warn" style="margin-top:4px">
-        Drops are random — that shard date is a coin flip. Unlucky runs (1 in 10) take
-        ${fmtDays(shardDaysUnlucky(t))}, ${Math.ceil(shardDaysUnlucky(t) - tr.shards)} days longer.</div>` : ""}</div>
+      <div class="tiny">${shardsNeeded(t)} shards at ${shardsPerDay(t).toFixed(2)}/day · alone with the full budget</div></div>
 
     <div class="row" style="margin-top:12px">
       <button class="btn grow" id="e-save" onclick="saveTarget()">${exists?"Save changes":"Add target"}</button>

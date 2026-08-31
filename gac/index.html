@@ -71,6 +71,8 @@
   .pill.ship{background:#1b2a38; color:#8ec5ea; border-color:#2b4256;}
 
   .est{background:var(--card2); border-radius:10px; padding:9px 11px; margin:8px 0;}
+  .card.seednote{border-color:#5b4a24; background:#241f16;}
+  .card.seednote h3{color:var(--accent2);}
   .est p{margin:0;}
 
   .item{border-top:1px solid var(--line); padding:11px 0;}
@@ -139,8 +141,8 @@ const DB_URL = "counters.json";
 
 const DEFAULT_CFG = {
   mode: "5v5",           // 5v5 or 3v3
-  groundSlots: 8,        // how many ground squads your defense holds this round
-  fleetSlots: 3,
+  groundSlots: null,     // set from your own GAC map — layouts differ by division
+  fleetSlots: null,
   minStars: 7,           // a unit below this doesn't count as "owned" for a squad
   protectAttackers: 1.0, // 1 = an attack forgone is worth exactly a defense held
   shrink: 4              // how many seed-equivalent games your own logged results fight
@@ -159,6 +161,7 @@ function load(){
   d.myDefense  = d.myDefense  || [];   // what you committed to
   d.log = d.log || [];
   d.custom = d.custom || [];           // your own counter entries, layered over the seed
+  d.opponents = d.opponents || {};     // ally code -> the board they habitually set
   d.dropped = d.dropped || [];         // squads you refuse to leave on defense
   return d;
 }
@@ -362,7 +365,12 @@ function uScoreRaw(u){
   if(rarity > 0 && rarity < 7) s *= (rarity / 7) * 0.9;
   return s;
 }
+function oppKnown(){ return Object.keys(S.opp.units).length > 0; }
 function owns(R, k){
+  // No opponent roster loaded: assume they own everything. That is the
+  // conservative read — it never tells you a squad is safe because they
+  // happen to be missing a counter we have no evidence either way about.
+  if(R === S.opp && !oppKnown()) return true;
   const u = R.units[k];
   if(!u) return false;
   const rr = num(u.rarity, 7);
@@ -582,6 +590,7 @@ function oppDefenseEntries(){
 
 /* Run the defense recommender on THEIR roster to guess what they'll set. */
 function predictedDefense(){
+  if(!oppKnown()) return [];        // no roster, nothing to infer from
   if(_cache.pred) return _cache.pred;
   const O = S.opp, M = S.me;
   const build = (type, slots) => {
@@ -592,7 +601,7 @@ function predictedDefense(){
     });
     return packDisjoint(cands, slots).pick;
   };
-  const res = build("squad", num(S.cfg.groundSlots, 8)).concat(build("fleet", num(S.cfg.fleetSlots, 3)));
+  const res = build("squad", num(S.cfg.groundSlots, 0)).concat(build("fleet", num(S.cfg.fleetSlots, 0)));
   _cache.pred = res;
   return res;
 }
@@ -711,13 +720,21 @@ function defensePlan(){
     return {cands, picked, stop, pool: pool.length};
   };
 
-  const res = {ground: fill("squad", num(S.cfg.groundSlots, 8)),
-               fleet:  fill("fleet",  num(S.cfg.fleetSlots, 3))};
+  const res = {ground: fill("squad", num(S.cfg.groundSlots, 0)),
+               fleet:  fill("fleet",  num(S.cfg.fleetSlots, 0))};
   _cache.def = res;
   return res;
 }
 
-function haveRosters(){ return Object.keys(S.me.units).length > 0 && Object.keys(S.opp.units).length > 0; }
+function haveMe(){ return Object.keys(S.me.units).length > 0; }
+/* Both counts must be answered, not either — otherwise typing the ground
+   number dismissed the prompt before the fleet number could be entered.
+   Zero is a legitimate answer; unanswered is null. */
+function boardSet(){ return S.cfg.groundSlots != null && S.cfg.fleetSlots != null; }
+/* Knowing what they actually set beats knowing their roster. If you have their
+   board from GAC history, offense plans fine without ever loading their units;
+   the roster only sharpens the gear-gap term. */
+function canPlanOffense(){ return haveMe() && ((S.oppDefense || []).length > 0 || oppKnown()); }
 
 /* ============================================================
    RENDER
@@ -740,6 +757,22 @@ function render(){
     view === "log"     ? viewLog()     : viewSetup();
 }
 
+/* The single most important caveat in this app, so it goes at the top of both
+   planning tabs rather than buried in Setup. */
+function seedNote(){
+  if(S.cfg.hideSeedNote) return "";
+  const n = (S.log || []).length;
+  return `<div class="card seednote">
+    <h3>About these win rates</h3>
+    <p class="tiny">They are <b>my estimates, not swgoh.gg data</b>. Nothing in this app is scraped
+    from a counter site — the shipped table was written by hand and the percentages are rough.
+    Trust the <i>ordering</i> more than the numbers, and trust your own experience over both.</p>
+    <p class="tiny">Two ways to fix that: log results as you play (${n} so far — after about four on a
+    pairing, your record outweighs my guess), or import a real table under
+    <b>Setup → Import a table</b>.</p>
+    <button class="btn ghost small" onclick="setCfg('hideSeedNote', true)">Got it, hide this</button>
+  </div>`;
+}
 function probPill(p){
   const c = p >= 0.7 ? "good" : p >= 0.55 ? "mid" : "hot";
   return `<span class="pill ${c}">${pct(p)}</span>`;
@@ -794,7 +827,7 @@ function playerCard(who, title){
   </div>`;
 }
 function viewRosters(){
-  const both = haveRosters();
+  const both = haveMe() && oppKnown();
   return `
   <div class="card">
     <h3>This round</h3>
@@ -807,9 +840,12 @@ function viewRosters(){
   </div>
   ${playerCard("me","You")}
   ${playerCard("opp","Opponent")}
-  ${both ? `<div class="card"><h3>Ready</h3>
-      <p class="muted">Both rosters are loaded. <b>Defense</b> ranks what to set;
-      <b>Offense</b> assigns your attacks.</p>
+  ${haveMe() ? `<div class="card"><h3>Ready</h3>
+      <p class="muted">${both
+        ? `Both rosters are loaded. <b>Defense</b> ranks what to set; <b>Offense</b> assigns your attacks.`
+        : `Your roster is loaded, which is enough to start. Their roster is optional — without it,
+           defense assumes they can field any counter (the safe reading), and offense works as soon
+           as you tell it what they set.`}</p>
       <div class="row"><button class="btn grow" onclick="go('defense')">Plan defense</button>
       <button class="btn ghost grow" onclick="go('offense')">Plan offense</button></div></div>`
     : `<div class="card"><h3>How to load a roster</h3>
@@ -828,10 +864,11 @@ function viewRosters(){
 
 /* ---------- defense ---------- */
 function viewDefense(){
-  if(!haveRosters()) return needRosters();
+  if(!haveMe()) return needRosters();
+  if(!boardSet()) return needBoard();
   const plan = defensePlan();
   const w = num(S.cfg.protectAttackers, 1);
-  const slots = num(S.cfg.groundSlots,8) + num(S.cfg.fleetSlots,3);
+  const slots = num(S.cfg.groundSlots,0) + num(S.cfg.fleetSlots,0);
   const set = plan.ground.picked.length + plan.fleet.picked.length;
   const sec = (label, group, slots) => {
     const picked = group.picked;
@@ -847,6 +884,7 @@ function viewDefense(){
     </div>`;
   };
   return `
+  ${seedNote()}
   <div class="kpis">
     <div class="kpi"><div class="v">${pct(avgSafety(plan))}</div><div class="k">Avg hold chance</div></div>
     <div class="kpi"><div class="v">${plan.ground.picked.length + plan.fleet.picked.length}</div><div class="k">Squads set</div></div>
@@ -874,8 +912,8 @@ function viewDefense(){
     wall if what it denies beats what it could have taken — which is why your best attacker usually
     shouldn't be standing on it.</p>
   </div>
-  ${sec("Ground defense", plan.ground, num(S.cfg.groundSlots,8))}
-  ${sec("Fleet defense", plan.fleet, num(S.cfg.fleetSlots,3))}
+  ${sec("Ground defense", plan.ground, num(S.cfg.groundSlots,0))}
+  ${sec("Fleet defense", plan.fleet, num(S.cfg.fleetSlots,0))}
   ${(S.dropped||[]).length ? `<div class="card"><h3>Kept back for attacking</h3>
     ${S.dropped.map(id => { const d = defById(id); return d ? `<div class="item"><div class="hd">
       <span class="nm">${esc(d.name)}</span>
@@ -917,17 +955,40 @@ function defRow(c, rank){
   </div>`;
 }
 function needRosters(){
-  return `<div class="card"><h3>Load both rosters first</h3>
-    <p class="muted">Every recommendation depends on what each of you owns, so the planner needs
-    your roster and your opponent's.</p>
+  return `<div class="card"><h3>Load your roster first</h3>
+    <p class="muted">Everything is scored against what you can actually field.</p>
     <button class="btn" onclick="go('rosters')">Go to rosters</button></div>`;
+}
+function needOffenseInputs(){
+  return `<div class="card"><h3>${haveMe() ? "Tell me what they set" : "Load your roster first"}</h3>
+    <p class="muted">${haveMe()
+      ? `To plan attacks I need their defense — either the squads they put down, or their roster so
+         I can guess. If their defense is stable, entering it once is better than any guess I'd make.`
+      : `Everything is scored against what you can actually field.`}</p>
+    <button class="btn" onclick="go('${haveMe() ? "opponent" : "rosters"}')">${
+      haveMe() ? "Enter their defense" : "Go to rosters"}</button></div>`;
+}
+function needBoard(){
+  const c = S.cfg;
+  return `<div class="card"><h3>How big is your board?</h3>
+    <p class="muted">Defense slot counts differ by division and format, and I'd rather ask than
+    guess wrong. Open your GAC map and count the squads each side sets.</p>
+    <div class="g2">
+      <div><label class="f">Ground squads</label>
+        <input type="number" min="0" max="20" value="${c.groundSlots == null ? "" : c.groundSlots}"
+          placeholder="e.g. 8" onchange="setCfg('groundSlots', this.value)"></div>
+      <div><label class="f">Fleets</label>
+        <input type="number" min="0" max="10" value="${c.fleetSlots == null ? "" : c.fleetSlots}"
+          placeholder="e.g. 2" onchange="setCfg('fleetSlots', this.value)"></div>
+    </div>
+    <p class="tiny">You can change these any time in Setup.</p></div>`;
 }
 
 /* ---------- offense ---------- */
 function viewOffense(){
-  if(!haveRosters()) return needRosters();
-  const plan = offensePlan();
+  if(!haveMe()) return needRosters();
   const known = (S.oppDefense || []).length > 0;
+  const plan = canPlanOffense() ? offensePlan() : {targets: [], pick: [], locked: new Set(), score: 0};
   // Which already-assigned attack is holding the units this one wanted?
   const blockedBy = cand => {
     for(let j = 0; j < plan.pick.length; j++){
@@ -976,7 +1037,10 @@ function viewOffense(){
     .map(d => `<option value="${d.id}">${esc(d.name)}</option>`).join("");
 
   const attacked = plan.pick.filter(Boolean).length;
+  const rec = savedOpp();
+  const predicted = !known && oppKnown();
   return `
+  ${seedNote()}
   <div class="kpis">
     <div class="kpi"><div class="v">${attacked}/${plan.targets.length}</div><div class="k">Squads answered</div></div>
     <div class="kpi"><div class="v">${plan.targets.length ? pct(plan.score/plan.targets.length) : "—"}</div><div class="k">Avg win chance</div></div>
@@ -984,29 +1048,41 @@ function viewOffense(){
   </div>
 
   <div class="card">
-    <h3>${known ? "Their defense" : "Predicted defense"}</h3>
+    <h3>${known ? "Their defense" : predicted ? "Predicted defense" : "What are they setting?"}</h3>
     ${known
-      ? `<p class="tiny">What you entered for this round.</p>`
-      : `<p class="tiny">They haven't been entered yet, so this is what their roster is most likely
-         to set — the same recommender, run on their side. Replace it with the real thing once the
-         round opens.</p>`}
+      ? `<p class="tiny">What you entered for this round.${rec ? ` Saved against ally code
+         ${esc(S.opp.allyCode)} — it comes back automatically next time you draw them.` : ""}</p>`
+      : predicted
+        ? `<p class="tiny">A guess from their roster, nothing more. If you can see their real board
+           in their GAC history, enter it — it beats anything I'd infer.</p>`
+        : `<p class="tiny">Add the squads they set. If their defense is stable, this is the single
+           most useful thing you can give the planner, and you only do it once — it's saved against
+           their ally code.</p>`}
+    ${(!known && rec) ? `<div class="est"><p class="tiny">You've recorded a board for this ally code
+      before (${esc(rec.updated)}).</p></div>
+      <button class="btn small" style="margin-bottom:8px" onclick="recallOpp()">Reload their usual defense</button>` : ""}
     <div class="row" style="margin-top:8px">
       <select id="addOpp" class="grow">${opts}</select>
       <button class="btn small" onclick="addOppDef()">Add</button>
     </div>
-    ${known ? `<div class="row" style="margin-top:8px">
-        <button class="btn ghost small" onclick="clearOppDef()">Clear and go back to predicting</button></div>`
-      : `<div class="row" style="margin-top:8px">
-        <button class="btn ghost small" onclick="adoptPrediction()">Copy the prediction in and edit it</button></div>`}
+    <div class="row wrap" style="margin-top:8px">
+      ${known ? `<button class="btn ghost small" onclick="clearOppDef()">Clear</button>` : ""}
+      ${predicted ? `<button class="btn ghost small" onclick="adoptPrediction()">Copy the prediction in and edit it</button>` : ""}
+      ${rec ? `<button class="btn danger small" onclick="forgetOpp()">Forget this opponent</button>` : ""}
+    </div>
+    ${!oppKnown() && known ? `<p class="tiny" style="margin-top:8px">Their roster isn't loaded, so
+      win chances assume you're evenly geared. Load it on the Rosters tab to sharpen them.</p>` : ""}
   </div>
 
-  <div class="card">
+  ${!plan.targets.length ? `<div class="card"><h3>Nothing to plan yet</h3>
+    <p class="muted">Add the squads they set above, or load their roster so I can guess at it.</p>
+  </div>` : `<div class="card">
     <h3>Attack plan</h3>
     <p class="tiny" style="margin-bottom:8px">Solved as a whole: no unit is used twice, and the
     ${plan.locked.size} unit${plan.locked.size===1?"":"s"} already standing on your defense are out
     of the pool — so a squad that counters three things is spent where it's worth most.${plan.bailed ? " (Search hit its time limit — this is the best found so far.)" : ""}</p>
     ${rows || '<div class="empty">Nothing to attack yet.</div>'}
-  </div>`;
+  </div>`}`;
 }
 
 /* ---------- log ---------- */
@@ -1041,9 +1117,9 @@ function viewSetup(){
   <div class="card"><h3>This round</h3>
     <div class="g2">
       <div><label class="f">Ground slots</label>
-        <input type="number" min="1" max="20" value="${c.groundSlots}" onchange="setCfg('groundSlots', this.value)"></div>
+        <input type="number" min="0" max="20" value="${c.groundSlots == null ? "" : c.groundSlots}" onchange="setCfg('groundSlots', this.value)"></div>
       <div><label class="f">Fleet slots</label>
-        <input type="number" min="0" max="10" value="${c.fleetSlots}" onchange="setCfg('fleetSlots', this.value)"></div>
+        <input type="number" min="0" max="10" value="${c.fleetSlots == null ? "" : c.fleetSlots}" onchange="setCfg('fleetSlots', this.value)"></div>
     </div>
     <p class="tiny">How many squads your defense holds this round. It changes with league and
     format, so check the map and set it here.</p>
@@ -1103,9 +1179,13 @@ function setMode(m){ S.cfg.mode = m; S.oppDefense = []; save(); render(); }
 function setCode(who, v){ S[who].allyCode = String(v || "").replace(/\D/g,"").slice(0,9); save(); }
 function setCfg(k, v){
   const numeric = ["groundSlots","fleetSlots","minStars","protectAttackers","shrink"];
+  if(k === "hideSeedNote"){ S.cfg.hideSeedNote = !!v; save(); render(); return; }
   S.cfg[k] = numeric.indexOf(k) >= 0 ? num(v, DEFAULT_CFG[k]) : v;
   save();
-  render();
+  // These fire from an input's own change event. Re-rendering synchronously
+  // rips the still-focused field out of the DOM mid-blur, which the browser
+  // rejects — so let the event finish first.
+  setTimeout(render, 0);
 }
 
 /* ---------- rosters ---------- */
@@ -1150,7 +1230,10 @@ function finishRoster(who, parsed){
   P.name = parsed.name || P.name;
   if(parsed.allyCode) P.allyCode = String(parsed.allyCode).replace(/\D/g,"").slice(0,9);
   P.syncedAt = today();
-  if(who === "opp") S.oppDefense = [];
+  if(who === "opp" && !(S.oppDefense || []).length){
+    const rec = savedOpp();
+    if(rec) S.oppDefense = rec.defense.map(id => ({id: uid(), def: id}));
+  }
   save(); closeModal(); render();
   toast(Object.keys(res.units).length + " of " + res.total + " units matched");
 }
@@ -1183,11 +1266,11 @@ function addOppDef(){
   const id = document.getElementById("addOpp").value;
   if(!id) return;
   S.oppDefense.push({id: uid(), def: id});
-  save(); render();
+  rememberOpp(); save(); render();
 }
 function delOppDef(rowId){
   S.oppDefense = S.oppDefense.filter(o => o.id !== rowId);
-  save(); render();
+  rememberOpp(); save(); render();
 }
 function dropDef(id){
   S.dropped = uniq((S.dropped || []).concat([id]));
@@ -1197,10 +1280,38 @@ function restoreDef(id){
   S.dropped = (S.dropped || []).filter(x => x !== id);
   save(); render(); toast("Back on defense");
 }
+/* Most opponents set the same board week after week. Once you've entered one,
+   keep it against their ally code so redrawing them costs nothing. */
+function rememberOpp(){
+  const code = (S.opp.allyCode || "").replace(/\D/g,"");
+  if(code.length !== 9) return;
+  if(!(S.oppDefense || []).length){ delete S.opponents[code]; return; }
+  S.opponents[code] = {
+    name: S.opp.name || "", updated: today(), mode: S.cfg.mode,
+    defense: S.oppDefense.map(o => o.def)
+  };
+}
+function savedOpp(){
+  const code = (S.opp.allyCode || "").replace(/\D/g,"");
+  return code.length === 9 ? (S.opponents[code] || null) : null;
+}
+function recallOpp(){
+  const rec = savedOpp();
+  if(!rec || !rec.defense.length) return false;
+  S.oppDefense = rec.defense.map(id => ({id: uid(), def: id}));
+  save(); render();
+  toast("Reloaded the board they usually set");
+  return true;
+}
+function forgetOpp(){
+  const code = (S.opp.allyCode || "").replace(/\D/g,"");
+  if(code.length === 9) delete S.opponents[code];
+  save(); render(); toast("Forgotten");
+}
 function clearOppDef(){ S.oppDefense = []; save(); render(); toast("Back to predicting"); }
 function adoptPrediction(){
   S.oppDefense = predictedDefense().map(p => ({id: uid(), def: p.entry.id}));
-  save(); render(); toast("Copied — edit as they set");
+  rememberOpp(); save(); render(); toast("Copied — edit as they set");
 }
 
 /* ---------- log ---------- */

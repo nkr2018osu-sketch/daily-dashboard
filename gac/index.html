@@ -1,0 +1,1390 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bracket — SWGOH GAC Planner</title>
+<meta name="theme-color" content="#16181d">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<style>
+  :root{
+    --bg:#16181d; --card:#1f2229; --card2:#262a33; --line:#32363f;
+    --ink:#e8e6e1; --dim:#9aa0ab; --faint:#6b717c;
+    --accent:#e2a03f; --accent2:#f3c977; --gold:#e0b455; --bad:#d9776f; --good:#58b89a;
+    --mid:#d6a45c; --hot:#c9615a;
+    --r:14px;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+  html,body{margin:0; padding:0; background:var(--bg); color:var(--ink);
+    font:16px/1.45 -apple-system,"Segoe UI",Roboto,sans-serif;}
+  body{padding-bottom:calc(40px + env(safe-area-inset-bottom));}
+  header{padding:18px 16px 6px; display:flex; align-items:baseline; gap:10px;}
+  header h1{font-size:22px; margin:0; letter-spacing:.3px;}
+  header .sub{color:var(--faint); font-size:12px; flex:1;}
+  header a.home{color:var(--faint); font-size:13px; text-decoration:none;}
+  nav{display:flex; gap:4px; padding:10px 10px; position:sticky; top:0; background:var(--bg);
+    z-index:20; border-bottom:1px solid var(--line);}
+  nav button{flex:1; padding:10px 2px; border:0; border-radius:10px; background:transparent;
+    color:var(--dim); font-size:13.5px; font-weight:600;}
+  nav button.on{background:var(--card2); color:var(--accent2);}
+  main{padding:14px 12px; max-width:660px; margin:0 auto;}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:var(--r);
+    padding:14px; margin-bottom:12px;}
+  .card h3{margin:0 0 6px; font-size:16px;}
+  .muted{color:var(--dim); font-size:13px;}
+  .tiny{color:var(--faint); font-size:12px;}
+  .warn{color:var(--gold);} .bad{color:var(--bad);} .good{color:var(--good);}
+  button.btn{border:0; border-radius:11px; padding:12px 16px; font-size:15px; font-weight:700;
+    background:var(--accent); color:#2a1c05; transition:background .18s, transform .12s;}
+  button.btn:active{transform:scale(.97);}
+  button.btn.saved{background:var(--good); color:#0d201a;}
+  button.ghost{background:var(--card2); color:var(--ink); border:1px solid var(--line);}
+  button.small{padding:7px 12px; font-size:13px; border-radius:9px;}
+  button.danger{background:transparent; border:1px solid #6a4441; color:var(--bad);}
+  button[disabled]{opacity:.45;}
+  .row{display:flex; gap:8px; align-items:center;}
+  .row.wrap{flex-wrap:wrap;}
+  .grow{flex:1;}
+  input[type=text], input[type=number], input[type=search], textarea, select{
+    width:100%; padding:11px; font-size:16px; background:var(--card2); color:var(--ink);
+    border:1px solid var(--line); border-radius:10px;}
+  textarea{font:13px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace; min-height:120px;}
+  input:focus, textarea:focus, select:focus{outline:1px solid var(--accent); border-color:var(--accent);}
+  input[type=range]{width:100%; accent-color:var(--accent);}
+  label.f{display:block; font-size:11px; color:var(--faint); text-transform:uppercase;
+    letter-spacing:.5px; margin:12px 0 5px;}
+  label.f:first-child{margin-top:0;}
+  .g2{display:grid; grid-template-columns:1fr 1fr; gap:8px;}
+  .g3{display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px;}
+  .kpis{display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:12px;}
+  .kpi{background:var(--card); border:1px solid var(--line); border-radius:var(--r); padding:10px;}
+  .kpi .v{font-size:19px; font-weight:800; color:var(--accent2);}
+  .kpi .v.neg{color:var(--bad);} .kpi .v.pos{color:var(--good);}
+  .kpi .k{font-size:10.5px; color:var(--faint); text-transform:uppercase; letter-spacing:.5px;}
+  hr.sep{border:0; border-top:1px solid var(--line); margin:12px 0;}
+  .pill{display:inline-block; font-size:11px; font-weight:700; padding:2px 8px; border-radius:20px;
+    background:var(--card2); color:var(--dim); border:1px solid var(--line);}
+  .pill.good{background:#1c3630; color:#7fd8bb; border-color:#2b5449;}
+  .pill.mid{background:#3a2f18; color:var(--accent2); border-color:#5b4a24;}
+  .pill.hot{background:#3a201e; color:#f0968e; border-color:#5e3330;}
+  .pill.ship{background:#1b2a38; color:#8ec5ea; border-color:#2b4256;}
+
+  .est{background:var(--card2); border-radius:10px; padding:9px 11px; margin:8px 0;}
+  .est p{margin:0;}
+
+  .item{border-top:1px solid var(--line); padding:11px 0;}
+  .item:first-of-type{border-top:none;}
+  .item .hd{display:flex; align-items:baseline; gap:8px;}
+  .item .hd .nm{font-weight:700; font-size:15px; flex:1;}
+  .units{font-size:12.5px; color:var(--dim); margin-top:3px;}
+  .units .miss{color:var(--bad);}
+  .units .u{display:inline-block; background:var(--card2); border-radius:6px; padding:1px 6px;
+    margin:2px 3px 0 0; border:1px solid var(--line);}
+  .units .u.lead{border-color:var(--accent); color:var(--accent2);}
+  .units .u.weak{color:var(--gold);}
+
+  .bar{height:6px; border-radius:4px; background:var(--card2); overflow:hidden; margin-top:6px;}
+  .bar i{display:block; height:100%; background:var(--accent);}
+  .bar i.good{background:var(--good);} .bar i.hot{background:var(--hot);}
+
+  .empty{color:var(--faint); font-size:13px; text-align:center; padding:18px 6px;}
+
+  #toast{position:fixed; left:50%; transform:translateX(-50%); bottom:18px; z-index:60;
+    padding:10px 16px; border-radius:11px; font-size:14px; font-weight:600; opacity:0;
+    pointer-events:none; transition:opacity .2s; max-width:90vw; text-align:center;}
+  #toast.on{opacity:1;}
+  #modal{position:fixed; inset:0; background:rgba(8,9,12,.72); z-index:50; display:none;
+    align-items:flex-end; justify-content:center;}
+  #modal.on{display:flex;}
+  #modal .sheet{background:var(--card); border-top-left-radius:18px; border-top-right-radius:18px;
+    width:100%; max-width:660px; max-height:92vh; overflow:auto; padding:16px 14px
+    calc(16px + env(safe-area-inset-bottom));}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Bracket</h1>
+  <span class="sub">GAC planner</span>
+  <a class="home" href="../index.html">← Dashboard</a>
+</header>
+
+<nav>
+  <button id="nav-rosters" class="on" onclick="go('rosters')">Rosters</button>
+  <button id="nav-defense" onclick="go('defense')">Defense</button>
+  <button id="nav-offense" onclick="go('offense')">Offense</button>
+  <button id="nav-log" onclick="go('log')">Log</button>
+  <button id="nav-setup" onclick="go('setup')">Setup</button>
+</nav>
+
+<main id="app"></main>
+
+<div id="modal"><div class="sheet" id="sheet"></div></div>
+<div id="toast"></div>
+
+<script>
+/* ============================================================
+   BRACKET — SWGOH GAC planner
+   Plans two things:
+     1. which of your squads to put on defense against THIS opponent, and
+     2. which of your squads to attack THEIR defense with.
+   Both answers depend on the two rosters, so everything is roster-aware:
+   a counter only counts if the player actually owns it.
+   ============================================================ */
+
+const KEY   = "swgohGac";
+const DBKEY = "swgohGacDb";      // cached counters.json so the app works offline
+const DB_URL = "counters.json";
+
+const DEFAULT_CFG = {
+  mode: "5v5",           // 5v5 or 3v3
+  groundSlots: 8,        // how many ground squads your defense holds this round
+  fleetSlots: 3,
+  minStars: 7,           // a unit below this doesn't count as "owned" for a squad
+  protectAttackers: 1.0, // 1 = an attack forgone is worth exactly a defense held
+  shrink: 4              // how many seed-equivalent games your own logged results fight
+};
+
+let S, DB = null, view = "rosters", draft = null;
+
+/* ---------- storage ---------- */
+function load(){
+  let d = {};
+  try{ d = JSON.parse(localStorage.getItem(KEY) || "{}"); }catch(e){ d = {}; }
+  d.cfg = Object.assign({}, DEFAULT_CFG, d.cfg || {});
+  d.me  = normPlayer(d.me);
+  d.opp = normPlayer(d.opp);
+  d.oppDefense = d.oppDefense || [];   // what they actually set, this round
+  d.myDefense  = d.myDefense  || [];   // what you committed to
+  d.log = d.log || [];
+  d.custom = d.custom || [];           // your own counter entries, layered over the seed
+  d.dropped = d.dropped || [];         // squads you refuse to leave on defense
+  return d;
+}
+function normPlayer(p){
+  p = p || {};
+  p.name = p.name || "";
+  p.allyCode = p.allyCode || "";
+  p.units = p.units || {};             // catalogKey -> {g,r,rarity,lvl,gp,ct,name}
+  p.raw = p.raw || 0;                  // how many units the paste contained
+  p.syncedAt = p.syncedAt || "";
+  return p;
+}
+function save(){ localStorage.setItem(KEY, JSON.stringify(S)); clearCache(); }
+
+let _cache = {};
+function clearCache(){ _cache = {}; }
+
+/* ---------- small helpers ---------- */
+function uid(){ return Math.random().toString(36).slice(2,9); }
+function num(v, d){ const n = parseFloat(v); return isFinite(n) ? n : (d===undefined?0:d); }
+function clamp(v,a,b){ return v<a?a:(v>b?b:v); }
+function uniq(a){ return Array.from(new Set(a)); }
+function pct(x){ return Math.round(x*100) + "%"; }
+function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,
+  c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function norm(s){ return String(s==null?"":s).toUpperCase().replace(/[^A-Z0-9]/g,""); }
+function today(){ return new Date().toISOString().slice(0,10); }
+
+/* ============================================================
+   COUNTER DATABASE
+   counters.json ships with the app; the copy in localStorage is the
+   offline fallback and also the target for anything you import.
+   ============================================================ */
+
+function loadDbCache(){
+  try{ const d = JSON.parse(localStorage.getItem(DBKEY) || "null"); if(d && d.units) return d; }
+  catch(e){}
+  return null;
+}
+function saveDb(d){ DB = d; localStorage.setItem(DBKEY, JSON.stringify(d)); buildIndex(); clearCache(); }
+
+async function initDb(){
+  DB = loadDbCache();
+  if(DB) buildIndex();
+  try{
+    const r = await fetch(DB_URL, {cache:"no-cache"});
+    if(r.ok){
+      const fresh = await r.json();
+      // Don't clobber a newer imported table with the shipped seed.
+      if(!DB || !DB.importedAt || (fresh.version||0) > (DB.version||0)) saveDb(fresh);
+    }
+  }catch(e){ /* offline — the cached copy stands */ }
+  if(!DB){ DB = {version:0, units:{}, defenses:[]}; buildIndex(); }
+}
+
+/* Every defense in the table, plus anything you added yourself. */
+function defenses(){
+  const seed = (DB && DB.defenses) || [];
+  const mine = S.custom || [];
+  const byId = new Map();
+  seed.forEach(d => byId.set(d.id, d));
+  mine.forEach(d => {
+    const base = byId.get(d.id);
+    // A custom entry with the same id extends the seed rather than replacing it.
+    if(base) byId.set(d.id, Object.assign({}, base, d,
+      {counters: (base.counters||[]).concat(d.counters||[])}));
+    else byId.set(d.id, d);
+  });
+  return Array.from(byId.values());
+}
+function defById(id){ return defenses().find(d => d.id === id) || null; }
+
+/* ---------- unit name index ----------
+   The catalogue keys are ours; rosters arrive with swgoh.gg base ids or
+   display names. Index every spelling so either kind of paste matches. */
+let IDX = new Map();
+function buildIndex(){
+  IDX = new Map();
+  const U = (DB && DB.units) || {};
+  Object.keys(U).forEach(k => {
+    const u = U[k];
+    const keys = [k, u.n].concat(u.a || []);
+    keys.forEach(x => { const n = norm(x); if(n && !IDX.has(n)) IDX.set(n, k); });
+  });
+}
+function catalogKey(idOrName){
+  const n = norm(idOrName);
+  return n ? (IDX.get(n) || null) : null;
+}
+function uname(k){ const u = (DB && DB.units && DB.units[k]); return u ? u.n : k; }
+function isShip(k){ const u = (DB && DB.units && DB.units[k]); return !!(u && u.ship); }
+
+/* ============================================================
+   ROSTER INGESTION
+   Tolerant on purpose: swgoh.gg's player API, a units array, an export
+   from another tool, or a plain list of names all land in the same shape.
+   ============================================================ */
+
+function relicOf(d){
+  if(d.relic_tier != null) return Math.max(0, num(d.relic_tier) - 2); // gg: 1-2 == no relic
+  if(d.relic != null)      return Math.max(0, num(d.relic));
+  if(d.relicTier != null)  return Math.max(0, num(d.relicTier) - 2);
+  return 0;
+}
+
+/* Walk an arbitrary JSON blob and pull out anything unit-shaped. */
+function harvest(node, out, depth){
+  depth = depth || 0;
+  if(depth > 8 || node == null) return;
+  if(Array.isArray(node)){ node.forEach(n => harvest(n, out, depth+1)); return; }
+  if(typeof node !== "object") return;
+
+  const d = (node.data && typeof node.data === "object" && !Array.isArray(node.data)) ? node.data : node;
+  const id = d.base_id || d.baseId || d.defId || d.unitId || d.id;
+  const nm = d.name || d.unit_name;
+  const looksLikeUnit = ("gear_level" in d) || ("gear" in d) || ("relic_tier" in d) ||
+                        ("relicTier" in d) || ("rarity" in d) || ("stars" in d);
+  if((id || nm) && looksLikeUnit){
+    out.push({
+      id: id ? String(id) : "",
+      name: nm ? String(nm) : "",
+      g: num(d.gear_level != null ? d.gear_level : d.gear, 1),
+      r: relicOf(d),
+      rarity: num(d.rarity != null ? d.rarity : d.stars, 0),
+      lvl: num(d.level, 0),
+      gp: num(d.power != null ? d.power : d.gp, 0),
+      ct: num(d.combat_type != null ? d.combat_type : 1, 1)
+    });
+    return;                                  // a unit has no units inside it
+  }
+  Object.keys(node).forEach(k => {
+    const v = node[k];
+    if(v && typeof v === "object") harvest(v, out, depth+1);
+  });
+}
+
+/* A plain list of names, one per line — "Jedi Master Kenobi", or
+   "Jedi Master Kenobi g13 r7". Everything unspecified is assumed maxed. */
+function parseNameList(text){
+  return text.split(/[\n,;]+/).map(l => l.trim()).filter(Boolean).map(l => {
+    let g = 13, r = 5, rarity = 7;
+    const mg = l.match(/\bg(?:ear)?\s*(\d{1,2})\b/i);   if(mg) g = num(mg[1], 13);
+    const mr = l.match(/\br(?:elic)?\s*(\d{1,2})\b/i);  if(mr) r = num(mr[1], 0);
+    const ms = l.match(/(\d)\s*\*/);                    if(ms) rarity = num(ms[1], 7);
+    const name = l.replace(/\bg(?:ear)?\s*\d{1,2}\b/ig,"")
+                  .replace(/\br(?:elic)?\s*\d{1,2}\b/ig,"")
+                  .replace(/\d\s*\*/g,"").replace(/[-–—|]+\s*$/,"").trim();
+    return {id:"", name, g, r, rarity, lvl:85, gp:0, ct:1, assumed:true};
+  }).filter(u => u.name);
+}
+
+function parseRoster(text){
+  text = (text || "").trim();
+  if(!text) return {units:[], name:"", allyCode:"", err:"Nothing pasted."};
+  let name = "", allyCode = "", found = [];
+  if(text[0] === "{" || text[0] === "["){
+    let j;
+    try{ j = JSON.parse(text); }
+    catch(e){ return {units:[], name:"", allyCode:"", err:"That looks like JSON but won't parse: " + e.message}; }
+    const meta = (j && j.data) || j || {};
+    name = meta.name || meta.player_name || "";
+    allyCode = String(meta.ally_code || meta.allyCode || "");
+    harvest(j, found, 0);
+  } else {
+    found = parseNameList(text);
+  }
+  return {units:found, name, allyCode, err: found.length ? "" : "Found no units in that."};
+}
+
+/* Collapse the harvested list onto catalogue keys. Anything we don't have a
+   catalogue entry for is still counted, just not usable in a squad. */
+function ingest(parsed){
+  const units = {}, unknown = [];
+  parsed.units.forEach(u => {
+    const k = catalogKey(u.id) || catalogKey(u.name);
+    if(!k){ unknown.push(u.name || u.id); return; }
+    const prev = units[k];
+    // Keep the stronger record if a unit somehow shows up twice.
+    if(!prev || uScoreRaw(u) > uScoreRaw(prev)) units[k] = u;
+  });
+  return {units, unknown, total: parsed.units.length};
+}
+
+/* ============================================================
+   SCORING
+   Everything is relative. GAC pairs you against a similar galactic power,
+   so what decides a battle is the gear gap on the five units that show up,
+   not either roster's absolute size.
+   ============================================================ */
+
+function squadSize(){ return S.cfg.mode === "3v3" ? 3 : 5; }
+function sizeFor(entry){ return entry && entry.type === "fleet" ? 1 : squadSize(); }
+
+/* A unit's strength on a 0-22ish scale: gear 1-12 below relics, then relic on top. */
+function uScoreRaw(u){
+  if(!u) return 0;
+  const g = clamp(num(u.g,1), 1, 13);
+  const r = clamp(num(u.r,0), 0, 9);
+  let s = g >= 13 ? 13 + r : g * 0.85;
+  const rarity = num(u.rarity, 7);
+  if(rarity > 0 && rarity < 7) s *= (rarity / 7) * 0.9;
+  return s;
+}
+function owns(R, k){
+  const u = R.units[k];
+  if(!u) return false;
+  const rr = num(u.rarity, 7);
+  return rr === 0 || rr >= num(S.cfg.minStars, 7);
+}
+
+/* Turn a catalogue entry into the actual squad a roster would field for it:
+   the leader and required core, then the best fill this roster owns. */
+function buildSquad(entry, R, size){
+  size = size || sizeFor(entry);
+  const core = uniq([entry.lead].concat(entry.core || []).filter(Boolean));
+  const missing = core.filter(k => !owns(R, k));
+  const fill = (entry.common || [])
+    .filter(k => owns(R, k) && core.indexOf(k) < 0)
+    .sort((a,b) => uScoreRaw(R.units[b]) - uScoreRaw(R.units[a]));
+  const units = uniq(core.concat(fill)).slice(0, size);
+  const ownedUnits = units.filter(k => owns(R, k));
+  const scores = ownedUnits.map(k => uScoreRaw(R.units[k]));
+  const pool = (entry.common || []).length;
+  return {
+    entry, units, core, fill, missing, ownedUnits,
+    ok: missing.length === 0,
+    depth: pool ? clamp(fill.length / pool, 0, 1) : 1,
+    short: Math.max(0, size - ownedUnits.length),
+    str: scores.length ? scores.reduce((a,b)=>a+b,0) / scores.length : 0
+  };
+}
+
+/* Your own results outrank the seed table as soon as you have a few of them. */
+function logged(defId, cname, seed){
+  const rows = (S.log || []).filter(l => l.def === defId && l.counter === cname);
+  const n = rows.length;
+  if(!n) return {p: seed, n: 0, src: "seed"};
+  const w = rows.filter(l => l.win).length;
+  const k = Math.max(0, num(S.cfg.shrink, 4));
+  return {p: clamp((seed * k + w) / (k + n), 0.02, 0.97), n, w, src: "log"};
+}
+
+/* Probability that `counter`, fielded by atk, beats `defEntry` held by def. */
+function evaluate(defEntry, counter, atk, def){
+  const size = sizeFor(defEntry);
+  const a = buildSquad(counter, atk, size);
+  if(!a.ok) return {ok:false, missing:a.missing, p:0, atkSquad:a};
+  const d = buildSquad(defEntry, def, size);
+  // A defender who can't even field the squad isn't holding it — treat their
+  // strength as the attacker's so the gear term is neutral.
+  const dStr = d.ok && d.str ? d.str : a.str;
+  const gap = clamp(a.str / Math.max(1, dStr), 0.70, 1.35);
+  const base = logged(defEntry.id, counter.name, num(counter.win, 0.5));
+  let p = base.p * gap * (0.88 + 0.12 * a.depth);
+  if(a.short) p *= Math.pow(0.90, a.short);
+  return {ok:true, p: clamp(p, 0.02, 0.97), gap, base, atkSquad:a, defSquad:d};
+}
+
+function counterList(defEntry){ return defEntry.counters || []; }
+
+/* Every counter the attacker can actually field, best first.
+   Memoised per squad per direction — the marginal-cost pass re-solves the
+   attack phase dozens of times and would otherwise rebuild all of this each
+   time, which is what made the planner slow on a full roster. */
+function feasibleCounters(defEntry, atk, def){
+  const dir = atk === S.me ? "m:" : atk === S.opp ? "o:" : null;
+  if(dir){
+    _cache.fc = _cache.fc || {};
+    const hit = _cache.fc[dir + defEntry.id];
+    if(hit) return hit;
+  }
+  const out = counterList(defEntry)
+    .map(c => Object.assign({counter:c}, evaluate(defEntry, c, atk, def)))
+    .filter(x => x.ok)
+    .sort((a,b) => b.p - a.p);
+  if(dir) _cache.fc[dir + defEntry.id] = out;
+  return out;
+}
+
+/* How exposed a squad is: the single best answer the opponent can field.
+   `known` separates "nothing they own beats it" from "the table has no data",
+   which look identical in the numbers and mean very different things. */
+function threat(defEntry, opp, me){
+  const list = feasibleCounters(defEntry, opp, me);
+  return {
+    best: list[0] || null, all: list,
+    p: list.length ? list[0].p : 0,
+    known: counterList(defEntry).length > 0
+  };
+}
+// Nothing in this game holds forever, so safety tops out short of certain.
+function safetyOf(t){ return clamp(1 - t.p, 0.03, 0.97); }
+
+/* Squads a roster can actually put down. */
+function fieldable(R, type){
+  return defenses().filter(d => {
+    if(type && d.type !== type) return false;
+    if(d.modes && d.modes.indexOf(S.cfg.mode) < 0) return false;
+    return buildSquad(d, R).ok;
+  });
+}
+
+/* ============================================================
+   SOLVERS
+   A unit can sit in exactly one squad — on defense and, per round, on
+   offense too. That makes both halves of the plan a packing problem, not
+   a sort, which is the part a spreadsheet gets wrong.
+   ============================================================ */
+
+/* How long either search may run before it settles for the best it has found.
+   Measured on a full 90-unit roster against an 18-squad board: the defense
+   packing finds its optimum within 25ms, and offense is within 1% of optimal
+   by 100ms — the last 1% takes 1.8s. That last 1% is 0.07 of an expected
+   battle, which is far inside the error on the win rates feeding it, so
+   there's nothing to buy by making a phone sit there for it. */
+const BUDGET_MS = 250;
+/* The attack phase is re-solved once per defense slot while the wall goes up.
+   Those solves only need to be good enough to price a squad, so they get a
+   much smaller slice than the plan you actually read. */
+const INNER_MS = 60;
+
+/* Pick up to `slots` mutually unit-disjoint candidates, maximising total score. */
+function packDisjoint(cands, slots){
+  const list = cands.slice().sort((a,b) => b.score - a.score);
+  const n = list.length;
+  let best = {score: 0, pick: []};
+  {
+    const used = new Set(), pick = [];
+    let sc = 0;
+    for(let j = 0; j < n && pick.length < slots; j++){
+      if(list[j].score <= 0) break;
+      if(list[j].units.some(u => used.has(u))) continue;
+      list[j].units.forEach(u => used.add(u));
+      pick.push(list[j]); sc += list[j].score;
+    }
+    best = {score: sc, pick};
+  }
+  const cur = [];
+  const t0 = Date.now();
+  function dfs(i, used, score, left){
+    if(score > best.score) best = {score, pick: cur.slice()};
+    if(left === 0 || i >= n) return;
+    if(Date.now() - t0 > BUDGET_MS) return;
+    for(let j = i; j < n; j++){
+      // list is sorted, so this is a real upper bound on everything left.
+      if(score + list[j].score * left <= best.score) break;
+      if(list[j].units.some(u => used.has(u))) continue;
+      list[j].units.forEach(u => used.add(u));
+      cur.push(list[j]);
+      dfs(j + 1, used, score + list[j].score, left - 1);
+      cur.pop();
+      list[j].units.forEach(u => used.delete(u));
+    }
+  }
+  dfs(0, new Set(), 0, Math.max(0, slots));
+  return best;
+}
+
+/* Assign one counter to each opposing squad without reusing a unit.
+   Targets are solved hardest-first so the search prunes early. */
+function assignOffense(targets, budgetMs){
+  const order = targets.map((t,i) => i)
+    .sort((a,b) => targets[a].cands.length - targets[b].cands.length);
+  const cands = order.map(i => targets[i].cands);
+  const n = cands.length;
+  const suf = new Array(n + 1).fill(0);
+  for(let i = n - 1; i >= 0; i--) suf[i] = suf[i+1] + (cands[i][0] ? cands[i][0].p : 0);
+
+  // Greedy first pass: gives the branch-and-bound a real lower bound to beat
+  // from its very first node.
+  let best = {score: 0, pick: new Array(n).fill(null)};
+  {
+    const used = new Set(), pick = new Array(n).fill(null);
+    let sc = 0;
+    for(let i = 0; i < n; i++){
+      const c = cands[i].find(x => !x.units.some(u => used.has(u)));
+      if(c){ c.units.forEach(u => used.add(u)); pick[i] = c; sc += c.p; }
+    }
+    best = {score: sc, pick};
+  }
+  const cur = new Array(n).fill(null);
+  const t0 = Date.now();
+  let bailed = false;
+  function dfs(i, used, score){
+    if(i === n){ if(score > best.score) best = {score, pick: cur.slice()}; return; }
+    if(Date.now() - t0 > (budgetMs == null ? BUDGET_MS : budgetMs)){ bailed = true; return; }
+    if(score + suf[i] <= best.score) return;
+    for(const c of cands[i]){
+      if(c.units.some(u => used.has(u))) continue;
+      c.units.forEach(u => used.add(u));
+      cur[i] = c;
+      dfs(i + 1, used, score + c.p);
+      c.units.forEach(u => used.delete(u));
+    }
+    cur[i] = null;                       // leaving a squad unattacked is legal
+    dfs(i + 1, used, score);
+  }
+  dfs(0, new Set(), 0);
+
+  const out = new Array(targets.length).fill(null);
+  order.forEach((t, i) => { out[t] = best.pick[i]; });
+  return {score: Math.max(0, best.score), pick: out, bailed};
+}
+
+/* ============================================================
+   THE PLAN
+   Offense is solved first: whatever it commits to attacking with is what
+   defense has to work around. "Protect my attackers" sets how hard.
+   ============================================================ */
+
+function oppDefenseEntries(){
+  // What they actually set, if you've entered it; otherwise what we predict.
+  if((S.oppDefense || []).length){
+    return S.oppDefense.map(o => {
+      const d = defById(o.def);
+      return d ? {entry: d, id: o.id, note: o.note || "", known: true} : null;
+    }).filter(Boolean);
+  }
+  return predictedDefense().map((p, i) => ({entry: p.entry, id: "pred" + i, note: "", known: false}));
+}
+
+/* Run the defense recommender on THEIR roster to guess what they'll set. */
+function predictedDefense(){
+  if(_cache.pred) return _cache.pred;
+  const O = S.opp, M = S.me;
+  const build = (type, slots) => {
+    const cands = fieldable(O, type).map(d => {
+      const t = threat(d, M, O);              // how easily *you* beat it
+      const sq = buildSquad(d, O);
+      return {entry: d, units: sq.units, score: safetyOf(t) * 100 + sq.str, threat: t};
+    });
+    return packDisjoint(cands, slots).pick;
+  };
+  const res = build("squad", num(S.cfg.groundSlots, 8)).concat(build("fleet", num(S.cfg.fleetSlots, 3)));
+  _cache.pred = res;
+  return res;
+}
+
+/* Solve the attack phase. `locked` is the set of units standing on your own
+   defense — in GAC those units are spent, so offense may not use them. */
+function solveOffense(locked, budgetMs){
+  const M = S.me, O = S.opp;
+  const targets = oppDefenseEntries().map(t => {
+    const all = feasibleCounters(t.entry, M, O);
+    const free = all.filter(x => !x.atkSquad.units.some(u => locked.has(u)));
+    const cands = free.slice(0, 5).map(x => ({
+      counter: x.counter, p: x.p, units: x.atkSquad.units,
+      squad: x.atkSquad, base: x.base, gap: x.gap
+    }));
+    return {target: t, cands, owned: all.length, onDefense: all.length - free.length};
+  });
+  const sol = assignOffense(targets, budgetMs);
+  const used = new Set();
+  sol.pick.forEach(p => { if(p) p.units.forEach(u => used.add(u)); });
+  const busyFor = sol.pick.map((p, i) => {
+    const b = new Set();
+    sol.pick.forEach((q, j) => { if(q && j !== i) q.units.forEach(u => b.add(u)); });
+    return b;
+  });
+  return {targets, pick: sol.pick, used, busyFor, score: sol.score, bailed: sol.bailed, locked};
+}
+
+/* The best attack phase you could have if defense cost you nothing. Only used
+   to price what a defensive squad gives up — never shown as the plan. */
+function offenseIdeal(){
+  return _cache.ideal || (_cache.ideal = solveOffense(new Set()));
+}
+
+/* The plan you can actually run, with your defense already standing. */
+function offensePlan(){
+  return _cache.off || (_cache.off = solveOffense(lockedUnits()));
+}
+function lockedUnits(){
+  const d = defensePlan();
+  const set = new Set();
+  d.ground.picked.concat(d.fleet.picked).forEach(c => c.units.forEach(u => set.add(u)));
+  return set;
+}
+
+/* What offense gives up if a defense squad takes these units off the board,
+   measured in expected battles won — the same unit `safety` is in, so the two
+   can be subtracted honestly. A squad worth 0.9 held is worth exactly as much
+   as an attack worth 0.9 won.
+
+   Priced against a specific attack plan, not against your roster in the
+   abstract: you can only attack as many squads as they set, so once offense
+   has an answer for every one of their territories, the next unit you free up
+   is worth nothing and belongs on the wall. */
+function costAgainst(plan, units){
+  const set = new Set(units);
+  let lost = 0;
+  plan.pick.forEach((p, i) => {
+    if(!p || !p.units.some(u => set.has(u))) return;
+    // Charging the squad the whole attack would be wrong: the second-best
+    // answer this roster owns steps in. Charge only the difference.
+    const busy = plan.busyFor[i];
+    const alt = plan.targets[i].cands.find(c =>
+      c !== p && !c.units.some(u => set.has(u) || busy.has(u)));
+    lost += p.p - (alt ? alt.p : 0);
+  });
+  return Math.max(0, lost);
+}
+function offenseCost(units){ return costAgainst(offenseIdeal(), units); }
+
+function defensePlan(){
+  if(_cache.def) return _cache.def;
+  const M = S.me, O = S.opp;
+  const w = clamp(num(S.cfg.protectAttackers, 1), 0, 2);
+  const dropped = S.dropped || [];
+  const locked = new Set();
+
+  const describe = (d, plan) => {
+    const t = threat(d, O, M);
+    const sq = buildSquad(d, M);
+    const safety = safetyOf(t);
+    const cost = costAgainst(plan, sq.units);
+    return {entry: d, units: sq.units, squad: sq, threat: t, safety, cost,
+            score: safety - w * cost};
+  };
+
+  /* Fill one slot at a time, re-solving the attack phase after each. A squad
+     looks expensive while offense still has uses for its units and cheap once
+     offense runs out of their squads to attack — which only shows up if the
+     costs are recomputed as the wall goes up, never if they're priced all at
+     once against an empty wall. */
+  const fill = (type, slots) => {
+    const pool = fieldable(M, type).filter(d => dropped.indexOf(d.id) < 0);
+    const picked = [];
+    let stop = null;
+    for(let n = 0; n < slots; n++){
+      const plan = solveOffense(locked, INNER_MS);
+      let best = null;
+      pool.forEach(d => {
+        if(picked.some(c => c.entry.id === d.id)) return;
+        const sq = buildSquad(d, M);
+        if(sq.units.some(u => locked.has(u))) return;      // already on the wall
+        const c = describe(d, plan);
+        if(!best || c.score > best.score) best = c;
+      });
+      // A slot left empty concedes those banners, so anything that denies more
+      // than it costs goes up. Nothing left worth it means stop, not force it.
+      if(!best){ stop = "exhausted"; break; }      // nothing left that doesn't reuse a unit
+      if(best.score <= 0){ stop = "notworth"; break; }
+      best.units.forEach(u => locked.add(u));
+      picked.push(best);
+    }
+    // The runners-up, priced against the wall as it finally stands.
+    const finalPlan = solveOffense(locked, INNER_MS);
+    const cands = pool.map(d => describe(d, finalPlan)).sort((a,b) => b.score - a.score);
+    return {cands, picked, stop, pool: pool.length};
+  };
+
+  const res = {ground: fill("squad", num(S.cfg.groundSlots, 8)),
+               fleet:  fill("fleet",  num(S.cfg.fleetSlots, 3))};
+  _cache.def = res;
+  return res;
+}
+
+function haveRosters(){ return Object.keys(S.me.units).length > 0 && Object.keys(S.opp.units).length > 0; }
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+
+const VIEWS = ["rosters","defense","offense","log","setup"];
+function go(v){
+  view = v;
+  VIEWS.forEach(x => document.getElementById("nav-" + x).classList.toggle("on", x === v));
+  window.scrollTo(0,0);
+  render();
+}
+function render(){
+  const el = document.getElementById("app");
+  if(!DB){ el.innerHTML = '<div class="empty">Loading counter table…</div>'; return; }
+  el.innerHTML =
+    view === "rosters" ? viewRosters() :
+    view === "defense" ? viewDefense() :
+    view === "offense" ? viewOffense() :
+    view === "log"     ? viewLog()     : viewSetup();
+}
+
+function probPill(p){
+  const c = p >= 0.7 ? "good" : p >= 0.55 ? "mid" : "hot";
+  return `<span class="pill ${c}">${pct(p)}</span>`;
+}
+function safetyPill(s){
+  const c = s >= 0.55 ? "good" : s >= 0.35 ? "mid" : "hot";
+  return `<span class="pill ${c}">${pct(s)} safe</span>`;
+}
+function bar(v, cls){
+  return `<div class="bar"><i class="${cls||''}" style="width:${clamp(v,0,1)*100}%"></i></div>`;
+}
+function srcTag(base){
+  return base.src === "log"
+    ? `<span class="tiny">your log ${base.w}/${base.n}</span>`
+    : `<span class="tiny">seed est.</span>`;
+}
+function unitChips(sq, R){
+  const lead = sq.entry.lead;
+  const chips = sq.units.map(k => {
+    const have = owns(R, k);
+    const u = R.units[k];
+    const weak = have && u && uScoreRaw(u) < 13;
+    const cls = (k === lead ? "u lead" : "u") + (weak ? " weak" : "");
+    const tag = have ? (u.g >= 13 ? (u.r ? "R" + u.r : "G13") : "G" + u.g) : "—";
+    return `<span class="${cls}">${esc(uname(k))} <span class="tiny">${tag}</span></span>`;
+  }).join("");
+  const miss = sq.missing.length
+    ? `<div class="units miss">Missing: ${sq.missing.map(k=>esc(uname(k))).join(", ")}</div>` : "";
+  const short = sq.short ? `<div class="tiny warn">${sq.short} empty slot${sq.short>1?"s":""} — fill from your roster.</div>` : "";
+  return `<div class="units">${chips}</div>${miss}${short}`;
+}
+
+/* ---------- rosters ---------- */
+function playerCard(who, title){
+  const P = S[who];
+  const n = Object.keys(P.units).length;
+  const code = P.allyCode ? esc(P.allyCode) : "";
+  return `<div class="card">
+    <h3>${title} ${P.name ? `<span class="tiny">${esc(P.name)}</span>` : ""}</h3>
+    <div class="row" style="margin-bottom:8px">
+      <div class="grow"><input type="text" inputmode="numeric" placeholder="Ally code (9 digits)"
+        value="${code}" oninput="setCode('${who}', this.value)"></div>
+      <button class="btn ghost small" onclick="fetchRoster('${who}')">Fetch</button>
+    </div>
+    <div class="row wrap">
+      <button class="btn ghost small" onclick="openPaste('${who}')">Paste roster</button>
+      ${n ? `<button class="btn danger small" onclick="clearRoster('${who}')">Clear</button>` : ""}
+      <span class="grow"></span>
+      <span class="pill ${n ? "good" : ""}">${n} unit${n===1?"":"s"} matched</span>
+    </div>
+    ${P.syncedAt ? `<div class="tiny" style="margin-top:6px">Loaded ${esc(P.syncedAt)}${P.raw ? ` from ${P.raw} in the paste` : ""}.</div>` : ""}
+  </div>`;
+}
+function viewRosters(){
+  const both = haveRosters();
+  return `
+  <div class="card">
+    <h3>This round</h3>
+    <label class="f">Format</label>
+    <div class="row">
+      ${["5v5","3v3"].map(m => `<button class="btn ${S.cfg.mode===m?"":"ghost"} small grow"
+        onclick="setMode('${m}')">${m}</button>`).join("")}
+    </div>
+    <div class="tiny" style="margin-top:8px">Counters differ by format, so set this before planning.</div>
+  </div>
+  ${playerCard("me","You")}
+  ${playerCard("opp","Opponent")}
+  ${both ? `<div class="card"><h3>Ready</h3>
+      <p class="muted">Both rosters are loaded. <b>Defense</b> ranks what to set;
+      <b>Offense</b> assigns your attacks.</p>
+      <div class="row"><button class="btn grow" onclick="go('defense')">Plan defense</button>
+      <button class="btn ghost grow" onclick="go('offense')">Plan offense</button></div></div>`
+    : `<div class="card"><h3>How to load a roster</h3>
+      <p class="muted">Two ways, either works:</p>
+      <p class="muted"><b>1 — Fetch.</b> Type an ally code and hit Fetch. It calls swgoh.gg's public
+      player API straight from your browser. That only works if swgoh.gg allows cross-origin
+      requests; if it doesn't, you'll get a clear error and can use option 2.</p>
+      <p class="muted"><b>2 — Paste.</b> Open
+      <code class="tiny">swgoh.gg/api/player/&lt;ally code&gt;/</code> in a browser tab, select all,
+      copy, and paste it in. A plain list of character names, one per line, also works
+      — handy for an opponent whose ally code you don't have.</p>
+      <div class="est"><p class="tiny">Nothing leaves your device except the swgoh.gg request itself.
+      Rosters live in this browser's storage.</p></div>
+    </div>`}`;
+}
+
+/* ---------- defense ---------- */
+function viewDefense(){
+  if(!haveRosters()) return needRosters();
+  const plan = defensePlan();
+  const w = num(S.cfg.protectAttackers, 1);
+  const slots = num(S.cfg.groundSlots,8) + num(S.cfg.fleetSlots,3);
+  const set = plan.ground.picked.length + plan.fleet.picked.length;
+  const sec = (label, group, slots) => {
+    const picked = group.picked;
+    const rest = group.cands.filter(c => picked.indexOf(c) < 0).slice(0, 6);
+    if(!group.cands.length) return `<div class="card"><h3>${label}</h3>
+      <div class="empty">No ${label.toLowerCase()} in the table that your roster can field.
+      Add one in Setup.</div></div>`;
+    return `<div class="card">
+      <h3>${label} <span class="tiny">${picked.length} of ${slots} slots</span></h3>
+      ${picked.map((c,i) => defRow(c, i+1)).join("") || '<div class="empty">Nothing fits.</div>'}
+      ${rest.length ? `<hr class="sep"><div class="tiny" style="margin-bottom:6px">Next best — swap in if
+        you'd rather keep a unit above free:</div>${rest.map(c => defRow(c, null)).join("")}` : ""}
+    </div>`;
+  };
+  return `
+  <div class="kpis">
+    <div class="kpi"><div class="v">${pct(avgSafety(plan))}</div><div class="k">Avg hold chance</div></div>
+    <div class="kpi"><div class="v">${plan.ground.picked.length + plan.fleet.picked.length}</div><div class="k">Squads set</div></div>
+    <div class="kpi"><div class="v">${offensePlan().pick.filter(Boolean).length}/${offensePlan().targets.length}</div><div class="k">Attacks left</div></div>
+  </div>
+  ${set < slots ? `<div class="card"><h3 class="warn">${slots - set} slot${slots-set===1?"":"s"} unfilled</h3>
+    <p class="tiny">An empty slot hands the opponent those banners for free, so this is worth
+    fixing.</p>
+    ${[["Ground", plan.ground], ["Fleet", plan.fleet]].filter(x => x[1].stop).map(([lbl, gr]) =>
+      `<p class="tiny"><b>${lbl}:</b> ${gr.stop === "exhausted"
+        ? `the table only knows ${gr.pool} squad${gr.pool===1?"":"s"} your roster can field, and every
+           one left over reuses a unit already on the wall. Add the squads you actually run under
+           <b>Setup → Add a counter</b> and they'll be offered here.`
+        : `nothing left denies more than it would take from your attacks. Pull the dial toward
+           "wall it off" if you'd rather hold the ground anyway.`}</p>`).join("")}
+  </div>` : ""}
+  <div class="card">
+    <h3>What a defense slot is worth</h3>
+    <input type="range" min="0" max="2" step="0.1" value="${w}"
+      onchange="setCfg('protectAttackers', this.value)">
+    <div class="row"><span class="tiny grow">Wall it off</span>
+      <span class="tiny">Keep attackers free</span></div>
+    <p class="tiny" style="margin-top:8px">At <b>${w.toFixed(1)}×</b>, one attack given up is worth
+    ${w === 1 ? "exactly one" : w.toFixed(1)} defense${w===1?"":"s"} held. A squad only goes on the
+    wall if what it denies beats what it could have taken — which is why your best attacker usually
+    shouldn't be standing on it.</p>
+  </div>
+  ${sec("Ground defense", plan.ground, num(S.cfg.groundSlots,8))}
+  ${sec("Fleet defense", plan.fleet, num(S.cfg.fleetSlots,3))}
+  ${(S.dropped||[]).length ? `<div class="card"><h3>Kept back for attacking</h3>
+    ${S.dropped.map(id => { const d = defById(id); return d ? `<div class="item"><div class="hd">
+      <span class="nm">${esc(d.name)}</span>
+      <button class="btn ghost small" onclick="restoreDef('${id}')">Put back</button></div></div>` : ""; }).join("")}
+  </div>` : ""}
+  <div class="card"><h3>Reading this</h3>
+    <p class="tiny">"Safe" is 1 minus the best answer <i>this opponent can actually field</i> —
+    a counter they don't own is not a threat to you. It tops out at 97%: nothing holds forever.</p>
+    <p class="tiny">Anything you leave here is locked out of the attack phase, so the Offense tab
+    only ever plans with what's left. "Free" pulls a squad off the wall and hands it back to offense.</p>
+  </div>`;
+}
+function avgSafety(plan){
+  const all = plan.ground.picked.concat(plan.fleet.picked);
+  if(!all.length) return 0;
+  return all.reduce((a,c) => a + c.safety, 0) / all.length;
+}
+function defRow(c, rank){
+  const t = c.threat.best;
+  const line = t
+    ? `Their best answer: <b>${esc(t.counter.name)}</b> at ${pct(t.p)} — ${srcTag(t.base)}.
+       ${t.counter.notes ? esc(t.counter.notes) : ""}`
+    : c.threat.known
+      ? `Nothing they own beats this — every listed answer needs a unit they don't have.`
+      : `<span class="warn">The table lists no counters for this squad</span>, so this number is a
+         guess, not a finding. Add what beats it in Setup.`;
+  return `<div class="item">
+    <div class="hd">
+      <span class="nm">${rank ? rank + ". " : ""}${esc(c.entry.name)}</span>
+      ${safetyPill(c.safety)}
+      <button class="btn ghost small" onclick="dropDef('${c.entry.id}')"
+        title="Take this squad off the wall and attack with it">Attack&nbsp;with&nbsp;it</button>
+    </div>
+    ${bar(c.safety, c.safety >= .55 ? "good" : c.safety >= .35 ? "" : "hot")}
+    ${unitChips(c.squad, S.me)}
+    <div class="tiny" style="margin-top:5px">${line}</div>
+    ${c.cost > 0.05 ? `<div class="tiny warn">Holding this gives up ${c.cost.toFixed(2)} expected
+      wins on offense — those units can't attack.</div>` : ""}
+  </div>`;
+}
+function needRosters(){
+  return `<div class="card"><h3>Load both rosters first</h3>
+    <p class="muted">Every recommendation depends on what each of you owns, so the planner needs
+    your roster and your opponent's.</p>
+    <button class="btn" onclick="go('rosters')">Go to rosters</button></div>`;
+}
+
+/* ---------- offense ---------- */
+function viewOffense(){
+  if(!haveRosters()) return needRosters();
+  const plan = offensePlan();
+  const known = (S.oppDefense || []).length > 0;
+  // Which already-assigned attack is holding the units this one wanted?
+  const blockedBy = cand => {
+    for(let j = 0; j < plan.pick.length; j++){
+      const q = plan.pick[j];
+      if(q && q.units.some(u => cand.units.indexOf(u) >= 0)) return plan.targets[j].target.entry.name;
+    }
+    return null;
+  };
+  const rows = plan.targets.map((t, i) => {
+    const pick = plan.pick[i];
+    const alts = t.cands.filter(c => c !== pick).slice(0, 3);
+    return `<div class="item">
+      <div class="hd">
+        <span class="nm">${esc(t.target.entry.name)}</span>
+        ${pick ? probPill(pick.p) : '<span class="pill hot">no answer</span>'}
+        ${t.target.known ? `<button class="btn danger small" onclick="delOppDef('${t.target.id}')">✕</button>` : ""}
+      </div>
+      ${pick ? `
+        ${bar(pick.p, pick.p >= .7 ? "good" : pick.p >= .55 ? "" : "hot")}
+        <div class="tiny" style="margin:4px 0 2px">Attack with <b>${esc(pick.counter.name)}</b>
+          — ${srcTag(pick.base)}${pick.gap > 1.05 ? `, you out-gear them` : pick.gap < 0.95 ? `, they out-gear you` : ""}.</div>
+        ${unitChips(pick.squad, S.me)}
+        ${pick.counter.notes ? `<div class="tiny">${esc(pick.counter.notes)}</div>` : ""}
+        <div class="row wrap" style="margin-top:7px">
+          <button class="btn ghost small" onclick="logResult(${i},true)">Won</button>
+          <button class="btn ghost small" onclick="logResult(${i},false)">Lost</button>
+        </div>`
+      : `<div class="tiny bad" style="margin-top:4px">
+          ${t.cands.length ? "Nothing free is worth more here than where it already is."
+            : t.onDefense ? "Your " + t.onDefense + " answer" + (t.onDefense>1?"s are":" is") +
+                            " standing on your own defense. Free one on the Defense tab to use it here."
+            : "You don't own any counter listed for this squad."}
+         </div>
+         ${t.cands.slice(0,3).map(a => { const by = blockedBy(a);
+            return `<div class="tiny">${esc(a.counter.name)} ${pct(a.p)} — ${by
+              ? "committed to " + esc(by) : "free, but worth less than the swap"}.</div>`; }).join("")}`}
+      ${pick && alts.length ? `<div class="tiny" style="margin-top:6px">Also possible:
+        ${alts.map(a => { const by = blockedBy(a);
+          return esc(a.counter.name) + " " + pct(a.p) + (by ? " (on " + esc(by) + ")" : ""); }).join(" · ")}</div>` : ""}
+    </div>`;
+  }).join("");
+
+  const opts = defenses()
+    .filter(d => !d.modes || d.modes.indexOf(S.cfg.mode) >= 0)
+    .sort((a,b) => a.name.localeCompare(b.name))
+    .map(d => `<option value="${d.id}">${esc(d.name)}</option>`).join("");
+
+  const attacked = plan.pick.filter(Boolean).length;
+  return `
+  <div class="kpis">
+    <div class="kpi"><div class="v">${attacked}/${plan.targets.length}</div><div class="k">Squads answered</div></div>
+    <div class="kpi"><div class="v">${plan.targets.length ? pct(plan.score/plan.targets.length) : "—"}</div><div class="k">Avg win chance</div></div>
+    <div class="kpi"><div class="v">${plan.locked.size}</div><div class="k">Units on defense</div></div>
+  </div>
+
+  <div class="card">
+    <h3>${known ? "Their defense" : "Predicted defense"}</h3>
+    ${known
+      ? `<p class="tiny">What you entered for this round.</p>`
+      : `<p class="tiny">They haven't been entered yet, so this is what their roster is most likely
+         to set — the same recommender, run on their side. Replace it with the real thing once the
+         round opens.</p>`}
+    <div class="row" style="margin-top:8px">
+      <select id="addOpp" class="grow">${opts}</select>
+      <button class="btn small" onclick="addOppDef()">Add</button>
+    </div>
+    ${known ? `<div class="row" style="margin-top:8px">
+        <button class="btn ghost small" onclick="clearOppDef()">Clear and go back to predicting</button></div>`
+      : `<div class="row" style="margin-top:8px">
+        <button class="btn ghost small" onclick="adoptPrediction()">Copy the prediction in and edit it</button></div>`}
+  </div>
+
+  <div class="card">
+    <h3>Attack plan</h3>
+    <p class="tiny" style="margin-bottom:8px">Solved as a whole: no unit is used twice, and the
+    ${plan.locked.size} unit${plan.locked.size===1?"":"s"} already standing on your defense are out
+    of the pool — so a squad that counters three things is spent where it's worth most.${plan.bailed ? " (Search hit its time limit — this is the best found so far.)" : ""}</p>
+    ${rows || '<div class="empty">Nothing to attack yet.</div>'}
+  </div>`;
+}
+
+/* ---------- log ---------- */
+function viewLog(){
+  const rows = (S.log || []).slice().reverse();
+  const wins = (S.log || []).filter(l => l.win).length;
+  return `
+  <div class="kpis">
+    <div class="kpi"><div class="v">${S.log.length}</div><div class="k">Battles logged</div></div>
+    <div class="kpi"><div class="v ${wins/Math.max(1,S.log.length) >= .6 ? "pos":""}">${S.log.length ? pct(wins/S.log.length) : "—"}</div><div class="k">Win rate</div></div>
+    <div class="kpi"><div class="v">${uniq(S.log.map(l=>l.def)).length}</div><div class="k">Squads faced</div></div>
+  </div>
+  <div class="card">
+    <h3>Your results</h3>
+    <p class="tiny">Each result shifts the win rate the planner uses for that exact pairing, so the
+    table drifts toward how these fights actually go <i>for you</i>, at your gear, with your mods.</p>
+    ${rows.length ? rows.map(l => `<div class="item">
+      <div class="hd">
+        <span class="nm">${esc(l.counterName || l.counter)} <span class="tiny">vs</span> ${esc(l.defName || l.def)}</span>
+        <span class="pill ${l.win ? "good" : "hot"}">${l.win ? "won" : "lost"}</span>
+        <button class="btn danger small" onclick="delLog('${l.id}')">✕</button>
+      </div>
+      <div class="tiny">${esc(l.date)}${l.opp ? " · " + esc(l.opp) : ""}</div>
+    </div>`).join("") : '<div class="empty">Nothing logged yet. Use Won/Lost on the offense plan.</div>'}
+  </div>`;
+}
+
+/* ---------- setup ---------- */
+function viewSetup(){
+  const c = S.cfg;
+  return `
+  <div class="card"><h3>This round</h3>
+    <div class="g2">
+      <div><label class="f">Ground slots</label>
+        <input type="number" min="1" max="20" value="${c.groundSlots}" onchange="setCfg('groundSlots', this.value)"></div>
+      <div><label class="f">Fleet slots</label>
+        <input type="number" min="0" max="10" value="${c.fleetSlots}" onchange="setCfg('fleetSlots', this.value)"></div>
+    </div>
+    <p class="tiny">How many squads your defense holds this round. It changes with league and
+    format, so check the map and set it here.</p>
+    <label class="f">Count a unit as owned at</label>
+    <select onchange="setCfg('minStars', this.value)">
+      ${[5,6,7].map(s => `<option value="${s}" ${c.minStars==s?"selected":""}>${s} stars or better</option>`).join("")}
+    </select>
+    <label class="f">How fast your own results override the seed table</label>
+    <select onchange="setCfg('shrink', this.value)">
+      ${[2,4,8,16].map(k => `<option value="${k}" ${c.shrink==k?"selected":""}>${k===2?"Fast":k===4?"Balanced":k===8?"Cautious":"Very cautious"} (${k} seed-equivalent games)</option>`).join("")}
+    </select>
+  </div>
+
+  <div class="card"><h3>Counter table</h3>
+    <p class="muted">${(DB.defenses||[]).length} defensive squads ·
+      ${(DB.defenses||[]).reduce((a,d)=>a+(d.counters||[]).length,0)} counters ·
+      ${Object.keys(DB.units||{}).length} units</p>
+    <div class="tiny">Version ${DB.version||0}${DB.updated ? " · " + esc(DB.updated) : ""}${DB.importedAt ? " · imported " + esc(DB.importedAt) : " · shipped seed"}</div>
+    <div class="est"><p class="tiny">${esc(DB.note || "")}</p></div>
+    <div class="row wrap">
+      <button class="btn ghost small" onclick="openDbImport()">Import a table</button>
+      <button class="btn ghost small" onclick="exportDb()">Export</button>
+      <button class="btn ghost small" onclick="openCustom()">Add a counter</button>
+      <button class="btn danger small" onclick="resetDb()">Reset to shipped</button>
+    </div>
+    ${(S.custom||[]).length ? `<hr class="sep"><div class="tiny">Your additions: ${
+      S.custom.map(d => esc(d.name)).join(", ")}</div>
+      <button class="btn danger small" style="margin-top:8px" onclick="clearCustom()">Remove mine</button>` : ""}
+  </div>
+
+  <div class="card"><h3>Fetching from swgoh.gg</h3>
+    <p class="tiny">The Fetch button calls <code>swgoh.gg/api/player/&lt;code&gt;/</code> directly.
+    Browsers block that unless swgoh.gg sends CORS headers. If yours fails, either paste the roster
+    instead or put a CORS relay you trust here — <code>{url}</code> is replaced with the
+    encoded address.</p>
+    <label class="f">Relay template (optional)</label>
+    <input type="text" placeholder="https://example.org/get?url={url}" value="${esc(c.proxy||"")}"
+      onchange="setCfg('proxy', this.value)">
+    <p class="tiny">Left blank, nothing is relayed anywhere.</p>
+  </div>
+
+  <div class="card"><h3>Data</h3>
+    <div class="row wrap">
+      <button class="btn ghost small" onclick="exportData()">Export everything</button>
+      <button class="btn ghost small" onclick="importData()">Import</button>
+      <button class="btn danger small" onclick="wipe()">Erase</button>
+    </div>
+    <p class="tiny" style="margin-top:8px">Rosters, plans and results are kept in this browser only.</p>
+  </div>`;
+}
+
+/* ============================================================
+   ACTIONS
+   ============================================================ */
+
+function setMode(m){ S.cfg.mode = m; S.oppDefense = []; save(); render(); }
+function setCode(who, v){ S[who].allyCode = String(v || "").replace(/\D/g,"").slice(0,9); save(); }
+function setCfg(k, v){
+  const numeric = ["groundSlots","fleetSlots","minStars","protectAttackers","shrink"];
+  S.cfg[k] = numeric.indexOf(k) >= 0 ? num(v, DEFAULT_CFG[k]) : v;
+  save();
+  render();
+}
+
+/* ---------- rosters ---------- */
+function clearRoster(who){
+  S[who] = normPlayer({allyCode: S[who].allyCode});
+  S.oppDefense = who === "opp" ? [] : S.oppDefense;
+  save(); render(); toast("Cleared");
+}
+
+function openPaste(who){
+  const code = S[who].allyCode;
+  const url = code.length === 9 ? "https://swgoh.gg/api/player/" + code + "/" : "";
+  document.getElementById("sheet").innerHTML = `
+    <h3 style="margin-top:0">Paste ${who === "me" ? "your" : "their"} roster</h3>
+    <p class="tiny">Paste the JSON from swgoh.gg's player API, an export from another tool, or just
+    a list of character names — one per line, optionally with gear: <code>Lord Vader g13 r7</code>.</p>
+    ${url ? `<p class="tiny"><a href="${url}" target="_blank" rel="noopener"
+      style="color:var(--accent2)">Open ${esc(url)}</a> → select all → copy → paste below.</p>` : ""}
+    <textarea id="pasteBox" placeholder='{"data":{...},"units":[...]}  — or —  Jedi Master Kenobi'></textarea>
+    <div class="row" style="margin-top:10px">
+      <button class="btn grow" id="e-paste" onclick="applyPaste('${who}')">Load</button>
+      <button class="btn ghost" onclick="closeModal()">Cancel</button>
+    </div>`;
+  openModal();
+  setTimeout(() => { const b = document.getElementById("pasteBox"); if(b) b.focus(); }, 60);
+}
+function applyPaste(who){
+  const text = document.getElementById("pasteBox").value;
+  const parsed = parseRoster(text);
+  if(parsed.err){ toast(parsed.err, true); return; }
+  finishRoster(who, parsed);
+}
+function finishRoster(who, parsed){
+  const res = ingest(parsed);
+  if(!Object.keys(res.units).length){
+    toast("Read " + res.total + " units but none matched the table", true);
+    return;
+  }
+  const P = S[who];
+  P.units = res.units;
+  P.raw = res.total;
+  P.name = parsed.name || P.name;
+  if(parsed.allyCode) P.allyCode = String(parsed.allyCode).replace(/\D/g,"").slice(0,9);
+  P.syncedAt = today();
+  if(who === "opp") S.oppDefense = [];
+  save(); closeModal(); render();
+  toast(Object.keys(res.units).length + " of " + res.total + " units matched");
+}
+
+async function fetchRoster(who){
+  const code = (S[who].allyCode || "").replace(/\D/g,"");
+  if(code.length !== 9){ toast("Enter a 9-digit ally code first", true); return; }
+  const target = "https://swgoh.gg/api/player/" + code + "/";
+  const urls = [];
+  if(S.cfg.proxy){
+    urls.push(S.cfg.proxy.replace("{url}", encodeURIComponent(target)).replace("{raw}", target));
+  }
+  urls.push(target);
+  toast("Fetching…");
+  for(const u of urls){
+    try{
+      const r = await fetch(u, {headers:{"Accept":"application/json"}});
+      if(!r.ok) continue;
+      const text = await r.text();
+      const parsed = parseRoster(text);
+      if(parsed.units.length){ finishRoster(who, parsed); return; }
+    }catch(e){ /* try the next one */ }
+  }
+  toast("Fetch blocked — paste the roster instead", true);
+  openPaste(who);
+}
+
+/* ---------- their defense ---------- */
+function addOppDef(){
+  const id = document.getElementById("addOpp").value;
+  if(!id) return;
+  S.oppDefense.push({id: uid(), def: id});
+  save(); render();
+}
+function delOppDef(rowId){
+  S.oppDefense = S.oppDefense.filter(o => o.id !== rowId);
+  save(); render();
+}
+function dropDef(id){
+  S.dropped = uniq((S.dropped || []).concat([id]));
+  save(); render(); toast("Kept back for attacking");
+}
+function restoreDef(id){
+  S.dropped = (S.dropped || []).filter(x => x !== id);
+  save(); render(); toast("Back on defense");
+}
+function clearOppDef(){ S.oppDefense = []; save(); render(); toast("Back to predicting"); }
+function adoptPrediction(){
+  S.oppDefense = predictedDefense().map(p => ({id: uid(), def: p.entry.id}));
+  save(); render(); toast("Copied — edit as they set");
+}
+
+/* ---------- log ---------- */
+function logResult(i, win){
+  const plan = offensePlan();
+  const t = plan.targets[i], pick = plan.pick[i];
+  if(!t || !pick) return;
+  S.log.push({
+    id: uid(), date: today(), opp: S.opp.name || S.opp.allyCode || "",
+    def: t.target.entry.id, defName: t.target.entry.name,
+    counter: pick.counter.name, counterName: pick.counter.name, win: !!win
+  });
+  save(); render();
+  toast(win ? "Logged a win" : "Logged a loss", !win);
+}
+function delLog(id){ S.log = S.log.filter(l => l.id !== id); save(); render(); }
+
+/* ---------- counter table ---------- */
+function openDbImport(){
+  document.getElementById("sheet").innerHTML = `
+    <h3 style="margin-top:0">Import a counter table</h3>
+    <p class="tiny">Paste a table in this app's format — same shape as
+    <code>counters.json</code>: <code>{"units":{…},"defenses":[…]}</code>. It replaces the current
+    table; your own additions and results are kept.</p>
+    <textarea id="dbBox" placeholder='{"version":2,"units":{...},"defenses":[...]}'></textarea>
+    <div class="row" style="margin-top:10px">
+      <button class="btn grow" onclick="applyDbImport()">Import</button>
+      <button class="btn ghost" onclick="closeModal()">Cancel</button>
+    </div>`;
+  openModal();
+}
+function applyDbImport(){
+  let d;
+  try{ d = JSON.parse(document.getElementById("dbBox").value); }
+  catch(e){ toast("Won't parse: " + e.message, true); return; }
+  if(!d || !d.units || !Array.isArray(d.defenses)){ toast("Missing units or defenses", true); return; }
+  d.importedAt = today();
+  saveDb(d); closeModal(); render();
+  toast(d.defenses.length + " squads imported");
+}
+function exportDb(){
+  download(JSON.stringify(DB, null, 2), "bracket-counters-" + today() + ".json");
+}
+function resetDb(){
+  if(!confirm("Drop the imported table and go back to the one that ships with the app?")) return;
+  localStorage.removeItem(DBKEY); DB = null;
+  initDb().then(() => { render(); toast("Reset"); });
+}
+function clearCustom(){
+  if(!confirm("Remove every counter you added?")) return;
+  S.custom = []; save(); render(); toast("Removed");
+}
+
+/* Resolve a typed name to a catalogue key, adding it to the table if it's new.
+   Lets you plan around a character the shipped table has never heard of. */
+function resolveOrAdd(name){
+  name = String(name || "").trim();
+  if(!name) return null;
+  const k = catalogKey(name);
+  if(k) return k;
+  const key = "x" + norm(name).toLowerCase().slice(0, 16);
+  DB.units[key] = {n: name, a: [name]};
+  return key;
+}
+function openCustom(){
+  const opts = defenses().sort((a,b) => a.name.localeCompare(b.name))
+    .map(d => `<option value="${d.id}">${esc(d.name)}</option>`).join("");
+  document.getElementById("sheet").innerHTML = `
+    <h3 style="margin-top:0">Add a counter</h3>
+    <p class="tiny">Record something the table is missing — a squad you keep meeting, or an answer
+    that works for you. Names not in the table are added to it.</p>
+    <label class="f">Against</label>
+    <select id="cDef"><option value="">— a new defensive squad —</option>${opts}</select>
+    <div id="cNew">
+      <label class="f">New squad's name</label>
+      <input type="text" id="cDefName" placeholder="e.g. Nightsisters (Merrin lead)">
+      <label class="f">Its leader</label>
+      <input type="text" id="cDefLead" placeholder="e.g. Merrin">
+      <label class="f">Type</label>
+      <select id="cDefType"><option value="squad">Ground squad</option><option value="fleet">Fleet</option></select>
+    </div>
+    <hr class="sep">
+    <label class="f">Counter's name</label>
+    <input type="text" id="cName" placeholder="e.g. JMK">
+    <label class="f">Its leader</label>
+    <input type="text" id="cLead" placeholder="e.g. Jedi Master Kenobi">
+    <label class="f">Other units it needs (comma separated)</label>
+    <input type="text" id="cCore" placeholder="leave blank if only the leader matters">
+    <label class="f">Usual fill (comma separated)</label>
+    <input type="text" id="cCommon" placeholder="e.g. General Kenobi, Commander Ahsoka Tano">
+    <label class="f">Win rate you'd give it (%)</label>
+    <input type="number" id="cWin" min="1" max="99" value="65">
+    <label class="f">Notes</label>
+    <input type="text" id="cNotes" placeholder="e.g. needs the ultimate before they stun">
+    <div class="row" style="margin-top:12px">
+      <button class="btn grow" onclick="saveCustom()">Add</button>
+      <button class="btn ghost" onclick="closeModal()">Cancel</button>
+    </div>`;
+  openModal();
+  const sel = document.getElementById("cDef");
+  const box = document.getElementById("cNew");
+  const sync = () => { box.style.display = sel.value ? "none" : "block"; };
+  sel.onchange = sync; sync();
+}
+function saveCustom(){
+  const v = id => (document.getElementById(id).value || "").trim();
+  const list = s => s.split(",").map(x => x.trim()).filter(Boolean).map(resolveOrAdd).filter(Boolean);
+  const cName = v("cName"), cLead = v("cLead");
+  if(!cName || !cLead){ toast("The counter needs a name and a leader", true); return; }
+  const counter = {
+    name: cName, lead: resolveOrAdd(cLead), core: list(v("cCore")),
+    common: list(v("cCommon")), win: clamp(num(v("cWin"), 65) / 100, 0.02, 0.97),
+    notes: v("cNotes"), src: "you"
+  };
+  let defId = v("cDef");
+  if(defId){
+    const base = defById(defId);
+    const existing = (S.custom || []).find(d => d.id === defId);
+    if(existing) existing.counters.push(counter);
+    else S.custom.push({id: defId, name: base.name, type: base.type, modes: base.modes,
+      lead: base.lead, core: base.core, common: base.common, counters: [counter]});
+  } else {
+    const nm = v("cDefName"), ld = v("cDefLead");
+    if(!nm || !ld){ toast("The new squad needs a name and a leader", true); return; }
+    const lead = resolveOrAdd(ld);
+    S.custom.push({id: "u" + uid(), name: nm, type: v("cDefType") || "squad",
+      modes: ["5v5","3v3"], lead, core: [lead], common: [], counters: [counter]});
+  }
+  saveDb(DB);            // persist any units the names introduced
+  save(); closeModal(); render(); toast("Added");
+}
+
+/* ============================================================
+   PLUMBING
+   ============================================================ */
+
+function openModal(){ document.getElementById("modal").classList.add("on"); }
+function closeModal(){ document.getElementById("modal").classList.remove("on"); draft = null; }
+document.getElementById("modal").addEventListener("click", e => {
+  if(e.target.id === "modal") closeModal();
+});
+
+let toastT;
+function toast(msg, bad){
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.style.background = bad ? "var(--bad)" : "var(--good)";
+  el.style.color = bad ? "#2a1210" : "#0d201a";
+  el.classList.add("on");
+  clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove("on"), 2400);
+}
+function download(text, name){
+  const blob = new Blob([text], {type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  a.click(); URL.revokeObjectURL(a.href);
+}
+function exportData(){ download(JSON.stringify(S, null, 2), "bracket-gac-" + today() + ".json"); }
+function importData(){
+  const i = document.createElement("input");
+  i.type = "file"; i.accept = "application/json";
+  i.onchange = () => {
+    const f = i.files[0]; if(!f) return;
+    const r = new FileReader();
+    r.onload = () => {
+      try{ JSON.parse(r.result); localStorage.setItem(KEY, r.result); S = load(); clearCache();
+           render(); toast("Imported"); }
+      catch(e){ toast("Bad file", true); }
+    };
+    r.readAsText(f);
+  };
+  i.click();
+}
+function wipe(){
+  if(!confirm("Erase both rosters, the plan and every logged result?")) return;
+  localStorage.removeItem(KEY); S = load(); clearCache(); render(); toast("Erased");
+}
+
+/* ---------- boot ---------- */
+S = load();
+render();
+initDb().then(() => { clearCache(); render(); });
+if("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("../sw.js");
+</script>
+</body>
+</html>

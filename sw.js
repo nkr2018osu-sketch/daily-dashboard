@@ -2,13 +2,15 @@
    always arrive; the cache is the offline fallback. Big immutable chess
    assets (engine/library/pieces) are cache-first so the 7 MB engine only
    downloads once. */
-var CACHE = "dd-cache-v7";
+var CACHE = "dd-cache-v8";
 var SHELL = ["./", "./index.html", "./manifest.webmanifest", "./icon.svg",
              "./workout/index.html", "./workout/manifest.webmanifest", "./workout/icon.svg",
              "./storage/index.html", "./storage/manifest.webmanifest", "./storage/icon.svg",
              "./sculpt/index.html", "./sculpt/manifest.webmanifest", "./sculpt/icon.svg",
              "./fuel/index.html", "./fuel/manifest.webmanifest", "./fuel/icon.svg",
-             "./chess/index.html", "./chess/manifest.webmanifest", "./chess/icon.svg"];
+             "./chess/index.html", "./chess/manifest.webmanifest", "./chess/icon.svg",
+             "./gac/index.html", "./gac/manifest.webmanifest", "./gac/icon.svg",
+             "./gac/counters.json"];
 
 function isImmutable(url){
   return url.indexOf("/chess/engine/") > -1 ||

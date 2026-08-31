@@ -1,0 +1,267 @@
+{
+  "version": 1,
+  "updated": "2026-08-31",
+  "note": "Seed counter table. Win rates are coarse community-consensus estimates, NOT live swgoh.gg numbers. Anything you import or log yourself overrides these.",
+  "units": {
+    "jmk":      {"n":"Jedi Master Kenobi",              "a":["JEDIMASTERKENOBI","JMK"]},
+    "slkr":     {"n":"Supreme Leader Kylo Ren",         "a":["SUPREMELEADERKYLOREN","SLKR"]},
+    "see":      {"n":"Sith Eternal Emperor",            "a":["SITHPALPATINE","SEE"]},
+    "lv":       {"n":"Lord Vader",                      "a":["LORDVADER","LV"]},
+    "glrey":    {"n":"Rey (Galactic Legend)",           "a":["GLREY","GL Rey","Rey"]},
+    "jml":      {"n":"Grand Master Luke Skywalker",     "a":["GRANDMASTERLUKE","JML","GMLS"]},
+    "jabba":    {"n":"Jabba the Hutt",                  "a":["JABBATHEHUTT","Jabba"]},
+    "glahsoka": {"n":"Ahsoka Tano (Galactic Legend)",   "a":["GLAHSOKA","GL Ahsoka"]},
+    "glleia":   {"n":"Leia Organa (Galactic Legend)",   "a":["GLLEIA","GL Leia"]},
+    "gas":      {"n":"General Skywalker",               "a":["GENERALSKYWALKER","GAS"]},
+    "cls":      {"n":"Commander Luke Skywalker",        "a":["COMMANDERLUKESKYWALKER","CLS"]},
+    "jkl":      {"n":"Jedi Knight Luke Skywalker",      "a":["JEDIKNIGHTLUKE","JKL"]},
+    "jkr":      {"n":"Jedi Knight Revan",               "a":["JEDIKNIGHTREVAN","JKR"]},
+    "drevan":   {"n":"Darth Revan",                     "a":["DARTHREVAN","DR"]},
+    "malak":    {"n":"Darth Malak",                     "a":["DARTHMALAK","Malak"]},
+    "bastila":  {"n":"Bastila Shan (Fallen)",           "a":["BASTILASHANDARK","BSF"]},
+    "gg":       {"n":"General Grievous",                "a":["GRIEVOUS","GENERALGRIEVOUS","GG"]},
+    "nute":     {"n":"Nute Gunray",                     "a":["NUTEGUNRAY","Nute"]},
+    "wat":      {"n":"Wat Tambor",                      "a":["WATTAMBOR","Wat"]},
+    "dooku":    {"n":"Count Dooku",                     "a":["COUNTDOOKU","Dooku"]},
+    "b1":       {"n":"B1 Battle Droid",                 "a":["B1BATTLEDROIDV2","B1"]},
+    "b2":       {"n":"B2 Super Battle Droid",           "a":["B2SUPERBATTLEDROID","B2"]},
+    "droideka": {"n":"Droideka",                        "a":["DROIDEKA"]},
+    "magna":    {"n":"IG-100 MagnaGuard",               "a":["MAGNAGUARD"]},
+    "bossk":    {"n":"Bossk",                           "a":["BOSSK"]},
+    "bfs":      {"n":"Boba Fett, Scion of Jango",       "a":["BOBAFETTSCION","BFS"]},
+    "jango":    {"n":"Jango Fett",                      "a":["JANGOFETT","Jango"]},
+    "hk47":     {"n":"HK-47",                           "a":["HK47"]},
+    "boba":     {"n":"Boba Fett",                       "a":["BOBAFETT"]},
+    "greef":    {"n":"Greef Karga",                     "a":["GREEFKARGA","Greef"]},
+    "mando":    {"n":"The Mandalorian (Beskar Armor)",  "a":["MANDALORIANBESKARARMOR","Mando"]},
+    "maul":     {"n":"Maul",                            "a":["MAUL"]},
+    "padme":    {"n":"Padme Amidala",                   "a":["PADMEAMIDALA","Padme","Padmé Amidala"]},
+    "gk":       {"n":"General Kenobi",                  "a":["GENERALKENOBI","GK"]},
+    "cat":      {"n":"Commander Ahsoka Tano",           "a":["COMMANDERAHSOKA","CAT"]},
+    "jolee":    {"n":"Jolee Bindo",                     "a":["JOLEEBINDO","Jolee"]},
+    "gmy":      {"n":"Grand Master Yoda",               "a":["GRANDMASTERYODA","GMY"]},
+    "shaak":    {"n":"Shaak Ti",                        "a":["SHAAKTI"]},
+    "iden":     {"n":"Iden Versio",                     "a":["IDENVERSIOEMPIRE","Iden"]},
+    "dt":       {"n":"Dark Trooper",                    "a":["DARKTROOPER","DT"]},
+    "gideon":   {"n":"Moff Gideon",                     "a":["MOFFGIDEON","Gideon"]},
+    "veers":    {"n":"General Veers",                   "a":["GENERALVEERS","Veers"]},
+    "piett":    {"n":"Admiral Piett",                   "a":["ADMIRALPIETT","Piett"]},
+    "starck":   {"n":"Colonel Starck",                  "a":["COLONELSTARCK","Starck"]},
+    "reva":     {"n":"Third Sister",                    "a":["THIRDSISTER","Reva"]},
+    "gi":       {"n":"Grand Inquisitor",                "a":["GRANDINQUISITOR","GI"]},
+    "ninth":    {"n":"Ninth Sister",                    "a":["NINTHSISTER"]},
+    "eighth":   {"n":"Eighth Brother",                  "a":["EIGHTHBROTHER"]},
+    "hunter":   {"n":"Hunter",                          "a":["BADBATCHHUNTER","Hunter"]},
+    "echo":     {"n":"Echo (Bad Batch)",                "a":["BADBATCHECHO"]},
+    "tech":     {"n":"Tech",                            "a":["BADBATCHTECH","Tech"]},
+    "wrecker":  {"n":"Wrecker",                         "a":["BADBATCHWRECKER","Wrecker"]},
+    "omega":    {"n":"Omega",                           "a":["OMEGA"]},
+    "hera":     {"n":"Hera Syndulla",                   "a":["HERASYNDULLA","Hera"]},
+    "ezra":     {"n":"Ezra Bridger",                    "a":["EZRABRIDGER","Ezra"]},
+    "kanan":    {"n":"Kanan Jarrus",                    "a":["KANANJARRUSS","Kanan"]},
+    "sabine":   {"n":"Sabine Wren",                     "a":["SABINEWREN","Sabine"]},
+    "zeb":      {"n":"Zeb Orrelios",                    "a":["ZEBORRELIOS","Zeb"]},
+    "chopper":  {"n":"Chopper",                         "a":["CHOPPERS3","Chopper"]},
+    "hothleia": {"n":"Rebel Officer Leia Organa",       "a":["HOTHLEIA","Rebel Officer Leia"]},
+    "han":      {"n":"Han Solo",                        "a":["HANSOLO"]},
+    "chewie":   {"n":"Chewbacca",                       "a":["CHEWBACCALEGENDARY","Chewbacca"]},
+    "c3po":     {"n":"C-3PO",                           "a":["C3POLEGENDARY","C-3PO","C3PO"]},
+    "raddus":   {"n":"Admiral Raddus",                  "a":["ADMIRALRADDUS"]},
+    "cassian":  {"n":"Cassian Andor",                   "a":["CASSIANANDOR","Cassian"]},
+    "k2":       {"n":"K-2SO",                           "a":["K2SO"]},
+    "jyn":      {"n":"Jyn Erso",                        "a":["JYNERSO","Jyn"]},
+    "deathtr":  {"n":"Death Trooper",                   "a":["DEATHTROOPER"]},
+    "shore":    {"n":"Shoretrooper",                    "a":["SHORETROOPER"]},
+    "tripzero": {"n":"Triple-Zero",                     "a":["TRIPLEZERO","0-0-0"]},
+    "bt1":      {"n":"BT-1",                            "a":["BT1"]},
+    "gba":      {"n":"Geonosian Brood Alpha",           "a":["GEONOSIANBROODALPHA","GBA"]},
+    "gsoldier": {"n":"Geonosian Soldier",               "a":["GEONOSIANSOLDIER"]},
+    "rex":      {"n":"CT-7567 \"Rex\"",                 "a":["CT7567","Rex"]},
+    "arc":      {"n":"ARC Trooper",                     "a":["ARCTROOPER501ST","ARC Trooper"]},
+    "fives":    {"n":"CT-5555 \"Fives\"",               "a":["CT5555","Fives"]},
+    "echo501":  {"n":"CT-21-0408 \"Echo\"",             "a":["CT210408"]},
+    "bam":      {"n":"Bo-Katan Kryze (Mand'alor)",      "a":["MANDALORBOKATAN","Bo-Katan (Mand'alor)","BAM"]},
+    "armorer":  {"n":"The Armorer",                     "a":["ARMORER"]},
+    "cere":     {"n":"Cere Junda",                      "a":["CEREJUNDA"]},
+    "cal":      {"n":"Cal Kestis",                      "a":["CALKESTIS","Cal"]},
+    "sk":       {"n":"Second Sister",                   "a":["SECONDSISTER"]},
+    "executor":    {"n":"Executor",    "ship":true, "a":["CAPITALEXECUTOR"]},
+    "profundity":  {"n":"Profundity",  "ship":true, "a":["CAPITALPROFUNDITY"]},
+    "leviathan":   {"n":"Leviathan",   "ship":true, "a":["CAPITALLEVIATHAN"]},
+    "malevolence": {"n":"Malevolence", "ship":true, "a":["CAPITALMALEVOLENCE"]},
+    "negotiator":  {"n":"Negotiator",  "ship":true, "a":["CAPITALNEGOTIATOR"]},
+    "finalizer":   {"n":"Finalizer",   "ship":true, "a":["CAPITALFINALIZER"]},
+    "raddusship":  {"n":"Raddus",      "ship":true, "a":["CAPITALRADDUS"]},
+    "chimaera":    {"n":"Chimaera",    "ship":true, "a":["CAPITALCHIMAERA"]}
+  },
+  "defenses": [
+    {"id":"d-see","name":"SEE","modes":["5v5","3v3"],"type":"squad","lead":"see","core":["see"],"common":["wat","malak","drevan","bastila"],
+     "counters":[
+       {"name":"JMK","lead":"jmk","core":["jmk"],"common":["gk","cat","jolee"],"win":0.72,"diff":"medium","notes":"Standard GL-on-GL answer. Needs the Kenobi ult up before SEE lands the fear chain."},
+       {"name":"Jabba","lead":"jabba","core":["jabba"],"common":["greef","bossk","boba"],"win":0.68,"diff":"medium","notes":"Jabba's dispel/turn-meter control breaks the SEE loop."},
+       {"name":"Lord Vader","lead":"lv","core":["lv"],"common":["deathtr","piett","veers"],"win":0.62,"diff":"hard","notes":"Winnable but tight; loses if SEE gets an early ultimate."},
+       {"name":"SLKR","lead":"slkr","core":["slkr"],"common":["gi","reva"],"win":0.58,"diff":"hard","notes":"Mirror-tier GL trade; depends heavily on relic gap."}
+     ]},
+    {"id":"d-slkr","name":"SLKR","modes":["5v5","3v3"],"type":"squad","lead":"slkr","core":["slkr"],"common":["gi","reva","ninth","eighth"],
+     "counters":[
+       {"name":"JMK","lead":"jmk","core":["jmk"],"common":["gk","cat","jolee"],"win":0.74,"diff":"medium","notes":"Reliable if your JMK out-relics their SLKR."},
+       {"name":"Jabba","lead":"jabba","core":["jabba"],"common":["greef","bossk"],"win":0.66,"diff":"medium","notes":"Strips the SLKR stacking before it snowballs."},
+       {"name":"SEE","lead":"see","core":["see"],"common":["wat","malak"],"win":0.63,"diff":"medium","notes":"Fear lock beats the Kylo ramp if you go first."},
+       {"name":"GL Rey","lead":"glrey","core":["glrey"],"common":["hothleia","c3po"],"win":0.60,"diff":"hard","notes":"Classic Rey/Kylo matchup — comes down to ultimate timing."}
+     ]},
+    {"id":"d-jmk","name":"JMK","modes":["5v5","3v3"],"type":"squad","lead":"jmk","core":["jmk"],"common":["gk","cat","jolee","gmy"],
+     "counters":[
+       {"name":"SLKR","lead":"slkr","core":["slkr"],"common":["gi","reva"],"win":0.66,"diff":"medium","notes":"Best-known JMK answer; needs the Kylo ult before Kenobi's."},
+       {"name":"SEE","lead":"see","core":["see"],"common":["wat","malak"],"win":0.62,"diff":"hard","notes":"Doable but slow; you must survive the first Kenobi ultimate."},
+       {"name":"Lord Vader","lead":"lv","core":["lv"],"common":["deathtr","piett"],"win":0.58,"diff":"hard","notes":"Culling Blade race — risky into a well-geared JMK."},
+       {"name":"Jabba","lead":"jabba","core":["jabba"],"common":["greef","bossk"],"win":0.57,"diff":"hard","notes":"Coin-flip unless you have a relic advantage."}
+     ]},
+    {"id":"d-lv","name":"Lord Vader","modes":["5v5","3v3"],"type":"squad","lead":"lv","core":["lv"],"common":["deathtr","piett","veers","starck"],
+     "counters":[
+       {"name":"JMK","lead":"jmk","core":["jmk"],"common":["gk","cat","jolee"],"win":0.70,"diff":"medium","notes":"Kenobi protection-up walls off the Culling Blade execute."},
+       {"name":"SLKR","lead":"slkr","core":["slkr"],"common":["gi","reva"],"win":0.64,"diff":"medium","notes":"Outlasts the Vader ramp."},
+       {"name":"GL Rey","lead":"glrey","core":["glrey"],"common":["hothleia","c3po"],"win":0.61,"diff":"hard","notes":"Rey's damage-immunity window covers the execute threshold."}
+     ]},
+    {"id":"d-jabba","name":"Jabba the Hutt","modes":["5v5","3v3"],"type":"squad","lead":"jabba","core":["jabba"],"common":["greef","bossk","bfs","mando"],
+     "counters":[
+       {"name":"JMK","lead":"jmk","core":["jmk"],"common":["gk","cat","jolee"],"win":0.68,"diff":"medium","notes":"Kenobi ignores most of the Hutt Cartel control."},
+       {"name":"SEE","lead":"see","core":["see"],"common":["wat","malak"],"win":0.64,"diff":"medium","notes":"Fear chain shuts down the summon economy."},
+       {"name":"Lord Vader","lead":"lv","core":["lv"],"common":["deathtr","piett"],"win":0.62,"diff":"medium","notes":"AoE clears the summons quickly."},
+       {"name":"SLKR","lead":"slkr","core":["slkr"],"common":["gi","reva"],"win":0.58,"diff":"hard","notes":"Slower than the alternatives but survivable."}
+     ]},
+    {"id":"d-glrey","name":"GL Rey","modes":["5v5","3v3"],"type":"squad","lead":"glrey","core":["glrey"],"common":["hothleia","c3po","han","chewie"],
+     "counters":[
+       {"name":"SLKR","lead":"slkr","core":["slkr"],"common":["gi","reva"],"win":0.68,"diff":"medium","notes":"The designed rivalry; SLKR is favoured at equal relics."},
+       {"name":"SEE","lead":"see","core":["see"],"common":["wat","malak"],"win":0.65,"diff":"medium","notes":"Fear stops Rey from building her ultimate."},
+       {"name":"Lord Vader","lead":"lv","core":["lv"],"common":["deathtr","piett"],"win":0.60,"diff":"hard","notes":"Needs the execute to land before Rey ults."},
+       {"name":"JMK","lead":"jmk","core":["jmk"],"common":["gk","cat"],"win":0.58,"diff":"hard","notes":"Grindy Jedi mirror-ish fight."}
+     ]},
+    {"id":"d-jml","name":"Grand Master Luke (JML)","modes":["5v5","3v3"],"type":"squad","lead":"jml","core":["jml"],"common":["gmy","jkl","hothleia","c3po"],
+     "counters":[
+       {"name":"SEE","lead":"see","core":["see"],"common":["wat","malak"],"win":0.67,"diff":"medium","notes":"Fear beats the Jedi resilience package."},
+       {"name":"SLKR","lead":"slkr","core":["slkr"],"common":["gi","reva"],"win":0.63,"diff":"medium","notes":"Survives long enough to grind JML down."},
+       {"name":"Lord Vader","lead":"lv","core":["lv"],"common":["deathtr","piett"],"win":0.60,"diff":"hard","notes":"Culling Blade race against Luke's healing."}
+     ]},
+    {"id":"d-gas","name":"General Skywalker / 501st","modes":["5v5","3v3"],"type":"squad","lead":"gas","core":["gas"],"common":["rex","arc","fives","echo501"],
+     "counters":[
+       {"name":"JMK","lead":"jmk","core":["jmk"],"common":["gk","cat","jolee"],"win":0.78,"diff":"easy","notes":"Any Galactic Legend rolls a non-GL 501st; JMK is the cleanest."},
+       {"name":"Lord Vader","lead":"lv","core":["lv"],"common":["deathtr","piett"],"win":0.76,"diff":"easy","notes":"AoE plus execute clears the clones fast."},
+       {"name":"SEE","lead":"see","core":["see"],"common":["wat","malak"],"win":0.74,"diff":"easy","notes":"Straightforward."},
+       {"name":"Darth Revan","lead":"drevan","core":["drevan"],"common":["malak","bastila"],"win":0.62,"diff":"medium","notes":"Non-GL option if you want to save your Legends for harder nodes."}
+     ]},
+    {"id":"d-sep","name":"Separatist Droids (Nute / GG)","modes":["5v5","3v3"],"type":"squad","lead":"nute","core":["nute"],"common":["wat","gg","b1","b2","droideka","magna"],
+     "counters":[
+       {"name":"Lord Vader","lead":"lv","core":["lv"],"common":["deathtr","piett","veers"],"win":0.80,"diff":"easy","notes":"Vader is the textbook droid-killer — AoE plus execute beats the B1 spam."},
+       {"name":"JMK","lead":"jmk","core":["jmk"],"common":["gk","cat","jolee"],"win":0.74,"diff":"easy","notes":"Safe but slower than Vader."},
+       {"name":"GL Rey","lead":"glrey","core":["glrey"],"common":["hothleia","c3po"],"win":0.70,"diff":"medium","notes":"Works; watch the Droideka taunt."},
+       {"name":"General Skywalker","lead":"gas","core":["gas"],"common":["rex","arc","fives"],"win":0.66,"diff":"medium","notes":"The intended non-GL answer to Separatists."}
+     ]},
+    {"id":"d-malak","name":"Darth Malak / Sith Empire","modes":["5v5","3v3"],"type":"squad","lead":"drevan","core":["malak"],"common":["drevan","bastila","hk47"],
+     "counters":[
+       {"name":"JMK","lead":"jmk","core":["jmk"],"common":["gk","cat","jolee"],"win":0.76,"diff":"easy","notes":"Cleanses the Sith debuff package."},
+       {"name":"SEE","lead":"see","core":["see"],"common":["wat"],"win":0.72,"diff":"easy","notes":"Sith mirror in your favour."},
+       {"name":"Jedi Knight Revan","lead":"jkr","core":["jkr"],"common":["gmy","jolee","gk"],"win":0.64,"diff":"medium","notes":"The classic non-GL answer; needs good Jedi mods."},
+       {"name":"Lord Vader","lead":"lv","core":["lv"],"common":["deathtr","piett"],"win":0.68,"diff":"medium","notes":"Execute cuts through Malak's bulk."}
+     ]},
+    {"id":"d-bh","name":"Bounty Hunters (Bossk / BFS)","modes":["5v5","3v3"],"type":"squad","lead":"bossk","core":["bossk"],"common":["bfs","jango","greef","mando"],
+     "counters":[
+       {"name":"JMK","lead":"jmk","core":["jmk"],"common":["gk","cat","jolee"],"win":0.76,"diff":"easy","notes":"Outlasts the thermal-detonator burst."},
+       {"name":"Lord Vader","lead":"lv","core":["lv"],"common":["deathtr","piett"],"win":0.72,"diff":"easy","notes":"Fast clear."},
+       {"name":"SEE","lead":"see","core":["see"],"common":["wat","malak"],"win":0.70,"diff":"easy","notes":"Straightforward."},
+       {"name":"Jabba","lead":"jabba","core":["jabba"],"common":["greef","bossk"],"win":0.68,"diff":"medium","notes":"Cartel mirror; Jabba is favoured."}
+     ]},
+    {"id":"d-empire","name":"Empire (Iden / Dark Trooper)","modes":["5v5","3v3"],"type":"squad","lead":"iden","core":["iden"],"common":["dt","gideon","veers","piett","deathtr"],
+     "counters":[
+       {"name":"JMK","lead":"jmk","core":["jmk"],"common":["gk","cat","jolee"],"win":0.75,"diff":"easy","notes":"Cleanses the stun/daze package."},
+       {"name":"Lord Vader","lead":"lv","core":["lv"],"common":["deathtr","piett"],"win":0.70,"diff":"medium","notes":"Empire mirror; Vader wins on stats."},
+       {"name":"SEE","lead":"see","core":["see"],"common":["wat","malak"],"win":0.72,"diff":"easy","notes":"Reliable."},
+       {"name":"Jabba","lead":"jabba","core":["jabba"],"common":["greef","bossk"],"win":0.66,"diff":"medium","notes":"Works if you dispel Iden's protection."}
+     ]},
+    {"id":"d-inq","name":"Inquisitors (Reva / Grand Inquisitor)","modes":["5v5","3v3"],"type":"squad","lead":"gi","core":["gi"],"common":["reva","ninth","eighth","sk"],
+     "counters":[
+       {"name":"JMK","lead":"jmk","core":["jmk"],"common":["gk","cat","jolee"],"win":0.74,"diff":"easy","notes":"Jedi vs Inquisitors plays out in your favour."},
+       {"name":"Lord Vader","lead":"lv","core":["lv"],"common":["deathtr","piett"],"win":0.70,"diff":"medium","notes":"Solid."},
+       {"name":"SLKR","lead":"slkr","core":["slkr"],"common":["gi","reva"],"win":0.72,"diff":"easy","notes":"SLKR uses the same faction and out-scales it."}
+     ]},
+    {"id":"d-badbatch","name":"Bad Batch (Hunter lead)","modes":["5v5","3v3"],"type":"squad","lead":"hunter","core":["hunter"],"common":["echo","tech","wrecker","omega"],
+     "counters":[
+       {"name":"Lord Vader","lead":"lv","core":["lv"],"common":["deathtr","piett"],"win":0.72,"diff":"medium","notes":"Bad Batch is bulky — bring the execute."},
+       {"name":"JMK","lead":"jmk","core":["jmk"],"common":["gk","cat","jolee"],"win":0.74,"diff":"medium","notes":"Grindy but safe."},
+       {"name":"SEE","lead":"see","core":["see"],"common":["wat","malak"],"win":0.70,"diff":"medium","notes":"Fear beats the counter-attack loop."}
+     ]},
+    {"id":"d-phoenix","name":"Phoenix (Hera lead)","modes":["5v5","3v3"],"type":"squad","lead":"hera","core":["hera"],"common":["ezra","kanan","sabine","zeb","chopper"],
+     "counters":[
+       {"name":"Lord Vader","lead":"lv","core":["lv"],"common":["deathtr","piett"],"win":0.86,"diff":"easy","notes":"Cheap clear — do not spend a Galactic Legend here."},
+       {"name":"Darth Revan","lead":"drevan","core":["drevan"],"common":["malak","bastila"],"win":0.82,"diff":"easy","notes":"Any modern squad handles Phoenix."},
+       {"name":"Empire (Iden)","lead":"iden","core":["iden"],"common":["dt","gideon","veers"],"win":0.78,"diff":"easy","notes":"Good banner-farming filler."}
+     ]},
+    {"id":"d-rebels","name":"Rebels (CLS / Hoth Leia)","modes":["5v5","3v3"],"type":"squad","lead":"cls","core":["cls"],"common":["hothleia","han","chewie","c3po"],
+     "counters":[
+       {"name":"Lord Vader","lead":"lv","core":["lv"],"common":["deathtr","piett","veers"],"win":0.78,"diff":"easy","notes":"Empire into Rebels, as intended."},
+       {"name":"SEE","lead":"see","core":["see"],"common":["wat","malak"],"win":0.74,"diff":"easy","notes":"Reliable."},
+       {"name":"JMK","lead":"jmk","core":["jmk"],"common":["gk","cat","jolee"],"win":0.76,"diff":"easy","notes":"Safe."}
+     ]},
+    {"id":"d-gr","name":"Galactic Republic (Padme / GK)","modes":["5v5","3v3"],"type":"squad","lead":"padme","core":["padme"],"common":["gk","cat","jolee","shaak"],
+     "counters":[
+       {"name":"SEE","lead":"see","core":["see"],"common":["wat","malak"],"win":0.74,"diff":"medium","notes":"Fear ignores the Padme protection loop."},
+       {"name":"Lord Vader","lead":"lv","core":["lv"],"common":["deathtr","piett"],"win":0.70,"diff":"medium","notes":"Execute beats the healing."},
+       {"name":"SLKR","lead":"slkr","core":["slkr"],"common":["gi","reva"],"win":0.72,"diff":"medium","notes":"Works well."},
+       {"name":"General Grievous","lead":"gg","core":["gg"],"common":["b1","b2","magna","droideka"],"win":0.60,"diff":"hard","notes":"Non-GL option; needs strong droid mods."}
+     ]},
+    {"id":"d-geos","name":"Geonosians (Brood Alpha)","modes":["5v5","3v3"],"type":"squad","lead":"gba","core":["gba"],"common":["gsoldier","dooku"],
+     "counters":[
+       {"name":"Lord Vader","lead":"lv","core":["lv"],"common":["deathtr","piett"],"win":0.80,"diff":"easy","notes":"AoE clears the swarm."},
+       {"name":"JMK","lead":"jmk","core":["jmk"],"common":["gk","cat"],"win":0.76,"diff":"easy","notes":"Safe."},
+       {"name":"SEE","lead":"see","core":["see"],"common":["wat"],"win":0.74,"diff":"easy","notes":"Fine."}
+     ]},
+    {"id":"d-rogue","name":"Rogue One (Raddus / Cassian)","modes":["5v5","3v3"],"type":"squad","lead":"raddus","core":["raddus"],"common":["cassian","k2","jyn"],
+     "counters":[
+       {"name":"Lord Vader","lead":"lv","core":["lv"],"common":["deathtr","piett","shore"],"win":0.72,"diff":"medium","notes":"Watch the K-2SO taunt cycle."},
+       {"name":"JMK","lead":"jmk","core":["jmk"],"common":["gk","cat","jolee"],"win":0.75,"diff":"easy","notes":"Reliable."},
+       {"name":"SEE","lead":"see","core":["see"],"common":["wat","malak"],"win":0.72,"diff":"medium","notes":"Solid."}
+     ]},
+    {"id":"d-mando","name":"Mandalorians (Bo-Katan / Armorer)","modes":["5v5","3v3"],"type":"squad","lead":"bam","core":["bam"],"common":["armorer","mando","maul"],
+     "counters":[
+       {"name":"JMK","lead":"jmk","core":["jmk"],"common":["gk","cat","jolee"],"win":0.72,"diff":"medium","notes":"Grindy — Mandalorians are tanky."},
+       {"name":"SEE","lead":"see","core":["see"],"common":["wat","malak"],"win":0.70,"diff":"medium","notes":"Fear beats the assist chain."},
+       {"name":"Lord Vader","lead":"lv","core":["lv"],"common":["deathtr","piett"],"win":0.68,"diff":"medium","notes":"Bring the execute for the Armorer."}
+     ]},
+    {"id":"f-executor","name":"Executor (fleet)","modes":["5v5","3v3"],"type":"fleet","lead":"executor","core":["executor"],"common":[],
+     "counters":[
+       {"name":"Profundity","lead":"profundity","core":["profundity"],"common":[],"win":0.66,"diff":"medium","notes":"The standard Executor answer; needs a good Outrider/Ghost opener."},
+       {"name":"Leviathan","lead":"leviathan","core":["leviathan"],"common":[],"win":0.62,"diff":"medium","notes":"Works with the right reinforcement order."},
+       {"name":"Executor","lead":"executor","core":["executor"],"common":[],"win":0.55,"diff":"hard","notes":"Mirror — whoever moves first usually wins."}
+     ]},
+    {"id":"f-profundity","name":"Profundity (fleet)","modes":["5v5","3v3"],"type":"fleet","lead":"profundity","core":["profundity"],"common":[],
+     "counters":[
+       {"name":"Executor","lead":"executor","core":["executor"],"common":[],"win":0.68,"diff":"medium","notes":"Executor is favoured into Profundity on defense."},
+       {"name":"Leviathan","lead":"leviathan","core":["leviathan"],"common":[],"win":0.60,"diff":"medium","notes":"Viable alternative."},
+       {"name":"Malevolence","lead":"malevolence","core":["malevolence"],"common":[],"win":0.56,"diff":"hard","notes":"Tight, but doable."}
+     ]},
+    {"id":"f-leviathan","name":"Leviathan (fleet)","modes":["5v5","3v3"],"type":"fleet","lead":"leviathan","core":["leviathan"],"common":[],
+     "counters":[
+       {"name":"Executor","lead":"executor","core":["executor"],"common":[],"win":0.66,"diff":"medium","notes":"Reliable."},
+       {"name":"Profundity","lead":"profundity","core":["profundity"],"common":[],"win":0.62,"diff":"medium","notes":"Good answer."},
+       {"name":"Malevolence","lead":"malevolence","core":["malevolence"],"common":[],"win":0.58,"diff":"hard","notes":"Needs the right starting three."}
+     ]},
+    {"id":"f-malevolence","name":"Malevolence (fleet)","modes":["5v5","3v3"],"type":"fleet","lead":"malevolence","core":["malevolence"],"common":[],
+     "counters":[
+       {"name":"Executor","lead":"executor","core":["executor"],"common":[],"win":0.70,"diff":"easy","notes":"Comfortable."},
+       {"name":"Profundity","lead":"profundity","core":["profundity"],"common":[],"win":0.66,"diff":"medium","notes":"Solid."},
+       {"name":"Leviathan","lead":"leviathan","core":["leviathan"],"common":[],"win":0.64,"diff":"medium","notes":"Works."}
+     ]},
+    {"id":"f-negotiator","name":"Negotiator (fleet)","modes":["5v5","3v3"],"type":"fleet","lead":"negotiator","core":["negotiator"],"common":[],
+     "counters":[
+       {"name":"Executor","lead":"executor","core":["executor"],"common":[],"win":0.82,"diff":"easy","notes":"Modern capital rolls Negotiator."},
+       {"name":"Profundity","lead":"profundity","core":["profundity"],"common":[],"win":0.80,"diff":"easy","notes":"Easy."},
+       {"name":"Leviathan","lead":"leviathan","core":["leviathan"],"common":[],"win":0.78,"diff":"easy","notes":"Easy."},
+       {"name":"Malevolence","lead":"malevolence","core":["malevolence"],"common":[],"win":0.74,"diff":"easy","notes":"Comfortable."}
+     ]},
+    {"id":"f-finalizer","name":"Finalizer (fleet)","modes":["5v5","3v3"],"type":"fleet","lead":"finalizer","core":["finalizer"],"common":[],
+     "counters":[
+       {"name":"Executor","lead":"executor","core":["executor"],"common":[],"win":0.80,"diff":"easy","notes":"Straightforward."},
+       {"name":"Profundity","lead":"profundity","core":["profundity"],"common":[],"win":0.78,"diff":"easy","notes":"Straightforward."},
+       {"name":"Leviathan","lead":"leviathan","core":["leviathan"],"common":[],"win":0.76,"diff":"easy","notes":"Fine."}
+     ]}
+  ]
+}

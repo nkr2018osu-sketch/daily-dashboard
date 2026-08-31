@@ -2,7 +2,7 @@
    always arrive; the cache is the offline fallback. Big immutable chess
    assets (engine/library/pieces) are cache-first so the 7 MB engine only
    downloads once. */
-var CACHE = "dd-cache-v8";
+var CACHE = "dd-cache-v9";
 var SHELL = ["./", "./index.html", "./manifest.webmanifest", "./icon.svg",
              "./workout/index.html", "./workout/manifest.webmanifest", "./workout/icon.svg",
              "./storage/index.html", "./storage/manifest.webmanifest", "./storage/icon.svg",

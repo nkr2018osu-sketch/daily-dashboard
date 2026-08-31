@@ -32,6 +32,16 @@
   header.app{position:sticky; top:0; z-index:20; background:linear-gradient(var(--bg) 75%, rgba(243,237,226,0)); padding:6px 2px 10px;}
   .title{font-family:Georgia,"Times New Roman",serif; font-size:23px; font-weight:600; letter-spacing:.2px; margin:0 0 8px;}
   .title .dot{color:var(--terra);}
+  /* App launcher. Was seven right-floated links crammed into the title line,
+     which overflowed its box and wrapped into the date nav. Now a wrapping
+     row of chips, and outside the sticky header so it costs no fixed height. */
+  .applinks{display:flex; flex-wrap:wrap; gap:6px; margin:0 0 12px;}
+  .applinks a{flex:1 1 auto; display:flex; align-items:center; justify-content:center; gap:5px;
+    min-height:36px; padding:6px 10px; border:1px solid var(--line); background:var(--card);
+    border-radius:11px; font-size:12.5px; font-weight:600; color:var(--ink);
+    text-decoration:none; white-space:nowrap; box-shadow:var(--shadow);}
+  .applinks a:active{background:var(--terra-soft); border-color:var(--sand);}
+  .applinks a .ico{font-size:14px; line-height:1;}
   .datenav{display:flex; align-items:center; gap:8px;}
   .datenav .lbl{flex:1; text-align:center; font-weight:600; font-size:15px;}
   .datenav .sub{display:block; font-weight:400; font-size:12px; color:var(--muted);}
@@ -181,7 +191,7 @@
 <body>
 <div class="wrap">
   <header class="app">
-    <div class="title">Daily Dashboard<span class="dot">.</span> <a href="workout/index.html" style="float:right;font-size:13px;text-decoration:none" title="Workout tracker">🏋️ Lift</a> <a href="sculpt/index.html" style="float:right;font-size:13px;text-decoration:none;margin-right:12px" title="Lean strength program">💪 Sculpt</a> <a href="storage/index.html" style="float:right;font-size:13px;text-decoration:none;margin-right:12px" title="Storage inventory">📦 Totes</a> <a href="fuel/index.html" style="float:right;font-size:13px;text-decoration:none;margin-right:12px" title="Meal &amp; calorie tracker">🥗 Fuel</a> <a href="chess/index.html" style="float:right;font-size:13px;text-decoration:none;margin-right:12px" title="Chess game review">♞ Review</a> <a href="swgoh/index.html" style="float:right;font-size:13px;text-decoration:none;margin-right:12px" title="SWGOH farm planner">⚡ Kyber</a> <a href="gac/index.html" style="float:right;font-size:13px;text-decoration:none;margin-right:12px" title="SWGOH GAC planner">🏆 Bracket</a></div>
+    <div class="title">Daily Dashboard<span class="dot">.</span></div>
     <div class="datenav">
       <button class="navbtn" id="prevDay" aria-label="Previous day">‹</button>
       <div class="lbl"><span id="dateLabel">Today</span><span class="sub" id="dateSub"></span></div>
@@ -189,6 +199,16 @@
       <button class="todaybtn" id="todayBtn">Today</button>
     </div>
   </header>
+
+  <nav class="applinks" aria-label="Apps">
+    <a href="workout/index.html" title="Workout tracker"><span class="ico">🏋️</span>Lift</a>
+    <a href="sculpt/index.html" title="Lean strength program"><span class="ico">💪</span>Sculpt</a>
+    <a href="fuel/index.html" title="Meal &amp; calorie tracker"><span class="ico">🥗</span>Fuel</a>
+    <a href="storage/index.html" title="Storage inventory"><span class="ico">📦</span>Totes</a>
+    <a href="chess/index.html" title="Chess game review"><span class="ico">♞</span>Review</a>
+    <a href="swgoh/index.html" title="SWGOH farm planner"><span class="ico">⚡</span>Kyber</a>
+    <a href="gac/index.html" title="SWGOH GAC planner"><span class="ico">🏆</span>Bracket</a>
+  </nav>
 
   <div id="banner"></div>
   <div id="app"></div>

@@ -251,6 +251,17 @@ function catalogKey(idOrName){
   const n = norm(idOrName);
   return n ? (IDX.get(n) || null) : null;
 }
+/* The real page for a squad, when we know its swgoh.gg base id. Search
+   confirmed these ids from live URLs; where one is unknown we link to the
+   index rather than guess an id that 404s. */
+const GG_COUNTERS = "https://swgoh.gg/gac/counters/";
+function ggBase(k){ const u = DB && DB.units && DB.units[k]; return (u && u.base) || null; }
+function ggUrl(entry){
+  const b = entry && ggBase(entry.lead);
+  return b ? GG_COUNTERS + b + "/" : GG_COUNTERS;
+}
+function needsData(entry){ return !(entry.counters || []).length; }
+
 function uname(k){ const u = (DB && DB.units && DB.units[k]); return u ? u.n : k; }
 function isShip(k){ const u = (DB && DB.units && DB.units[k]); return !!(u && u.ship); }
 
@@ -761,15 +772,20 @@ function render(){
    planning tabs rather than buried in Setup. */
 function seedNote(){
   if(S.cfg.hideSeedNote) return "";
+  const all = defenses();
+  const empty = all.filter(needsData).length;
   const n = (S.log || []).length;
   return `<div class="card seednote">
-    <h3>About these win rates</h3>
-    <p class="tiny">They are <b>my estimates, not swgoh.gg data</b>. Nothing in this app is scraped
-    from a counter site — the shipped table was written by hand and the percentages are rough.
-    Trust the <i>ordering</i> more than the numbers, and trust your own experience over both.</p>
-    <p class="tiny">Two ways to fix that: log results as you play (${n} so far — after about four on a
-    pairing, your record outweighs my guess), or import a real table under
-    <b>Setup → Import a table</b>.</p>
+    <h3>Where these numbers come from</h3>
+    <p class="tiny">Anything tagged <span class="warn">my estimate</span> is exactly that — written
+    by hand, not measured. swgoh.gg can't be reached from where this app was built, so no counter
+    data was ever downloaded.</p>
+    <p class="tiny"><b>${empty}</b> of ${all.length} squads have no counter data at all, including
+    most of the current meta. Each of those offers a <b>Fill it from swgoh.gg</b> button that opens
+    the real page for you to copy and paste back in — that data is tagged
+    <span class="good">from swgoh.gg</span> and outranks mine.</p>
+    <p class="tiny">Your own results beat both: ${n} logged so far, and after about four on a
+    pairing your record outweighs any estimate.</p>
     <button class="btn ghost small" onclick="setCfg('hideSeedNote', true)">Got it, hide this</button>
   </div>`;
 }
@@ -784,10 +800,12 @@ function safetyPill(s){
 function bar(v, cls){
   return `<div class="bar"><i class="${cls||''}" style="width:${clamp(v,0,1)*100}%"></i></div>`;
 }
-function srcTag(base){
-  return base.src === "log"
-    ? `<span class="tiny">your log ${base.w}/${base.n}</span>`
-    : `<span class="tiny">seed est.</span>`;
+function srcTag(base, counter){
+  if(base.src === "log") return `<span class="tiny">your record ${base.w}/${base.n}</span>`;
+  const s = counter && counter.src;
+  return s === "page" ? `<span class="tiny good">from swgoh.gg</span>`
+       : s === "you"  ? `<span class="tiny">your own entry</span>`
+       : `<span class="tiny warn">my estimate</span>`;
 }
 function unitChips(sq, R){
   const lead = sq.entry.lead;
@@ -872,7 +890,11 @@ function viewDefense(){
   const set = plan.ground.picked.length + plan.fleet.picked.length;
   const sec = (label, group, slots) => {
     const picked = group.picked;
-    const rest = group.cands.filter(c => picked.indexOf(c) < 0).slice(0, 6);
+    // Compare by squad, not by object: the candidate list is rebuilt after the
+    // fill loop, so the picked entries are different objects for the same squad
+    // and identity matching let them show up again under "next best".
+    const pickedIds = new Set(picked.map(c => c.entry.id));
+    const rest = group.cands.filter(c => !pickedIds.has(c.entry.id)).slice(0, 6);
     if(!group.cands.length) return `<div class="card"><h3>${label}</h3>
       <div class="empty">No ${label.toLowerCase()} in the table that your roster can field.
       Add one in Setup.</div></div>`;
@@ -934,12 +956,14 @@ function avgSafety(plan){
 function defRow(c, rank){
   const t = c.threat.best;
   const line = t
-    ? `Their best answer: <b>${esc(t.counter.name)}</b> at ${pct(t.p)} — ${srcTag(t.base)}.
+    ? `Their best answer: <b>${esc(t.counter.name)}</b> at ${pct(t.p)} — ${srcTag(t.base, t.counter)}.
        ${t.counter.notes ? esc(t.counter.notes) : ""}`
     : c.threat.known
       ? `Nothing they own beats this — every listed answer needs a unit they don't have.`
-      : `<span class="warn">The table lists no counters for this squad</span>, so this number is a
-         guess, not a finding. Add what beats it in Setup.`;
+      : `<span class="warn">No counter data for this squad at all</span> — this number is a
+         placeholder, not a finding.
+         <button class="btn ghost small" style="margin-top:5px"
+           onclick="openPageImport('${c.entry.id}')">Fill it from swgoh.gg</button>`;
   return `<div class="item">
     <div class="hd">
       <span class="nm">${rank ? rank + ". " : ""}${esc(c.entry.name)}</span>
@@ -1009,7 +1033,7 @@ function viewOffense(){
       ${pick ? `
         ${bar(pick.p, pick.p >= .7 ? "good" : pick.p >= .55 ? "" : "hot")}
         <div class="tiny" style="margin:4px 0 2px">Attack with <b>${esc(pick.counter.name)}</b>
-          — ${srcTag(pick.base)}${pick.gap > 1.05 ? `, you out-gear them` : pick.gap < 0.95 ? `, they out-gear you` : ""}.</div>
+          — ${srcTag(pick.base, pick.counter)}${pick.gap > 1.05 ? `, you out-gear them` : pick.gap < 0.95 ? `, they out-gear you` : ""}.</div>
         ${unitChips(pick.squad, S.me)}
         ${pick.counter.notes ? `<div class="tiny">${esc(pick.counter.notes)}</div>` : ""}
         <div class="row wrap" style="margin-top:7px">
@@ -1020,8 +1044,12 @@ function viewOffense(){
           ${t.cands.length ? "Nothing free is worth more here than where it already is."
             : t.onDefense ? "Your " + t.onDefense + " answer" + (t.onDefense>1?"s are":" is") +
                             " standing on your own defense. Free one on the Defense tab to use it here."
-            : "You don't own any counter listed for this squad."}
+            : needsData(t.target.entry)
+              ? "No counter data for this squad yet."
+              : "You don't own any counter listed for this squad."}
          </div>
+         ${needsData(t.target.entry) ? `<button class="btn ghost small" style="margin-top:6px"
+            onclick="openPageImport('${t.target.entry.id}')">Fill it from swgoh.gg</button>` : ""}
          ${t.cands.slice(0,3).map(a => { const by = blockedBy(a);
             return `<div class="tiny">${esc(a.counter.name)} ${pct(a.p)} — ${by
               ? "committed to " + esc(by) : "free, but worth less than the swap"}.</div>`; }).join("")}`}
@@ -1150,6 +1178,23 @@ function viewSetup(){
       <button class="btn danger small" style="margin-top:8px" onclick="clearCustom()">Remove mine</button>` : ""}
   </div>
 
+  <div class="card"><h3>Counter data coverage</h3>
+    ${(() => {
+      const all = defenses().filter(d => !d.modes || d.modes.indexOf(S.cfg.mode) >= 0);
+      const empty = all.filter(needsData);
+      const real = all.filter(d => (d.counters||[]).some(c => c.src === "page")).length;
+      return `<p class="muted">${all.length - empty.length} of ${all.length} squads have counters ·
+        ${real} filled from swgoh.gg</p>
+      ${empty.length ? `<p class="tiny">These have nothing yet. Each button opens the real page —
+        copy it, paste it back, and the squad is done for good:</p>
+        ${empty.map(d => `<div class="item"><div class="hd">
+            <span class="nm">${esc(d.name)}</span>
+            <button class="btn ghost small" onclick="openPageImport('${d.id}')">Fill in</button>
+          </div></div>`).join("")}`
+        : `<p class="tiny good">Every squad has counter data.</p>`}`;
+    })()}
+  </div>
+
   <div class="card"><h3>Fetching from swgoh.gg</h3>
     <p class="tiny">The Fetch button calls <code>swgoh.gg/api/player/&lt;code&gt;/</code> directly.
     Browsers block that unless swgoh.gg sends CORS headers. If yours fails, either paste the roster
@@ -1169,6 +1214,120 @@ function viewSetup(){
     </div>
     <p class="tiny" style="margin-top:8px">Rosters, plans and results are kept in this browser only.</p>
   </div>`;
+}
+
+/* ============================================================
+   IMPORTING A REAL COUNTER PAGE
+   swgoh.gg is unreachable from where this app was built, but not from your
+   browser. Copy the page, paste it here. The parser is deliberately loose
+   about layout — it looks for unit names it recognises and percentages, and
+   groups them — and always shows what it understood before committing.
+   ============================================================ */
+
+function parseCounterPage(text){
+  const lines = String(text || "").split(/\r?\n/);
+  const out = [];
+  let units = [], win = null, seen = null;
+
+  const flush = () => {
+    if(units.length && win != null){
+      out.push({units: uniq(units), win: clamp(win / 100, 0.02, 0.97), seen});
+    }
+    units = []; win = null; seen = null;
+  };
+
+  lines.forEach(raw => {
+    const line = raw.trim();
+    if(!line) return;
+    // A percentage closes the group it belongs to.
+    const mp = line.match(/(\d{1,3}(?:\.\d+)?)\s*%/);
+    // Look for the battle count only in what's left after the percentage —
+    // otherwise "78% 12.4K battles" reads the 78 as the count. Require either
+    // an explicit word or a K/M suffix so stray numbers aren't mistaken for it.
+    const rest = mp ? line.replace(mp[0], " ") : line;
+    const ms = rest.match(/(\d+(?:\.\d+)?)\s*([KkMm])?\s*(?:battles|seen|matches)\b/i)
+            || rest.match(/(\d+(?:\.\d+)?)\s*([KkMm])\b/);
+    // Pull unit names out of the line, longest first so "Jedi Master Kenobi"
+    // wins over "Jedi Master Mace Windu" style overlaps.
+    const found = [];
+    Object.keys((DB && DB.units) || {}).forEach(k => {
+      const u = DB.units[k];
+      const names = [u.n].concat(u.a || []);
+      if(names.some(n => n && n.length > 2 && norm(line).indexOf(norm(n)) >= 0)) found.push(k);
+    });
+    if(found.length) units = units.concat(found);
+    if(mp){
+      win = parseFloat(mp[1]);
+      if(ms && !seen){ const n = parseFloat(ms[1]); seen = /[Kk]/.test(ms[2]||"") ? n*1000 : n; }
+      flush();
+    }
+  });
+  flush();
+  // A counter squad is a leader plus up to four others; drop noise rows.
+  return out.filter(g => g.units.length >= 1 && g.units.length <= 8);
+}
+
+function openPageImport(defId){
+  const d = defById(defId);
+  if(!d) return;
+  const url = ggUrl(d);
+  document.getElementById("sheet").innerHTML = `
+    <h3 style="margin-top:0">Fill in ${esc(d.name)} from swgoh.gg</h3>
+    <p class="tiny">I can't reach swgoh.gg from where this app was built, but your browser can.</p>
+    <ol class="tiny" style="padding-left:18px; margin:8px 0">
+      <li><a href="${url}" target="_blank" rel="noopener" style="color:var(--accent2)">Open the counters page</a>${
+        ggBase(d.lead) ? "" : " and find " + esc(d.name)}</li>
+      <li>Select the whole page and copy it</li>
+      <li>Paste it below and hit Read it</li>
+    </ol>
+    <textarea id="pageBox" placeholder="paste the page here — messy is fine"></textarea>
+    <div id="pagePreview"></div>
+    <div class="row" style="margin-top:10px">
+      <button class="btn grow" onclick="previewPageImport('${defId}')">Read it</button>
+      <button class="btn ghost" onclick="closeModal()">Cancel</button>
+    </div>`;
+  openModal();
+}
+
+let pageDraft = null;
+function previewPageImport(defId){
+  const rows = parseCounterPage(document.getElementById("pageBox").value);
+  pageDraft = {defId, rows};
+  const el = document.getElementById("pagePreview");
+  if(!rows.length){
+    el.innerHTML = `<div class="est"><p class="tiny bad">Nothing recognisable in that. Either the
+      copy didn't include the table, or none of the unit names match the ones I know. Paste it to
+      me in the chat and I'll teach the parser this layout.</p></div>`;
+    return;
+  }
+  el.innerHTML = `<div class="est"><p class="tiny">Found <b>${rows.length}</b> counter${rows.length===1?"":"s"}.
+    Check them before committing — anything wrong here goes straight into your table.</p></div>` +
+    rows.map((r,i) => `<div class="item"><div class="hd">
+        <span class="nm">${esc(uname(r.units[0]))}</span>
+        <span class="pill ${r.win>=.7?"good":r.win>=.55?"mid":"hot"}">${pct(r.win)}</span>
+      </div>
+      <div class="units">${r.units.map(k=>`<span class="u">${esc(uname(k))}</span>`).join("")}</div>
+      ${r.seen ? `<div class="tiny">${Math.round(r.seen)} battles</div>` : ""}
+    </div>`).join("") +
+    `<button class="btn" style="margin-top:10px" onclick="commitPageImport()">
+       Add these ${rows.length} to ${esc(defById(defId).name)}</button>`;
+}
+
+function commitPageImport(){
+  if(!pageDraft || !pageDraft.rows.length) return;
+  const base = defById(pageDraft.defId);
+  const counters = pageDraft.rows.map(r => ({
+    name: uname(r.units[0]), lead: r.units[0], core: [r.units[0]],
+    common: r.units.slice(1), win: r.win, notes: r.seen ? Math.round(r.seen) + " battles" : "",
+    src: "page", srcUrl: ggUrl(base), asOf: today()
+  }));
+  const existing = (S.custom || []).find(x => x.id === pageDraft.defId);
+  if(existing) existing.counters = existing.counters.concat(counters);
+  else S.custom.push({id: base.id, name: base.name, type: base.type, modes: base.modes,
+    lead: base.lead, core: base.core, common: base.common, counters});
+  save(); closeModal(); render();
+  toast("Added " + counters.length + " real counters");
+  pageDraft = null;
 }
 
 /* ============================================================
